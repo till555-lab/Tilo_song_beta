@@ -34,12 +34,107 @@ local ScreenGui=_I("ScreenGui")
 ScreenGui.Name="TiloSongGui"
 ScreenGui.ResetOnSpawn=false
 ScreenGui.Parent=PlayerGui
+do
+local oldLoading=PlayerGui:FindFirstChild("TiloSongLoading")
+if oldLoading then
+oldLoading:Destroy()
+end
+local LoadGui=_I("ScreenGui")
+LoadGui.Name="TiloSongLoading"
+LoadGui.ResetOnSpawn=false
+LoadGui.IgnoreGuiInset=true
+LoadGui.DisplayOrder=1000
+LoadGui.Parent=PlayerGui
+local Dim=_I("Frame",LoadGui)
+Dim.Size=_U(1,0,1,0)
+Dim.BackgroundColor3=_C(8,4,16)
+Dim.BackgroundTransparency=0.2
+Dim.BorderSizePixel=0
+Dim.Active=true
+local DimGradient=_I("UIGradient",Dim)
+DimGradient.Color=ColorSequence.new(_C(40,12,70),_C(5,2,12))
+DimGradient.Rotation=90
+local notes={"🎵","🎶","🎧","🎵","🎶"}
+for i=1,16 do
+local note=_I("TextLabel",Dim)
+note.BackgroundTransparency=1
+note.Size=_U(0,40,0,40)
+note.Text=notes[(i % #notes) + 1]
+note.TextSize=math.random(22,38)
+note.TextTransparency=0.35
+note.Position=_U(math.random(2,96) / 100,0,1.1,0)
+task.delay(math.random(0,20) / 10,function()
+if note.Parent then
+TweenService:Create(note,TweenInfo.new(math.random(28,45) / 10,Enum.EasingStyle.Linear),{Position=_U(note.Position.X.Scale,0,-0.15,0)}):Play()
+end
+end)
+end
+local Card=_I("Frame",Dim)
+Card.AnchorPoint=Vector2.new(0.5,0.5)
+Card.Size=_U(0,280,0,120)
+Card.Position=_U(0.5,0,0.5,0)
+Card.BackgroundColor3=_C(18,15,22)
+Card.BorderSizePixel=0
+_Cr(Card,12)
+local CardStroke=_St(Card,_PU,2)
+local CardTitle=_I("TextLabel",Card)
+CardTitle.Size=_U(1,0,0,36)
+CardTitle.Position=_U(0,0,0,10)
+CardTitle.BackgroundTransparency=1
+CardTitle.Text="🎵 TILO SONG v2.6.9"
+CardTitle.TextColor3=_W
+CardTitle.Font=_FB
+CardTitle.TextSize=20
+local CardSub=_I("TextLabel",Card)
+CardSub.Size=_U(1,0,0,20)
+CardSub.Position=_U(0,0,0,46)
+CardSub.BackgroundTransparency=1
+CardSub.Text="Загрузка..."
+CardSub.TextColor3=_C(200,200,220)
+CardSub.Font=_FN
+CardSub.TextSize=14
+local BarTrack=_I("Frame",Card)
+BarTrack.Size=_U(1,-40,0,12)
+BarTrack.Position=_U(0,20,0,76)
+BarTrack.BackgroundColor3=_C(40,35,55)
+BarTrack.BorderSizePixel=0
+_Cr(BarTrack,6)
+local BarFill=_I("Frame",BarTrack)
+BarFill.Size=_U(0,0,1,0)
+BarFill.BackgroundColor3=_C(0,170,90)
+BarFill.BorderSizePixel=0
+_Cr(BarFill,6)
+local BarPercent=_I("TextLabel",Card)
+BarPercent.Size=_U(1,0,0,16)
+BarPercent.Position=_U(0,0,0,94)
+BarPercent.BackgroundTransparency=1
+BarPercent.Text="0%"
+BarPercent.TextColor3=_W
+BarPercent.Font=_FB
+BarPercent.TextSize=13
+task.spawn(function()
+local total=5
+local elapsed=0
+while elapsed < total and LoadGui.Parent do
+local ratio=elapsed / total
+ratio=ratio * ratio * (3 - 2 * ratio)
+BarFill.Size=_U(ratio,0,1,0)
+BarPercent.Text=math.floor(ratio * 100) .. "%"
+elapsed=elapsed + task.wait(0.05)
+end
+BarFill.Size=_U(1,0,1,0)
+BarPercent.Text="100%"
+CardSub.Text="Готово!"
+task.wait(0.4)
+LoadGui:Destroy()
+end)
+end
 local ToggleBtn=_I("TextButton",ScreenGui)
 ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.6.8"
+ToggleBtn.Text="🎵 Tilo Song\nv2.6.9"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -78,7 +173,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.6.8"
+Title.Text="🎵 TILO SONG v2.6.9"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -1049,12 +1144,18 @@ local playerPanelOpen=false
 local panelTween=nil
 local function setPlayerPanelOpen(open,instant)
 playerPanelOpen=open
-PlayerTab.Text=open and ">" or "<"
+local onLeft=ScreenGui:GetAttribute("PlayerSide") == "left"
+PlayerTab.Text=(open ~= onLeft) and ">" or "<"
 if panelTween then
 panelTween:Cancel()
 panelTween=nil
 end
-local target=open and PANEL_OPEN_POS or PANEL_CLOSED_POS
+local openPos,closedPos=PANEL_OPEN_POS,PANEL_CLOSED_POS
+if onLeft then
+openPos=_U(0,0,0.5,0)
+closedPos=_U(0,-320,0.5,0)
+end
+local target=open and openPos or closedPos
 if instant then
 PlayerPanel.Position=target
 else
@@ -1179,6 +1280,113 @@ end
 PlayerToggleBtn.MouseButton1Click:Connect(function()
 setPlayerEnabled(not playerEnabled)
 end)
+do
+local MuteAllBtn=_I("TextButton",PlayerView)
+MuteAllBtn.Size=_U(0,145,0,30)
+MuteAllBtn.Position=_U(0,10,0,224)
+MuteAllBtn.TextColor3=COLOR_WHITE
+MuteAllBtn.Font=_FB
+MuteAllBtn.TextSize=12
+_Cr(MuteAllBtn,6)
+local MuteMusicBtn=_I("TextButton",PlayerView)
+MuteMusicBtn.Size=_U(0,145,0,30)
+MuteMusicBtn.Position=_U(0,165,0,224)
+MuteMusicBtn.TextColor3=COLOR_WHITE
+MuteMusicBtn.Font=_FB
+MuteMusicBtn.TextSize=12
+_Cr(MuteMusicBtn,6)
+local muteMode=nil
+local savedVolume={}
+local volumeWatch={}
+local function isMusic(snd)
+if snd:FindFirstAncestorOfClass("Tool") then
+return true
+end
+local model=snd:FindFirstAncestorOfClass("Model")
+local parent=snd.Parent
+if model and parent and model:FindFirstChildOfClass("Humanoid") and (parent == model or parent.Name == "HumanoidRootPart" or parent.Name == "Head") then
+return false
+end
+if snd.Looped or snd.TimeLength >= 20 then
+return true
+end
+local lowerName=snd.Name:lower()
+return lowerName:find("music") ~= nil or lowerName:find("song") ~= nil or lowerName:find("boombox") ~= nil or lowerName:find("radio") ~= nil or lowerName:find("track") ~= nil
+end
+local function shouldMute(snd)
+if snd == localSound or snd == previewSound or snd:IsDescendantOf(ScreenGui) then
+return false
+end
+if muteMode == "all" then
+return true
+end
+if muteMode == "music" then
+return isMusic(snd)
+end
+return false
+end
+local function muteSound(snd)
+if savedVolume[snd] ~= nil or not shouldMute(snd) then
+return
+end
+savedVolume[snd]=snd.Volume
+snd.Volume=0
+volumeWatch[snd]=snd:GetPropertyChangedSignal("Volume"):Connect(function()
+if muteMode and savedVolume[snd] ~= nil and snd.Volume ~= 0 then
+savedVolume[snd]=snd.Volume
+snd.Volume=0
+end
+end)
+end
+local function unmuteAll()
+for snd,vol in pairs(savedVolume) do
+if volumeWatch[snd] then
+volumeWatch[snd]:Disconnect()
+end
+if snd.Parent then
+snd.Volume=vol
+end
+end
+savedVolume={}
+volumeWatch={}
+end
+local function updateMuteButtons()
+MuteAllBtn.Text=(muteMode == "all") and "✅ Всё заглушено" or "🔇 Заглушить всё"
+MuteAllBtn.BackgroundColor3=(muteMode == "all") and COLOR_RED or COLOR_DARK
+MuteMusicBtn.Text=(muteMode == "music") and "✅ Музыка заглушена" or "🎵 Заглушить музыку"
+MuteMusicBtn.BackgroundColor3=(muteMode == "music") and COLOR_RED or COLOR_DARK
+end
+local function setMuteMode(mode)
+unmuteAll()
+if muteMode == mode then
+muteMode=nil
+else
+muteMode=mode
+end
+if muteMode then
+for _,root in ipairs({workspace,game:GetService("SoundService"),PlayerGui}) do
+for _,item in ipairs(root:GetDescendants()) do
+if item:IsA("Sound") then
+muteSound(item)
+end
+end
+end
+end
+updateMuteButtons()
+end
+game.DescendantAdded:Connect(function(item)
+if muteMode and item:IsA("Sound") then
+task.defer(muteSound,item)
+end
+end)
+MuteAllBtn.MouseButton1Click:Connect(function()
+setMuteMode("all")
+end)
+MuteMusicBtn.MouseButton1Click:Connect(function()
+setMuteMode("music")
+end)
+updateMuteButtons()
+end
 local function setRepeatMode(mode)
 repeatMode=mode
 ModeOnceBtn.BackgroundColor3=(mode == "once") and COLOR_PURPLE or COLOR_DARK
@@ -1629,14 +1837,6 @@ local pageColors=makeSettingsPage()
 local pageScript=makeSettingsPage()
 local pagePlayer=makeSettingsPage()
 local pageVisual=makeSettingsPage()
-local pageSoon=_I("TextLabel",pageVisual)
-pageSoon.Size=_U(1,-10,0,60)
-pageSoon.BackgroundTransparency=1
-pageSoon.Text="Здесь скоро появятся визуальные эффекты."
-pageSoon.TextColor3=_C(160,160,180)
-pageSoon.Font=Enum.Font.SourceSansItalic
-pageSoon.TextSize=13
-pageSoon.TextWrapped=true
 local settingsTabs={}
 local function showSettingsPage(name)
 pageColors.Visible=(name == "colors")
@@ -1961,7 +2161,8 @@ local inset=GuiService:GetGuiInset().Y
 local top=-inset
 local centerY=top + tabH / 2 + (tabPos / 100) * math.max(screenH - top - tabH,0)
 PlayerTab.Size=_U(0,tabW,0,tabH)
-PlayerTab.Position=_U(0,-tabW,0.5,(centerY - screenH / 2) - tabH / 2)
+local onLeft=ScreenGui:GetAttribute("PlayerSide") == "left"
+PlayerTab.Position=_U(onLeft and 1 or 0,onLeft and 0 or -tabW,0.5,(centerY - screenH / 2) - tabH / 2)
 end
 local function makeSlider(order,title,minV,maxV,defaultV,key,suffix,onChange)
 local row=_I("Frame",pagePlayer)
@@ -2054,6 +2255,225 @@ end)
 local setTabH=makeSlider(3,"Высота кнопки (размер)",30,120,40,"tab_h"," px",function(v)
 tabH=v
 layoutTab()
+end)
+local function makeToggleRow(page,order,text,onChange)
+local row=_I("Frame",page)
+row.Size=_U(1,-10,0,40)
+row.LayoutOrder=order
+row.BackgroundColor3=_C(28,25,38)
+row.BorderSizePixel=0
+_Cr(row,6)
+local rowText=_I("TextLabel",row)
+rowText.Size=_U(1,-60,1,0)
+rowText.Position=_U(0,10,0,0)
+rowText.BackgroundTransparency=1
+rowText.Text=text
+rowText.TextColor3=_C(220,220,240)
+rowText.Font=_FB
+rowText.TextSize=13
+rowText.TextXAlignment=_XL
+local rowSquare=_I("TextButton",row)
+rowSquare.Size=_U(0,34,0,28)
+rowSquare.Position=_U(1,-44,0.5,-14)
+rowSquare.Text=""
+rowSquare.AutoButtonColor=false
+_Cr(rowSquare,5)
+local rowStroke=_I("UIStroke",rowSquare)
+rowStroke.Thickness=2
+rowStroke.Color=_W
+local state=false
+local function setState(on,silent)
+state=on and true or false
+rowSquare.BackgroundColor3=state and COLOR_GREEN or COLOR_RED
+if not silent then
+onChange(state)
+end
+end
+rowSquare.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+setState(not state)
+end)
+setState(false,true)
+return setState
+end
+local setPlayerLeft=makeToggleRow(pagePlayer,4,"Плеер слева",function(on)
+ScreenGui:SetAttribute("PlayerSide",on and "left" or "right")
+themeData.player_left=on or nil
+saveTheme()
+end)
+ScreenGui:GetAttributeChangedSignal("PlayerSide"):Connect(function()
+setPlayerPanelOpen(playerPanelOpen,true)
+layoutTab()
+end)
+local Lighting=game:GetService("Lighting")
+local skyPresets={
+{id="normal",name="Обычное",c1=_C(95,95,110),c2=_C(45,45,55)},
+{id="day",name="День",c1=_C(70,140,255),c2=_C(200,230,255),time=14,amb=_C(140,150,170),atmo={_C(180,205,235),_C(106,112,125),0.25,0.4,0}},
+{id="evening",name="Вечер",c1=_C(80,60,140),c2=_C(255,170,120),time=17.5,amb=_C(150,120,115),atmo={_C(230,190,150),_C(150,100,70),0.3,1,0.2}},
+{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=18.2,amb=_C(150,100,90),atmo={_C(255,160,110),_C(180,70,50),0.35,1.5,0.3}},
+{id="night",name="Ночь",c1=_C(5,5,25),c2=_C(40,50,110),time=0,amb=_C(55,60,90),atmo={_C(40,50,90),_C(20,25,45),0.3,0,0}}
+}
+local skyById={}
+for _,preset in ipairs(skyPresets) do
+skyById[preset.id]=preset
+end
+local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil}
+local function updateSkyLock()
+local preset=skyById[skyState.preset]
+if preset and preset.time then
+skyState.lock=preset.time
+elseif skyState.frozen then
+skyState.lock=skyState.frozenTime
+else
+skyState.lock=nil
+end
+if skyState.lock then
+Lighting.ClockTime=skyState.lock
+end
+end
+Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+if skyState.lock and math.abs(Lighting.ClockTime - skyState.lock) > 0.01 then
+Lighting.ClockTime=skyState.lock
+end
+end)
+local skyRow=_I("TextButton",pageVisual)
+skyRow.Size=_U(1,-10,0,40)
+skyRow.LayoutOrder=2
+skyRow.BackgroundColor3=_C(28,25,38)
+skyRow.TextColor3=_C(220,220,240)
+skyRow.Font=_FB
+skyRow.TextSize=13
+skyRow.AutoButtonColor=false
+skyRow.Text="Небо: Обычное (выбрать)"
+_Cr(skyRow,6)
+local function applySky(id)
+local preset=skyById[id] or skyById.normal
+skyState.preset=preset.id
+if preset.id == "normal" then
+if skyState.orig then
+Lighting.Brightness=skyState.orig.Brightness
+Lighting.Ambient=skyState.orig.Ambient
+Lighting.OutdoorAmbient=skyState.orig.OutdoorAmbient
+skyState.orig=nil
+end
+for _,obj in ipairs(skyState.stash) do
+pcall(function()
+obj.Parent=Lighting
+end)
+end
+skyState.stash={}
+if skyState.atmo then
+skyState.atmo:Destroy()
+skyState.atmo=nil
+end
+else
+if not skyState.orig then
+skyState.orig={Brightness=Lighting.Brightness,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient}
+end
+for _,child in ipairs(Lighting:GetChildren()) do
+if (child:IsA("Sky") or child:IsA("Atmosphere")) and child ~= skyState.atmo then
+table.insert(skyState.stash,child)
+child.Parent=nil
+end
+end
+if not skyState.atmo then
+skyState.atmo=_I("Atmosphere")
+end
+skyState.atmo.Parent=Lighting
+skyState.atmo.Color=preset.atmo[1]
+skyState.atmo.Decay=preset.atmo[2]
+skyState.atmo.Density=preset.atmo[3]
+skyState.atmo.Haze=preset.atmo[4]
+skyState.atmo.Glare=preset.atmo[5]
+Lighting.OutdoorAmbient=preset.amb
+end
+updateSkyLock()
+skyRow.Text="Небо: " .. preset.name .. " (выбрать)"
+end
+local skyPopup=_I("Frame",settingsFrame)
+skyPopup.Size=_U(0,260,0,160)
+skyPopup.Position=_U(0.5,-130,0,200)
+skyPopup.BackgroundColor3=_C(30,26,42)
+skyPopup.BorderSizePixel=0
+skyPopup.Active=true
+skyPopup.Visible=false
+_Cr(skyPopup,10)
+local skyPopupStroke=_St(skyPopup,_C(110,90,170),2)
+local skyPopupTitle=_I("TextLabel",skyPopup)
+skyPopupTitle.Size=_U(1,-40,0,24)
+skyPopupTitle.Position=_U(0,10,0,4)
+skyPopupTitle.BackgroundTransparency=1
+skyPopupTitle.Text="Выберите небо"
+skyPopupTitle.TextColor3=_W
+skyPopupTitle.Font=_FB
+skyPopupTitle.TextSize=13
+skyPopupTitle.TextXAlignment=_XL
+local skyPopupClose=_I("TextButton",skyPopup)
+skyPopupClose.Size=_U(0,22,0,22)
+skyPopupClose.Position=_U(1,-28,0,5)
+skyPopupClose.BackgroundTransparency=1
+skyPopupClose.Text="✕"
+skyPopupClose.TextColor3=_C(255,80,80)
+skyPopupClose.Font=_FB
+skyPopupClose.TextSize=14
+skyPopupClose.MouseButton1Click:Connect(function()
+skyPopup.Visible=false
+end)
+local skyGrid=_I("Frame",skyPopup)
+skyGrid.Size=_U(1,-20,0,120)
+skyGrid.Position=_U(0,10,0,32)
+skyGrid.BackgroundTransparency=1
+local skyGridLayout=_I("UIGridLayout",skyGrid)
+skyGridLayout.CellSize=_U(0,76,0,56)
+skyGridLayout.CellPadding=_U(0,6,0,6)
+skyGridLayout.SortOrder=Enum.SortOrder.LayoutOrder
+for index,preset in ipairs(skyPresets) do
+local skyBtn=_I("TextButton",skyGrid)
+skyBtn.LayoutOrder=index
+skyBtn.BackgroundColor3=_W
+skyBtn.AutoButtonColor=false
+skyBtn.Text=preset.name
+skyBtn.TextColor3=_W
+skyBtn.TextStrokeTransparency=0.3
+skyBtn.Font=_FB
+skyBtn.TextSize=12
+_Cr(skyBtn,6)
+local skyGradient=_I("UIGradient",skyBtn)
+skyGradient.Color=ColorSequence.new(preset.c1,preset.c2)
+skyGradient.Rotation=90
+skyBtn.MouseButton1Click:Connect(function()
+applySky(preset.id)
+if preset.id == "normal" then
+themeData.sky_preset=nil
+else
+themeData.sky_preset=preset.id
+end
+saveTheme()
+skyPopup.Visible=false
+end)
+end
+skyRow.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+skyPopup.Visible=not skyPopup.Visible
+end)
+pageVisual:GetPropertyChangedSignal("Visible"):Connect(function()
+if not pageVisual.Visible then
+skyPopup.Visible=false
+end
+end)
+settingsFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+if not settingsFrame.Visible then
+skyPopup.Visible=false
+end
+end)
+local setSkyFreeze=makeToggleRow(pageVisual,1,"Заморозить небо",function(on)
+skyState.frozen=on
+if on then
+skyState.frozenTime=Lighting.ClockTime
+end
+updateSkyLock()
+themeData.sky_freeze=on or nil
+saveTheme()
 end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
 local winDrag,winStart,winOrigin=false,nil,nil
@@ -2152,6 +2572,15 @@ setTabW(themeData.tab_w)
 end
 if type(themeData.tab_h) == "number" then
 setTabH(themeData.tab_h)
+end
+if themeData.player_left == true then
+setPlayerLeft(true)
+end
+if type(themeData.sky_preset) == "string" then
+applySky(themeData.sky_preset)
+end
+if themeData.sky_freeze == true then
+setSkyFreeze(true)
 end
 showSettingsPage("colors")
 end)
