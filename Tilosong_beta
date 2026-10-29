@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7"
+CardTitle.Text="🎵 TILO SONG v2.7.1"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -150,7 +150,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.1"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -190,7 +190,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7"
+Title.Text="🎵 TILO SONG v2.7.1"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -1864,9 +1864,9 @@ for key,btn in pairs(settingsTabs) do
 btn.BackgroundColor3=(key == name) and _PU or _C(35,30,48)
 end
 end
-local function makeSettingsTab(key,text,x)
+local function makeSettingsTab(key,text,x,w)
 local btn=_I("TextButton",settingsFrame)
-btn.Size=_U(0,67,0,26)
+btn.Size=_U(0,w,0,26)
 btn.Position=_U(0,x,0,44)
 btn.Text=text
 btn.TextColor3=_W
@@ -1882,10 +1882,10 @@ palettePopup.Visible=false
 end
 end)
 end
-makeSettingsTab("colors","Цвета",10)
-makeSettingsTab("general","Общие",81)
-makeSettingsTab("player","Плеер",152)
-makeSettingsTab("visual","Визуалки",223)
+makeSettingsTab("colors","Цвета",10,56)
+makeSettingsTab("general","Общие",71,56)
+makeSettingsTab("player","Плеер",132,56)
+makeSettingsTab("visual","Время суток",193,98)
 local function contrastColor(color)
 local brightness=0.299 * color.R + 0.587 * color.G + 0.114 * color.B
 if brightness < 0.5 then
@@ -2002,6 +2002,7 @@ swatch.Font=_FB
 swatch.TextSize=20
 _Cr(swatch,6)
 local swatchStroke=_I("UIStroke",swatch)
+swatchStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 swatchStroke.Thickness=2
 swatchStroke.Color=contrastColor(swatchColor)
 local swatchName=_I("TextLabel",swatch)
@@ -2067,6 +2068,7 @@ square.Text=""
 square.AutoButtonColor=false
 _Cr(square,5)
 local squareStroke=_I("UIStroke",square)
+squareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 squareStroke.Thickness=2
 squareStroke.Color=contrastColor(targets[1].original)
 setting.apply=function(color)
@@ -2149,6 +2151,7 @@ clockSquare.TextSize=11
 clockSquare.TextStrokeTransparency=0.4
 _Cr(clockSquare,5)
 local clockSquareStroke=_I("UIStroke",clockSquare)
+clockSquareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 clockSquareStroke.Thickness=2
 clockSquareStroke.Color=_W
 local function setClockExtended(on)
@@ -2203,6 +2206,7 @@ hideSquare.TextSize=11
 hideSquare.TextStrokeTransparency=0.4
 _Cr(hideSquare,5)
 local hideSquareStroke=_I("UIStroke",hideSquare)
+hideSquareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 hideSquareStroke.Thickness=2
 hideSquareStroke.Color=_W
 local function setHideDead(on)
@@ -2229,8 +2233,8 @@ PlayerTab.Size=_U(0,tabW,0,tabH)
 local onLeft=ScreenGui:GetAttribute("PlayerSide") == "left"
 PlayerTab.Position=_U(onLeft and 1 or 0,onLeft and 0 or -tabW,0.5,(centerY - screenH / 2) - tabH / 2)
 end
-local function makeSlider(order,title,minV,maxV,defaultV,key,suffix,onChange)
-local row=_I("Frame",pagePlayer)
+local function makeSlider(page,order,title,minV,maxV,defaultV,key,suffix,onChange,fmt,noInit)
+local row=_I("Frame",page)
 row.Size=_U(1,-10,0,64)
 row.LayoutOrder=order
 row.BackgroundColor3=_C(28,25,38)
@@ -2267,14 +2271,16 @@ knob.BorderSizePixel=0
 _Cr(knob).CornerRadius=_V(1,0)
 local current=defaultV
 local sliding=false
-local function setValue(v)
+local function setValue(v,silent)
 v=math.clamp(math.floor(v + 0.5),minV,maxV)
 current=v
 local ratio=(v - minV) / (maxV - minV)
 fill.Size=_U(ratio,0,1,0)
 knob.Position=_U(ratio,0,0.5,0)
-label.Text=title .. ": " .. v .. suffix
+label.Text=title .. ": " .. (fmt and fmt(v) or (v .. suffix))
+if not silent then
 onChange(v)
+end
 end
 local function fromInput(input)
 local w=track.AbsoluteSize.X
@@ -2298,6 +2304,7 @@ UserInputService.InputEnded:Connect(function(input)
 if sliding and (input.UserInputType == _M1 or input.UserInputType == _TT) then
 sliding=false
 ScreenGui:SetAttribute("NoDrag",false)
+if key then
 if current == defaultV then
 themeData[key]=nil
 else
@@ -2305,19 +2312,20 @@ themeData[key]=current
 end
 saveTheme()
 end
+end
 end)
-setValue(defaultV)
+setValue(defaultV,noInit)
 return setValue
 end
-local setTabPos=makeSlider(1,"Высота кнопки плеера",0,100,50,"tab_pos","%",function(v)
+local setTabPos=makeSlider(pagePlayer,1,"Высота кнопки плеера",0,100,50,"tab_pos","%",function(v)
 tabPos=v
 layoutTab()
 end)
-local setTabW=makeSlider(2,"Ширина кнопки плеера",24,64,32,"tab_w"," px",function(v)
+local setTabW=makeSlider(pagePlayer,2,"Ширина кнопки плеера",24,64,32,"tab_w"," px",function(v)
 tabW=v
 layoutTab()
 end)
-local setTabH=makeSlider(3,"Высота кнопки (размер)",30,120,40,"tab_h"," px",function(v)
+local setTabH=makeSlider(pagePlayer,3,"Высота кнопки (размер)",30,120,40,"tab_h"," px",function(v)
 tabH=v
 layoutTab()
 end)
@@ -2348,6 +2356,7 @@ rowSquare.TextSize=11
 rowSquare.TextStrokeTransparency=0.4
 _Cr(rowSquare,5)
 local rowStroke=_I("UIStroke",rowSquare)
+rowStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 rowStroke.Thickness=2
 rowStroke.Color=_W
 local state=false
@@ -2395,6 +2404,8 @@ local preset=skyById[skyState.preset]
 if skyState.cycle then
 skyState.lock=nil
 return
+elseif skyState.manual then
+skyState.lock=skyState.manual
 elseif preset and preset.time then
 skyState.lock=preset.time
 elseif skyState.frozen then
@@ -2543,6 +2554,7 @@ setSkyCycle(false,true)
 themeData.sky_cycle=nil
 end
 skyState.chosen=preset.id
+skyState.manual=nil
 applySky(preset.id)
 if preset.id == "normal" then
 themeData.sky_preset=nil
@@ -2578,6 +2590,9 @@ saveTheme()
 end)
 local RunService=game:GetService("RunService")
 local cycleHour=6.4
+local cycleMinutes=2
+local fogStrength=0
+local fogOrig=nil
 local cycleKeys={
 {h=6.4,p="morning"},
 {h=14,p="day"},
@@ -2588,8 +2603,15 @@ local cycleKeys={
 {h=30.4,p="morning"}
 }
 local whiteTint=_W
+local fogColors={
+morning=_C(205,190,175),
+day=_C(190,200,215),
+evening=_C(160,140,135),
+sunset=_C(170,120,100),
+night=_C(12,14,24)
+}
 local function lookOf(p)
-return {p.atmo[1],p.atmo[2],p.atmo[3],p.atmo[4],p.atmo[5],p.amb,p.tint or whiteTint,p.bright or 0,p.sat or 0}
+return {p.atmo[1],p.atmo[2],p.atmo[3],p.atmo[4],p.atmo[5],p.amb,p.tint or whiteTint,p.bright or 0,p.sat or 0,fogColors[p.id]}
 end
 local function mix(a,b,t)
 if typeof(a) == "Color3" then
@@ -2597,29 +2619,28 @@ return a:Lerp(b,t)
 end
 return a + (b - a) * t
 end
-RunService.Heartbeat:Connect(function(dt)
-if not skyState.cycle or not skyState.atmo then
-return
-end
-cycleHour=cycleHour + dt * 24 / 120
-if cycleHour >= 30.4 then
-cycleHour=cycleHour - 24
-end
-Lighting.ClockTime=cycleHour % 24
+local function sampleLook(hour)
 local k1,k2=cycleKeys[1],cycleKeys[2]
 for i=1,#cycleKeys - 1 do
-if cycleHour >= cycleKeys[i].h and cycleHour < cycleKeys[i + 1].h then
+if hour >= cycleKeys[i].h and hour < cycleKeys[i + 1].h then
 k1,k2=cycleKeys[i],cycleKeys[i + 1]
 break
 end
 end
-local t=(cycleHour - k1.h) / (k2.h - k1.h)
+local t=math.clamp((hour - k1.h) / (k2.h - k1.h),0,1)
 local a,b=lookOf(skyById[k1.p]),lookOf(skyById[k2.p])
 local v={}
-for i=1,9 do
+for i=1,10 do
 v[i]=mix(a[i],b[i],t)
 end
+return v
+end
+local function blendAt(hour)
 local atmo=skyState.atmo
+if not atmo then
+return
+end
+local v=sampleLook(hour)
 atmo.Color,atmo.Decay,atmo.Density,atmo.Haze,atmo.Glare=v[1],v[2],v[3],v[4],v[5]
 Lighting.OutdoorAmbient=v[6]
 if not skyState.cc then
@@ -2629,6 +2650,32 @@ end
 skyState.cc.TintColor=v[7]
 skyState.cc.Brightness=v[8]
 skyState.cc.Saturation=v[9]
+end
+RunService.Heartbeat:Connect(function(dt)
+if skyState.cycle and skyState.atmo then
+cycleHour=cycleHour + dt * 24 / (cycleMinutes * 60)
+if cycleHour >= 30.4 then
+cycleHour=cycleHour - 24
+end
+Lighting.ClockTime=cycleHour % 24
+blendAt(cycleHour)
+end
+if fogStrength > 0 then
+if not fogOrig then
+fogOrig={Lighting.FogStart,Lighting.FogEnd,Lighting.FogColor}
+end
+local hr=Lighting.ClockTime
+if hr < 6.4 then
+hr=hr + 24
+end
+local k=1 - fogStrength / 100
+Lighting.FogStart=0
+Lighting.FogEnd=1500 * k * k + 40
+Lighting.FogColor=sampleLook(hr)[10]
+elseif fogOrig then
+Lighting.FogStart,Lighting.FogEnd,Lighting.FogColor=fogOrig[1],fogOrig[2],fogOrig[3]
+fogOrig=nil
+end
 end)
 setSkyCycle=makeToggleRow(pageVisual,3,"Смена времени суток",function(on)
 if on then
@@ -2637,6 +2684,7 @@ if now < 6.4 then
 now=now + 24
 end
 cycleHour=now
+skyState.manual=nil
 skyState.cycle=true
 applySky("day")
 else
@@ -2644,6 +2692,59 @@ skyState.cycle=false
 applySky(skyState.chosen or "normal")
 end
 themeData.sky_cycle=on or nil
+saveTheme()
+end)
+local setTimeSlider
+local setCycleMin
+local setFog
+setTimeSlider=makeSlider(pageVisual,4,"Время суток",0,1439,math.floor(Lighting.ClockTime * 60),nil,"",function(v)
+local hour=v / 60
+if skyState.cycle then
+skyState.cycle=false
+setSkyCycle(false,true)
+end
+if not skyState.atmo then
+applySky("day")
+end
+skyState.manual=hour
+blendAt(hour < 6.4 and hour + 24 or hour)
+updateSkyLock()
+skyRow.Text="Небо: по времени (выбрать)"
+end,function(v)
+return string.format("%02d:%02d",math.floor(v / 60),v % 60)
+end,true)
+setCycleMin=makeSlider(pageVisual,5,"Длительность суток",1,30,2,"cycle_min"," мин",function(v)
+cycleMinutes=v
+end)
+setFog=makeSlider(pageVisual,6,"Туман",0,100,0,"fog","%",function(v)
+fogStrength=v
+end)
+local resetSky=_I("TextButton",pageVisual)
+resetSky.Size=_U(1,-10,0,40)
+resetSky.LayoutOrder=7
+resetSky.BackgroundColor3=_C(80,20,30)
+resetSky.TextColor3=COLOR_WHITE
+resetSky.Font=_FB
+resetSky.TextSize=13
+resetSky.AutoButtonColor=false
+resetSky.Text="Сбросить всё (время суток и туман)"
+_Cr(resetSky,6)
+resetSky.MouseButton1Click:Connect(function()
+skyState.cycle=false
+setSkyCycle(false,true)
+skyState.manual=nil
+skyState.frozen=false
+setSkyFreeze(false,true)
+skyState.chosen="normal"
+applySky("normal")
+setCycleMin(2)
+setFog(0)
+setTimeSlider(math.floor(Lighting.ClockTime * 60),true)
+themeData.sky_preset=nil
+themeData.sky_freeze=nil
+themeData.sky_cycle=nil
+themeData.cycle_min=nil
+themeData.fog=nil
 saveTheme()
 end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
@@ -2754,6 +2855,12 @@ end
 if themeData.sky_freeze == true then
 setSkyFreeze(true)
 end
+if type(themeData.cycle_min) == "number" then
+setCycleMin(themeData.cycle_min)
+end
+if type(themeData.fog) == "number" then
+setFog(themeData.fog)
+end
 if themeData.sky_cycle == true then
 setSkyCycle(true)
 end
@@ -2765,27 +2872,28 @@ end
 end
 do
 local entries={
-{"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток"},
-{"v2.6.10","Исправлено небо, экран загрузки улетает вверх"},
-{"v2.6.9","Экран загрузки, небо, плеер слева, глушилки звука"},
-{"v2.6.8","Ползунки не двигают окно, исправлена палитра цветов"},
-{"v2.6.7","Кнопка «Ещё», проверка песен ✅/❌, новые запросы категорий"},
-{"v2.6.6","Вкладки «Цвета / Общие / Плеер / Визуалки», размер кнопки плеера"},
-{"v2.6.5","Вкладки в настройках, высота кнопки плеера, сжатый код"},
-{"v2.6.4","Расширенное время (секунды)"},
-{"v2.6.3","Цвет обводки окон"},
-{"v2.6.2","Цвет фона окон, сохранение в файл"},
-{"v2.6.1","Шестерёнка и окно настроек"},
-{"v2.6","Плейлист (☆), режимы «один раз» и «по кругу», сохранение в файл"},
-{"v2.5","Стабильная версия (без изменений кода)"},
-{"v2.4.1 beta","Исправлен слой панели плеера"},
-{"v2.4 beta","Локальный плеер: ввод ID, случайная песня, громкость"},
-{"v2.3.3 beta","Текст надписи переписан, подложка убрана"},
-{"v2.3.2 beta","Новый текст надписи, кнопка в две строки"},
-{"v2.3.1 beta","Кнопка шире, надпись в рамке"},
-{"v2.3 beta","Надпись, что скрипт сделан с помощью AI"},
-{"v2.2 beta","Надпись с Telegram и уведомление при копировании"},
-{"v2 beta","Поиск песен по категориям, копирование ID, часы"}
+{"v2.7.1","Вкладка «Время суток», туман, ползунки времени, исправлены подписи","• Исправлены подписи ВКЛ/ВЫКЛ\n• История версий раскрывается по нажатию\n• Вкладка «Время суток»: время, длительность суток, туман\n• Кнопка «Сбросить всё» для времени и тумана"},
+{"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток","• Окно «Что нового» с историей версий\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Утро и плавная смена времени суток\n• Исправлены загрузка и закат"},
+{"v2.6.10","Исправлено небо, экран загрузки улетает вверх","• «Обычное» небо возвращает всё как было\n• Вечер темнее и оранжево-серый\n• Закат светлее\n• Загрузка улетает вверх"},
+{"v2.6.9","Экран загрузки, небо, плеер слева, глушилки звука","• Экран загрузки с полоской\n• Небо: день, вечер, закат, ночь\n• Плеер можно поставить слева\n• «Заглушить всё» и «Заглушить музыку»"},
+{"v2.6.8","Ползунки не двигают окно, исправлена палитра цветов","• Ползунки больше не двигают окно\n• Исправлена палитра цветов\n• Мелкие правки окна настроек"},
+{"v2.6.7","Кнопка «Ещё», проверка песен, новые запросы категорий","• Кнопка «Ещё» подгружает больше песен\n• Проверка песен: ✅ работает, ❌ нет\n• «Скрывать нерабочие песни»\n• Точнее запросы в категориях"},
+{"v2.6.6","Вкладки в настройках, размер кнопки плеера","• Вкладки «Цвета», «Общие», «Плеер», «Визуалки»\n• Размер и высота кнопки плеера\n• Кнопка плеера доходит до верха экрана\n• Окошко времени стало уже"},
+{"v2.6.5","Вкладки в настройках, высота кнопки плеера, сжатый код","• Окно настроек разделено на вкладки\n• Ползунок высоты кнопки плеера\n• Код стал короче (оптимизация)"},
+{"v2.6.4","Расширенное время (секунды)","• Настройка «Расширенное время»\n• Часы показывают секунды\n• Настройка сохраняется"},
+{"v2.6.3","Цвет обводки окон","• Выбор цвета обводки окон\n• Цвета сохраняются в файл"},
+{"v2.6.2","Цвет фона окон, сохранение в файл","• Выбор цвета заднего фона окон\n• Сохранение выбранного цвета в файл\n• Версия без комментариев в коде (lite)"},
+{"v2.6.1","Шестерёнка и окно настроек","• Шестерёнка слева сверху\n• Первое окно настроек (пока пустое)"},
+{"v2.6","Плейлист, режимы повтора, сохранение в файл","• Плейлист: нажми ☆ у песни\n• Режимы «один раз» и «по кругу»\n• Плейлист сохраняется в файл"},
+{"v2.5","Стабильная версия (без изменений кода)","• Стабильная версия на основе 2.4.1\n• Код не менялся, обновился только номер"},
+{"v2.4.1 beta","Исправлен слой панели плеера","• Исправлен слой панели плеера"},
+{"v2.4 beta","Локальный плеер музыки","• Локальный плеер музыки\n• Ввод ID и кнопка «Слушать»\n• Случайная песня\n• Громкость плеера"},
+{"v2.3.3 beta","Текст надписи переписан, подложка убрана","• Переписан текст надписи внизу\n• Убрана подложка, кнопка стала уже"},
+{"v2.3.2 beta","Новый текст надписи, кнопка в две строки","• Новый текст надписи\n• Кнопка скрипта в две строки"},
+{"v2.3.1 beta","Кнопка шире, надпись в рамке","• Кнопка шире\n• Надпись внизу в рамке"},
+{"v2.3 beta","Надпись, что скрипт сделан с помощью AI","• Надпись, что скрипт сделан с помощью AI"},
+{"v2.2 beta","Надпись с Telegram и уведомление при копировании","• Надпись со ссылкой на Telegram\n• Плавное уведомление при копировании ссылки"},
+{"v2 beta","Поиск песен по категориям, копирование ID, часы","• Поиск песен по категориям\n• Копирование ID песни\n• Часы в окне"}
 }
 local WhatsNew=_I("Frame",ScreenGui)
 WhatsNew.Name="WhatsNew"
@@ -2819,7 +2927,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7"
+HeadTitle.Text="🎉 Новое в v2.7.1"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
@@ -2828,7 +2936,7 @@ local HeadText=_I("TextLabel",WhatsNewHead)
 HeadText.Size=_U(1,-16,0,82)
 HeadText.Position=_U(0,8,0,30)
 HeadText.BackgroundTransparency=1
-HeadText.Text="• Это окно с историей версий\n• Утро и смена времени суток по кругу\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Исправлены загрузка и закат"
+HeadText.Text=entries[1][3]
 HeadText.TextColor3=_C(220,220,240)
 HeadText.Font=_FN
 HeadText.TextSize=13
@@ -2839,7 +2947,7 @@ local HistoryTitle=_I("TextLabel",WhatsNew)
 HistoryTitle.Size=_U(1,-24,0,22)
 HistoryTitle.Position=_U(0,12,0,158)
 HistoryTitle.BackgroundTransparency=1
-HistoryTitle.Text="📜 История версий"
+HistoryTitle.Text="📜 История версий (нажми на версию)"
 HistoryTitle.TextColor3=_C(200,160,255)
 HistoryTitle.Font=_FB
 HistoryTitle.TextSize=14
@@ -2856,26 +2964,54 @@ local HistoryLayout=_I("UIListLayout",HistoryList)
 HistoryLayout.SortOrder=Enum.SortOrder.LayoutOrder
 HistoryLayout.Padding=_V(0,4)
 for index,entry in ipairs(entries) do
-local historyRow=_I("TextLabel",HistoryList)
+local historyRow=_I("Frame",HistoryList)
 historyRow.LayoutOrder=index
 historyRow.Size=_U(1,-8,0,0)
 historyRow.AutomaticSize=Enum.AutomaticSize.Y
 historyRow.BackgroundColor3=_C(28,25,38)
 historyRow.BorderSizePixel=0
-historyRow.RichText=true
-historyRow.TextWrapped=true
-historyRow.TextXAlignment=_XL
-historyRow.TextYAlignment=Enum.TextYAlignment.Top
-historyRow.TextColor3=_C(220,220,240)
-historyRow.Font=_FN
-historyRow.TextSize=13
-historyRow.Text="<b>" .. entry[1] .. "</b>  " .. entry[2]
 _Cr(historyRow,6)
+local rowLayout=_I("UIListLayout",historyRow)
+rowLayout.SortOrder=Enum.SortOrder.LayoutOrder
+rowLayout.Padding=_V(0,3)
 local historyPad=_I("UIPadding",historyRow)
 historyPad.PaddingLeft=_V(0,8)
 historyPad.PaddingRight=_V(0,8)
 historyPad.PaddingTop=_V(0,5)
 historyPad.PaddingBottom=_V(0,5)
+local headBtn=_I("TextButton",historyRow)
+headBtn.LayoutOrder=1
+headBtn.Size=_U(1,0,0,0)
+headBtn.AutomaticSize=Enum.AutomaticSize.Y
+headBtn.BackgroundTransparency=1
+headBtn.RichText=true
+headBtn.TextWrapped=true
+headBtn.TextXAlignment=_XL
+headBtn.TextYAlignment=Enum.TextYAlignment.Top
+headBtn.TextColor3=_C(220,220,240)
+headBtn.Font=_FN
+headBtn.TextSize=13
+local detail=_I("TextLabel",historyRow)
+detail.LayoutOrder=2
+detail.Size=_U(1,0,0,0)
+detail.AutomaticSize=Enum.AutomaticSize.Y
+detail.BackgroundTransparency=1
+detail.Visible=false
+detail.Text=entry[3]
+detail.TextColor3=_C(190,190,215)
+detail.Font=_FN
+detail.TextSize=12
+detail.TextWrapped=true
+detail.TextXAlignment=_XL
+detail.TextYAlignment=Enum.TextYAlignment.Top
+local function refreshHead()
+headBtn.Text="<b>" .. entry[1] .. "</b>  " .. entry[2] .. (detail.Visible and "  [-]" or "  [+]")
+end
+refreshHead()
+headBtn.MouseButton1Click:Connect(function()
+detail.Visible=not detail.Visible
+refreshHead()
+end)
 end
 WhatsNewClose.MouseButton1Click:Connect(function()
 WhatsNew.Visible=false
