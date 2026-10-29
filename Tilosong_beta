@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.6.9"
+CardTitle.Text="🎵 TILO SONG v2.6.10"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -126,7 +126,14 @@ BarFill.Size=_U(1,0,1,0)
 BarPercent.Text="100%"
 CardSub.Text="Готово!"
 task.wait(0.4)
+local slideUp=TweenService:Create(Dim,TweenInfo.new(0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=_U(0,0,-1,0)})
+slideUp:Play()
+slideUp.Completed:Wait()
 LoadGui:Destroy()
+local scriptBtn=ScreenGui:FindFirstChild("ToggleTiloSong")
+if scriptBtn then
+scriptBtn.Visible=true
+end
 end)
 end
 local ToggleBtn=_I("TextButton",ScreenGui)
@@ -134,12 +141,13 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.6.9"
+ToggleBtn.Text="🎵 Tilo Song\nv2.6.10"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
 ToggleBtn.Active=true
 ToggleBtn.Draggable=true
+ToggleBtn.Visible=false
 _Cr(ToggleBtn)
 local ToggleStroke=_St(ToggleBtn,_PU,1.5)
 local MainFrame=_I("Frame",ScreenGui)
@@ -173,7 +181,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.6.9"
+Title.Text="🎵 TILO SONG v2.6.10"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -2309,15 +2317,15 @@ local Lighting=game:GetService("Lighting")
 local skyPresets={
 {id="normal",name="Обычное",c1=_C(95,95,110),c2=_C(45,45,55)},
 {id="day",name="День",c1=_C(70,140,255),c2=_C(200,230,255),time=14,amb=_C(140,150,170),atmo={_C(180,205,235),_C(106,112,125),0.25,0.4,0}},
-{id="evening",name="Вечер",c1=_C(80,60,140),c2=_C(255,170,120),time=17.5,amb=_C(150,120,115),atmo={_C(230,190,150),_C(150,100,70),0.3,1,0.2}},
-{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=18.2,amb=_C(150,100,90),atmo={_C(255,160,110),_C(180,70,50),0.35,1.5,0.3}},
+{id="evening",name="Вечер",c1=_C(80,60,140),c2=_C(255,170,120),time=17,amb=_C(135,120,120),atmo={_C(190,160,140),_C(150,100,70),0.3,0.5,0.1},tint=_C(255,205,170),bright=-0.05,sat=-0.2},
+{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=17.7,amb=_C(160,110,95),atmo={_C(255,150,100),_C(190,80,50),0.33,1,0.3},tint=_C(255,170,120),bright=-0.02,sat=0.1},
 {id="night",name="Ночь",c1=_C(5,5,25),c2=_C(40,50,110),time=0,amb=_C(55,60,90),atmo={_C(40,50,90),_C(20,25,45),0.3,0,0}}
 }
 local skyById={}
 for _,preset in ipairs(skyPresets) do
 skyById[preset.id]=preset
 end
-local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil}
+local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil}
 local function updateSkyLock()
 local preset=skyById[skyState.preset]
 if preset and preset.time then
@@ -2354,7 +2362,15 @@ if skyState.orig then
 Lighting.Brightness=skyState.orig.Brightness
 Lighting.Ambient=skyState.orig.Ambient
 Lighting.OutdoorAmbient=skyState.orig.OutdoorAmbient
+Lighting.ClockTime=skyState.orig.ClockTime
+if skyState.frozen then
+skyState.frozenTime=skyState.orig.ClockTime
+end
 skyState.orig=nil
+end
+if skyState.cc then
+skyState.cc:Destroy()
+skyState.cc=nil
 end
 for _,obj in ipairs(skyState.stash) do
 pcall(function()
@@ -2368,7 +2384,7 @@ skyState.atmo=nil
 end
 else
 if not skyState.orig then
-skyState.orig={Brightness=Lighting.Brightness,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient}
+skyState.orig={Brightness=Lighting.Brightness,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient,ClockTime=Lighting.ClockTime}
 end
 for _,child in ipairs(Lighting:GetChildren()) do
 if (child:IsA("Sky") or child:IsA("Atmosphere")) and child ~= skyState.atmo then
@@ -2386,6 +2402,18 @@ skyState.atmo.Density=preset.atmo[3]
 skyState.atmo.Haze=preset.atmo[4]
 skyState.atmo.Glare=preset.atmo[5]
 Lighting.OutdoorAmbient=preset.amb
+if preset.tint then
+if not skyState.cc then
+skyState.cc=_I("ColorCorrectionEffect")
+end
+skyState.cc.Parent=Lighting
+skyState.cc.TintColor=preset.tint
+skyState.cc.Brightness=preset.bright
+skyState.cc.Saturation=preset.sat
+elseif skyState.cc then
+skyState.cc:Destroy()
+skyState.cc=nil
+end
 end
 updateSkyLock()
 skyRow.Text="Небо: " .. preset.name .. " (выбрать)"
