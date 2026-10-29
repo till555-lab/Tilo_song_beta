@@ -6,6 +6,8 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local ContentProvider=game:GetService("ContentProvider")
 local HttpService=game:GetService("HttpService")
 local _I,_C,_U,_V=Instance.new,Color3.fromRGB,UDim2.new,UDim.new
+local _W,_PU=_C(255,255,255),_C(160,30,255)
+local _TT,_M1,_MM=Enum.UserInputType.Touch,Enum.UserInputType.MouseButton1,Enum.UserInputType.MouseMovement
 local _FB,_FN,_XL=Enum.Font.SourceSansBold,Enum.Font.SourceSans,Enum.TextXAlignment.Left
 local function _Cr(p,r)
 local c=_I("UICorner",p)
@@ -37,14 +39,14 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.6.7"
-ToggleBtn.TextColor3=_C(255,255,255)
+ToggleBtn.Text="🎵 Tilo Song\nv2.6.8"
+ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
 ToggleBtn.Active=true
 ToggleBtn.Draggable=true
 _Cr(ToggleBtn)
-local ToggleStroke=_St(ToggleBtn,_C(160,30,255),1.5)
+local ToggleStroke=_St(ToggleBtn,_PU,1.5)
 local MainFrame=_I("Frame",ScreenGui)
 MainFrame.Name="MainFrame"
 MainFrame.Size=_U(0,390,0,570)
@@ -55,7 +57,7 @@ MainFrame.Active=true
 MainFrame.Draggable=true
 MainFrame.Visible=false
 _Cr(MainFrame,10)
-local MainStroke=_St(MainFrame,_C(160,30,255),2)
+local MainStroke=_St(MainFrame,_PU,2)
 local categoryWasOpen=false
 ToggleBtn.MouseButton1Click:Connect(function()
 local categoryMenu=ScreenGui:FindFirstChild("CategoryMenu")
@@ -76,8 +78,8 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.6.7"
-Title.TextColor3=_C(255,255,255)
+Title.Text="🎵 TILO SONG v2.6.8"
+Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
 Title.TextXAlignment=_XL
@@ -86,24 +88,24 @@ OpenCatBtn.Size=_U(0,130,0,26)
 OpenCatBtn.Position=_U(1,-140,0,6)
 OpenCatBtn.BackgroundColor3=_C(120,20,200)
 OpenCatBtn.Text="📂 КАТЕГОРИИ"
-OpenCatBtn.TextColor3=_C(255,255,255)
+OpenCatBtn.TextColor3=_W
 OpenCatBtn.Font=_FB
 OpenCatBtn.TextSize=11
 _Cr(OpenCatBtn,5)
-local OpenCatStroke=_St(OpenCatBtn,_C(160,30,255),1)
+local OpenCatStroke=_St(OpenCatBtn,_PU,1)
 local SearchFrame=_I("Frame",MainFrame)
 SearchFrame.Size=_U(0.7,-15,0,30)
 SearchFrame.Position=_U(0,10,0,36)
 SearchFrame.BackgroundColor3=_C(28,25,38)
 _Cr(SearchFrame)
-local SearchFrameStroke=_St(SearchFrame,_C(160,30,255),1)
+local SearchFrameStroke=_St(SearchFrame,_PU,1)
 local SearchBox=_I("TextBox",SearchFrame)
 SearchBox.Size=_U(1,-25,1,0)
 SearchBox.Position=_U(0,5,0,0)
 SearchBox.BackgroundTransparency=1
 SearchBox.PlaceholderText="Введите название трека..."
 SearchBox.Text=""
-SearchBox.TextColor3=_C(255,255,255)
+SearchBox.TextColor3=_W
 SearchBox.Font=_FN
 SearchBox.TextSize=13
 SearchBox.TextXAlignment=_XL
@@ -120,9 +122,9 @@ end)
 local SearchBtn=_I("TextButton",MainFrame)
 SearchBtn.Size=_U(0.3,-10,0,30)
 SearchBtn.Position=_U(0.7,5,0,36)
-SearchBtn.BackgroundColor3=_C(160,30,255)
+SearchBtn.BackgroundColor3=_PU
 SearchBtn.Text="🔎 ИСКАТЬ"
-SearchBtn.TextColor3=_C(255,255,255)
+SearchBtn.TextColor3=_W
 SearchBtn.Font=_FB
 SearchBtn.TextSize=11
 _Cr(SearchBtn)
@@ -177,13 +179,13 @@ Toast.BorderSizePixel=0
 Toast.ZIndex=50
 Toast.Visible=false
 _Cr(Toast,8)
-local ToastStroke=_St(Toast,_C(160,30,255),1.5)
+local ToastStroke=_St(Toast,_PU,1.5)
 local ToastLabel=_I("TextLabel",Toast)
 ToastLabel.Size=_U(1,-16,1,-8)
 ToastLabel.Position=_U(0,8,0,4)
 ToastLabel.BackgroundTransparency=1
 ToastLabel.Text=""
-ToastLabel.TextColor3=_C(255,255,255)
+ToastLabel.TextColor3=_W
 ToastLabel.Font=_FB
 ToastLabel.TextSize=13
 ToastLabel.TextWrapped=true
@@ -274,12 +276,12 @@ ClockFrame.Position=_U(1,-74,0,70)
 ClockFrame.BackgroundColor3=_C(28,25,38)
 ClockFrame.BorderSizePixel=0
 _Cr(ClockFrame,6)
-local ClockStroke=_St(ClockFrame,_C(160,30,255),1)
+local ClockStroke=_St(ClockFrame,_PU,1)
 local ClockLabel=_I("TextLabel",ClockFrame)
 ClockLabel.Size=_U(1,0,1,0)
 ClockLabel.BackgroundTransparency=1
 ClockLabel.Text="🕒 --:--"
-ClockLabel.TextColor3=_C(255,255,255)
+ClockLabel.TextColor3=_W
 ClockLabel.Font=_FB
 ClockLabel.TextSize=13
 local function getClockText()
@@ -336,7 +338,7 @@ CatTitle.Size=_U(1,-30,0,30)
 CatTitle.Position=_U(0,10,0,5)
 CatTitle.BackgroundTransparency=1
 CatTitle.Text="📂 КАТЕГОРИИ И ДЛИТЕЛЬНОСТЬ"
-CatTitle.TextColor3=_C(255,255,255)
+CatTitle.TextColor3=_W
 CatTitle.Font=_FB
 CatTitle.TextSize=13
 CatTitle.TextXAlignment=_XL
@@ -383,9 +385,9 @@ local durationRanges={
 local durButtons={}
 for _,dur in ipairs(durationRanges) do
 local btn=_I("TextButton",DurFrame)
-btn.BackgroundColor3=(dur.Min == selectedMinDuration and dur.Max == selectedMaxDuration) and _C(160,30,255) or _C(35,30,48)
+btn.BackgroundColor3=(dur.Min == selectedMinDuration and dur.Max == selectedMaxDuration) and _PU or _C(35,30,48)
 btn.Text=dur.Name
-btn.TextColor3=_C(255,255,255)
+btn.TextColor3=_W
 btn.Font=_FB
 btn.TextSize=10
 _Cr(btn,4)
@@ -395,7 +397,7 @@ selectedMinDuration=dur.Min
 selectedMaxDuration=dur.Max
 for _,item in ipairs(durButtons) do
 if item.Min == selectedMinDuration and item.Max == selectedMaxDuration then
-item.Btn.BackgroundColor3=_C(160,30,255)
+item.Btn.BackgroundColor3=_PU
 else
 item.Btn.BackgroundColor3=_C(35,30,48)
 end
@@ -442,10 +444,10 @@ localSound.Volume=1
 localSound.Parent=ScreenGui
 local COLOR_GREEN=_C(0,170,90)
 local COLOR_RED=_C(200,50,60)
-local COLOR_WHITE=_C(255,255,255)
+local COLOR_WHITE=_W
 local COLOR_YELLOW=_C(255,200,50)
 local COLOR_ERROR=_C(255,80,80)
-local COLOR_PURPLE=_C(160,30,255)
+local COLOR_PURPLE=_PU
 local COLOR_DARK=_C(35,30,48)
 local COLOR_STAR_ON=_C(255,205,40)
 local COLOR_STAR_OFF=_C(150,150,170)
@@ -1026,18 +1028,18 @@ local relative=(input.Position.X - SliderTrack.AbsolutePosition.X) / trackWidth
 setVolumeRatio(relative)
 end
 SliderHit.InputBegan:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+if input.UserInputType == _M1 or input.UserInputType == _TT then
 sliderDragging=true
 updateVolumeFromInput(input)
 end
 end)
 UserInputService.InputChanged:Connect(function(input)
-if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+if sliderDragging and (input.UserInputType == _MM or input.UserInputType == _TT) then
 updateVolumeFromInput(input)
 end
 end)
 UserInputService.InputEnded:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+if input.UserInputType == _M1 or input.UserInputType == _TT then
 sliderDragging=false
 end
 end)
@@ -1579,16 +1581,16 @@ settingsFrame.Position=_U(0,10,0.15,0)
 settingsFrame.BackgroundColor3=_C(18,15,22)
 settingsFrame.BorderSizePixel=0
 settingsFrame.Active=true
-settingsFrame.Draggable=true
+settingsFrame.Draggable=false
 settingsFrame.Visible=false
 _Cr(settingsFrame,10)
-local settingsStroke=_St(settingsFrame,_C(160,30,255),2)
+local settingsStroke=_St(settingsFrame,_PU,2)
 local settingsTitle=_I("TextLabel",settingsFrame)
 settingsTitle.Size=_U(1,-50,0,30)
 settingsTitle.Position=_U(0,10,0,5)
 settingsTitle.BackgroundTransparency=1
 settingsTitle.Text="⚙️ Настройки"
-settingsTitle.TextColor3=_C(255,255,255)
+settingsTitle.TextColor3=_W
 settingsTitle.Font=_FB
 settingsTitle.TextSize=14
 settingsTitle.TextXAlignment=_XL
@@ -1642,7 +1644,7 @@ pageScript.Visible=(name == "general")
 pagePlayer.Visible=(name == "player")
 pageVisual.Visible=(name == "visual")
 for key,btn in pairs(settingsTabs) do
-btn.BackgroundColor3=(key == name) and _C(160,30,255) or _C(35,30,48)
+btn.BackgroundColor3=(key == name) and _PU or _C(35,30,48)
 end
 end
 local function makeSettingsTab(key,text,x)
@@ -1650,7 +1652,7 @@ local btn=_I("TextButton",settingsFrame)
 btn.Size=_U(0,67,0,26)
 btn.Position=_U(0,x,0,44)
 btn.Text=text
-btn.TextColor3=_C(255,255,255)
+btn.TextColor3=_W
 btn.Font=_FB
 btn.TextSize=11
 btn.AutoButtonColor=false
@@ -1670,7 +1672,7 @@ makeSettingsTab("visual","Визуалки",223)
 local function contrastColor(color)
 local brightness=0.299 * color.R + 0.587 * color.G + 0.114 * color.B
 if brightness < 0.5 then
-return _C(255,255,255)
+return _W
 end
 return _C(0,0,0)
 end
@@ -1680,7 +1682,6 @@ palettePopup.Position=_U(0.5,-130,0,230)
 palettePopup.BackgroundColor3=_C(30,26,42)
 palettePopup.BorderSizePixel=0
 palettePopup.Active=true
-palettePopup.ZIndex=10
 palettePopup.Visible=false
 _Cr(palettePopup,10)
 local palettePopupStroke=_St(palettePopup,_C(110,90,170),2)
@@ -1689,7 +1690,7 @@ paletteTitle.Size=_U(1,-40,0,24)
 paletteTitle.Position=_U(0,10,0,4)
 paletteTitle.BackgroundTransparency=1
 paletteTitle.Text="Выберите цвет"
-paletteTitle.TextColor3=_C(255,255,255)
+paletteTitle.TextColor3=_W
 paletteTitle.Font=_FB
 paletteTitle.TextSize=13
 paletteTitle.TextXAlignment=_XL
@@ -1891,7 +1892,7 @@ clockSquare.AutoButtonColor=false
 _Cr(clockSquare,5)
 local clockSquareStroke=_I("UIStroke",clockSquare)
 clockSquareStroke.Thickness=2
-clockSquareStroke.Color=_C(255,255,255)
+clockSquareStroke.Color=_W
 local function setClockExtended(on)
 if on then
 clockSquare.BackgroundColor3=COLOR_GREEN
@@ -1939,7 +1940,7 @@ hideSquare.AutoButtonColor=false
 _Cr(hideSquare,5)
 local hideSquareStroke=_I("UIStroke",hideSquare)
 hideSquareStroke.Thickness=2
-hideSquareStroke.Color=_C(255,255,255)
+hideSquareStroke.Color=_W
 local function setHideDead(on)
 hideSquare.BackgroundColor3=on and COLOR_GREEN or COLOR_RED
 ScreenGui:SetAttribute("HideDead",on)
@@ -2016,19 +2017,21 @@ local ratio=math.clamp((input.Position.X - track.AbsolutePosition.X) / w,0,1)
 setValue(minV + ratio * (maxV - minV))
 end
 hit.InputBegan:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+if input.UserInputType == _M1 or input.UserInputType == _TT then
 sliding=true
+ScreenGui:SetAttribute("NoDrag",true)
 fromInput(input)
 end
 end)
 UserInputService.InputChanged:Connect(function(input)
-if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+if sliding and (input.UserInputType == _MM or input.UserInputType == _TT) then
 fromInput(input)
 end
 end)
 UserInputService.InputEnded:Connect(function(input)
-if sliding and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+if sliding and (input.UserInputType == _M1 or input.UserInputType == _TT) then
 sliding=false
+ScreenGui:SetAttribute("NoDrag",false)
 if current == defaultV then
 themeData[key]=nil
 else
@@ -2053,6 +2056,39 @@ tabH=v
 layoutTab()
 end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
+local winDrag,winStart,winOrigin=false,nil,nil
+settingsFrame.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+local startPos=input.Position
+local origin=settingsFrame.Position
+task.wait()
+if ScreenGui:GetAttribute("NoDrag") == true then
+return
+end
+winDrag=true
+winStart=startPos
+winOrigin=origin
+end
+end)
+for _,scrollPage in ipairs({pageColors,pageScript,pagePlayer,pageVisual}) do
+scrollPage.InputBegan:Connect(function(input)
+if (input.UserInputType == _M1 or input.UserInputType == _TT) and scrollPage.CanvasSize.Y.Offset > scrollPage.AbsoluteSize.Y then
+ScreenGui:SetAttribute("NoDrag",true)
+end
+end)
+end
+UserInputService.InputChanged:Connect(function(input)
+if winDrag and (input.UserInputType == _MM or input.UserInputType == _TT) then
+local delta=input.Position - winStart
+settingsFrame.Position=_U(winOrigin.X.Scale,winOrigin.X.Offset + delta.X,winOrigin.Y.Scale,winOrigin.Y.Offset + delta.Y)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+winDrag=false
+ScreenGui:SetAttribute("NoDrag",false)
+end
+end)
 paletteClose.MouseButton1Click:Connect(function()
 palettePopup.Visible=false
 end)
@@ -2068,7 +2104,7 @@ gearBtn.Size=_U(0,28,0,28)
 gearBtn.Position=_U(0,10,0,4)
 gearBtn.BackgroundColor3=_C(35,30,48)
 gearBtn.Text="⚙️"
-gearBtn.TextColor3=_C(255,255,255)
+gearBtn.TextColor3=_W
 gearBtn.Font=_FB
 gearBtn.TextSize=16
 _Cr(gearBtn,6)
