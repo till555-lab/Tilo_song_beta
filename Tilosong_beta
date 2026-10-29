@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.6.10"
+CardTitle.Text="🎵 TILO SONG v2.7"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -126,14 +126,23 @@ BarFill.Size=_U(1,0,1,0)
 BarPercent.Text="100%"
 CardSub.Text="Готово!"
 task.wait(0.4)
-local slideUp=TweenService:Create(Dim,TweenInfo.new(0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=_U(0,0,-1,0)})
+local slideUp=TweenService:Create(Card,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=_U(0.5,0,-0.6,0)})
 slideUp:Play()
 slideUp.Completed:Wait()
+local fadeOut=TweenService:Create(Dim,TweenInfo.new(0.5),{BackgroundTransparency=1})
+fadeOut:Play()
+for _,child in ipairs(Dim:GetChildren()) do
+if child:IsA("TextLabel") then
+TweenService:Create(child,TweenInfo.new(0.5),{TextTransparency=1}):Play()
+end
+end
+fadeOut.Completed:Wait()
 LoadGui:Destroy()
 local scriptBtn=ScreenGui:FindFirstChild("ToggleTiloSong")
 if scriptBtn then
 scriptBtn.Visible=true
 end
+ScreenGui:SetAttribute("LoadDone",true)
 end)
 end
 local ToggleBtn=_I("TextButton",ScreenGui)
@@ -141,7 +150,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.6.10"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -181,7 +190,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.6.10"
+Title.Text="🎵 TILO SONG v2.7"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -1885,8 +1894,8 @@ end
 return _C(0,0,0)
 end
 palettePopup=_I("Frame",settingsFrame)
-palettePopup.Size=_U(0,260,0,124)
-palettePopup.Position=_U(0.5,-130,0,230)
+palettePopup.Size=_U(0,260,0,152)
+palettePopup.Position=_U(0.5,-130,0,218)
 palettePopup.BackgroundColor3=_C(30,26,42)
 palettePopup.BorderSizePixel=0
 palettePopup.Active=true
@@ -1911,12 +1920,12 @@ paletteClose.TextColor3=_C(255,80,80)
 paletteClose.Font=_FB
 paletteClose.TextSize=14
 local paletteGrid=_I("Frame",palettePopup)
-paletteGrid.Size=_U(1,-20,0,88)
+paletteGrid.Size=_U(1,-20,0,112)
 paletteGrid.Position=_U(0,10,0,32)
 paletteGrid.BackgroundTransparency=1
 local paletteLayout=_I("UIGridLayout",paletteGrid)
-paletteLayout.CellSize=_U(0,40,0,40)
-paletteLayout.CellPadding=_U(0,8,0,8)
+paletteLayout.CellSize=_U(0,42,0,52)
+paletteLayout.CellPadding=_U(0,6,0,6)
 paletteLayout.SortOrder=Enum.SortOrder.LayoutOrder
 local THEME_FILE="TiloSong_theme.json"
 local themeData={}
@@ -1951,6 +1960,22 @@ table.insert(targets,{instance=instance,property=property,original=instance[prop
 end
 return targets
 end
+local colorNames={
+window_bg={"Чёрный","Графит","Серый","Белый","Бордовый","Т.зелёный","Т.синий","Фиолет.","Коричн."},
+window_outline={"Белый","Серый","Красный","Оранжев.","Жёлтый","Зелёный","Голубой","Синий","Розовый"}
+}
+local function nameFor(setting,color)
+if not color then
+return "Стандартный"
+end
+local names=colorNames[setting.key] or {}
+for index,candidate in ipairs(setting.colors) do
+if math.abs(candidate.R - color.R) < 0.004 and math.abs(candidate.G - color.G) < 0.004 and math.abs(candidate.B - color.B) < 0.004 then
+return names[index] or "Свой"
+end
+end
+return "Свой"
+end
 local allSettings={}
 local currentSetting=nil
 local function openPalette(setting)
@@ -1961,9 +1986,9 @@ if child:IsA("TextButton") then
 child:Destroy()
 end
 end
-local options={{color=false}}
-for _,color in ipairs(setting.colors) do
-table.insert(options,{color=color})
+local options={{color=false,name="Сброс"}}
+for colorIndex,color in ipairs(setting.colors) do
+table.insert(options,{color=color,name=(colorNames[setting.key] or {})[colorIndex] or ""})
 end
 for index,option in ipairs(options) do
 local swatchColor=option.color or setting.targets[1].original
@@ -1979,6 +2004,17 @@ _Cr(swatch,6)
 local swatchStroke=_I("UIStroke",swatch)
 swatchStroke.Thickness=2
 swatchStroke.Color=contrastColor(swatchColor)
+local swatchName=_I("TextLabel",swatch)
+swatchName.BackgroundTransparency=1
+swatchName.Size=_U(1,-4,0,16)
+swatchName.Position=_U(0,2,1,-18)
+swatchName.Text=option.name
+swatchName.TextColor3=contrastColor(swatchColor)
+swatchName.Font=_FB
+swatchName.TextScaled=true
+local swatchLimit=_I("UITextSizeConstraint",swatchName)
+swatchLimit.MaxTextSize=11
+swatchLimit.MinTextSize=6
 swatch.MouseButton1Click:Connect(function()
 setting.apply(option.color or nil)
 if option.color then
@@ -2006,14 +2042,23 @@ row.BackgroundColor3=_C(28,25,38)
 row.BorderSizePixel=0
 _Cr(row,6)
 local rowLabel=_I("TextLabel",row)
-rowLabel.Size=_U(1,-60,1,0)
-rowLabel.Position=_U(0,10,0,0)
+rowLabel.Size=_U(1,-60,0,22)
+rowLabel.Position=_U(0,10,0,3)
 rowLabel.BackgroundTransparency=1
 rowLabel.Text=label
 rowLabel.TextColor3=_C(220,220,240)
 rowLabel.Font=_FB
 rowLabel.TextSize=13
 rowLabel.TextXAlignment=_XL
+local nameLabel=_I("TextLabel",row)
+nameLabel.Size=_U(1,-60,0,14)
+nameLabel.Position=_U(0,10,0,23)
+nameLabel.BackgroundTransparency=1
+nameLabel.Text="Сейчас: Стандартный"
+nameLabel.TextColor3=_C(160,160,185)
+nameLabel.Font=_FN
+nameLabel.TextSize=11
+nameLabel.TextXAlignment=_XL
 local square=_I("TextButton",row)
 square.Size=_U(0,34,0,28)
 square.Position=_U(1,-44,0.5,-14)
@@ -2031,6 +2076,7 @@ end
 local shown=color or targets[1].original
 square.BackgroundColor3=shown
 squareStroke.Color=contrastColor(shown)
+nameLabel.Text="Сейчас: " .. nameFor(setting,color)
 end
 square.MouseButton1Click:Connect(function()
 if palettePopup.Visible and currentSetting == setting then
@@ -2084,7 +2130,7 @@ clockRow.BackgroundColor3=_C(28,25,38)
 clockRow.BorderSizePixel=0
 _Cr(clockRow,6)
 local clockRowLabel=_I("TextLabel",clockRow)
-clockRowLabel.Size=_U(1,-60,1,0)
+clockRowLabel.Size=_U(1,-72,1,0)
 clockRowLabel.Position=_U(0,10,0,0)
 clockRowLabel.BackgroundTransparency=1
 clockRowLabel.Text="Расширенное время"
@@ -2093,10 +2139,14 @@ clockRowLabel.Font=_FB
 clockRowLabel.TextSize=13
 clockRowLabel.TextXAlignment=_XL
 local clockSquare=_I("TextButton",clockRow)
-clockSquare.Size=_U(0,34,0,28)
-clockSquare.Position=_U(1,-44,0.5,-14)
+clockSquare.Size=_U(0,46,0,28)
+clockSquare.Position=_U(1,-56,0.5,-14)
 clockSquare.Text=""
 clockSquare.AutoButtonColor=false
+clockSquare.TextColor3=COLOR_WHITE
+clockSquare.Font=_FB
+clockSquare.TextSize=11
+clockSquare.TextStrokeTransparency=0.4
 _Cr(clockSquare,5)
 local clockSquareStroke=_I("UIStroke",clockSquare)
 clockSquareStroke.Thickness=2
@@ -2104,12 +2154,14 @@ clockSquareStroke.Color=_W
 local function setClockExtended(on)
 if on then
 clockSquare.BackgroundColor3=COLOR_GREEN
+clockSquare.Text="ВКЛ"
 ClockFrame.Size=_U(0,82,0,22)
 ClockFrame.Position=_U(1,-92,0,70)
 PlayerToggleBtn.Position=_U(1,-174,0,70)
 StatusLabel.Size=_U(1,-188,0,18)
 else
 clockSquare.BackgroundColor3=COLOR_RED
+clockSquare.Text="ВЫКЛ"
 ClockFrame.Size=_U(0,64,0,22)
 ClockFrame.Position=_U(1,-74,0,70)
 PlayerToggleBtn.Position=_U(1,-156,0,70)
@@ -2132,7 +2184,7 @@ hideRow.BackgroundColor3=_C(28,25,38)
 hideRow.BorderSizePixel=0
 _Cr(hideRow,6)
 local hideLabel=_I("TextLabel",hideRow)
-hideLabel.Size=_U(1,-60,1,0)
+hideLabel.Size=_U(1,-72,1,0)
 hideLabel.Position=_U(0,10,0,0)
 hideLabel.BackgroundTransparency=1
 hideLabel.Text="Скрывать нерабочие песни"
@@ -2141,16 +2193,21 @@ hideLabel.Font=_FB
 hideLabel.TextSize=13
 hideLabel.TextXAlignment=_XL
 local hideSquare=_I("TextButton",hideRow)
-hideSquare.Size=_U(0,34,0,28)
-hideSquare.Position=_U(1,-44,0.5,-14)
+hideSquare.Size=_U(0,46,0,28)
+hideSquare.Position=_U(1,-56,0.5,-14)
 hideSquare.Text=""
 hideSquare.AutoButtonColor=false
+hideSquare.TextColor3=COLOR_WHITE
+hideSquare.Font=_FB
+hideSquare.TextSize=11
+hideSquare.TextStrokeTransparency=0.4
 _Cr(hideSquare,5)
 local hideSquareStroke=_I("UIStroke",hideSquare)
 hideSquareStroke.Thickness=2
 hideSquareStroke.Color=_W
 local function setHideDead(on)
 hideSquare.BackgroundColor3=on and COLOR_GREEN or COLOR_RED
+hideSquare.Text=on and "ВКЛ" or "ВЫКЛ"
 ScreenGui:SetAttribute("HideDead",on)
 end
 setHideDead(false)
@@ -2272,7 +2329,7 @@ row.BackgroundColor3=_C(28,25,38)
 row.BorderSizePixel=0
 _Cr(row,6)
 local rowText=_I("TextLabel",row)
-rowText.Size=_U(1,-60,1,0)
+rowText.Size=_U(1,-72,1,0)
 rowText.Position=_U(0,10,0,0)
 rowText.BackgroundTransparency=1
 rowText.Text=text
@@ -2281,10 +2338,14 @@ rowText.Font=_FB
 rowText.TextSize=13
 rowText.TextXAlignment=_XL
 local rowSquare=_I("TextButton",row)
-rowSquare.Size=_U(0,34,0,28)
-rowSquare.Position=_U(1,-44,0.5,-14)
+rowSquare.Size=_U(0,46,0,28)
+rowSquare.Position=_U(1,-56,0.5,-14)
 rowSquare.Text=""
 rowSquare.AutoButtonColor=false
+rowSquare.TextColor3=COLOR_WHITE
+rowSquare.Font=_FB
+rowSquare.TextSize=11
+rowSquare.TextStrokeTransparency=0.4
 _Cr(rowSquare,5)
 local rowStroke=_I("UIStroke",rowSquare)
 rowStroke.Thickness=2
@@ -2293,6 +2354,7 @@ local state=false
 local function setState(on,silent)
 state=on and true or false
 rowSquare.BackgroundColor3=state and COLOR_GREEN or COLOR_RED
+rowSquare.Text=state and "ВКЛ" or "ВЫКЛ"
 if not silent then
 onChange(state)
 end
@@ -2316,19 +2378,24 @@ end)
 local Lighting=game:GetService("Lighting")
 local skyPresets={
 {id="normal",name="Обычное",c1=_C(95,95,110),c2=_C(45,45,55)},
+{id="morning",name="Утро",c1=_C(120,160,220),c2=_C(255,200,150),time=6.4,amb=_C(150,140,130),atmo={_C(230,200,170),_C(210,140,100),0.3,0.8,0.2},tint=_C(255,225,200),bright=-0.02,sat=0},
 {id="day",name="День",c1=_C(70,140,255),c2=_C(200,230,255),time=14,amb=_C(140,150,170),atmo={_C(180,205,235),_C(106,112,125),0.25,0.4,0}},
 {id="evening",name="Вечер",c1=_C(80,60,140),c2=_C(255,170,120),time=17,amb=_C(135,120,120),atmo={_C(190,160,140),_C(150,100,70),0.3,0.5,0.1},tint=_C(255,205,170),bright=-0.05,sat=-0.2},
-{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=17.7,amb=_C(160,110,95),atmo={_C(255,150,100),_C(190,80,50),0.33,1,0.3},tint=_C(255,170,120),bright=-0.02,sat=0.1},
+{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=17.9,amb=_C(140,105,95),atmo={_C(235,160,120),_C(170,85,60),0.33,1,0.25},tint=_C(255,185,150),bright=-0.04,sat=-0.05},
 {id="night",name="Ночь",c1=_C(5,5,25),c2=_C(40,50,110),time=0,amb=_C(55,60,90),atmo={_C(40,50,90),_C(20,25,45),0.3,0,0}}
 }
 local skyById={}
 for _,preset in ipairs(skyPresets) do
 skyById[preset.id]=preset
 end
-local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil}
+local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil,cycle=false,chosen="normal"}
+local setSkyCycle
 local function updateSkyLock()
 local preset=skyById[skyState.preset]
-if preset and preset.time then
+if skyState.cycle then
+skyState.lock=nil
+return
+elseif preset and preset.time then
 skyState.lock=preset.time
 elseif skyState.frozen then
 skyState.lock=skyState.frozenTime
@@ -2470,6 +2537,12 @@ local skyGradient=_I("UIGradient",skyBtn)
 skyGradient.Color=ColorSequence.new(preset.c1,preset.c2)
 skyGradient.Rotation=90
 skyBtn.MouseButton1Click:Connect(function()
+if skyState.cycle then
+skyState.cycle=false
+setSkyCycle(false,true)
+themeData.sky_cycle=nil
+end
+skyState.chosen=preset.id
 applySky(preset.id)
 if preset.id == "normal" then
 themeData.sky_preset=nil
@@ -2501,6 +2574,76 @@ skyState.frozenTime=Lighting.ClockTime
 end
 updateSkyLock()
 themeData.sky_freeze=on or nil
+saveTheme()
+end)
+local RunService=game:GetService("RunService")
+local cycleHour=6.4
+local cycleKeys={
+{h=6.4,p="morning"},
+{h=14,p="day"},
+{h=17,p="evening"},
+{h=17.9,p="sunset"},
+{h=21.5,p="night"},
+{h=28,p="night"},
+{h=30.4,p="morning"}
+}
+local whiteTint=_W
+local function lookOf(p)
+return {p.atmo[1],p.atmo[2],p.atmo[3],p.atmo[4],p.atmo[5],p.amb,p.tint or whiteTint,p.bright or 0,p.sat or 0}
+end
+local function mix(a,b,t)
+if typeof(a) == "Color3" then
+return a:Lerp(b,t)
+end
+return a + (b - a) * t
+end
+RunService.Heartbeat:Connect(function(dt)
+if not skyState.cycle or not skyState.atmo then
+return
+end
+cycleHour=cycleHour + dt * 24 / 120
+if cycleHour >= 30.4 then
+cycleHour=cycleHour - 24
+end
+Lighting.ClockTime=cycleHour % 24
+local k1,k2=cycleKeys[1],cycleKeys[2]
+for i=1,#cycleKeys - 1 do
+if cycleHour >= cycleKeys[i].h and cycleHour < cycleKeys[i + 1].h then
+k1,k2=cycleKeys[i],cycleKeys[i + 1]
+break
+end
+end
+local t=(cycleHour - k1.h) / (k2.h - k1.h)
+local a,b=lookOf(skyById[k1.p]),lookOf(skyById[k2.p])
+local v={}
+for i=1,9 do
+v[i]=mix(a[i],b[i],t)
+end
+local atmo=skyState.atmo
+atmo.Color,atmo.Decay,atmo.Density,atmo.Haze,atmo.Glare=v[1],v[2],v[3],v[4],v[5]
+Lighting.OutdoorAmbient=v[6]
+if not skyState.cc then
+skyState.cc=_I("ColorCorrectionEffect")
+skyState.cc.Parent=Lighting
+end
+skyState.cc.TintColor=v[7]
+skyState.cc.Brightness=v[8]
+skyState.cc.Saturation=v[9]
+end)
+setSkyCycle=makeToggleRow(pageVisual,3,"Смена времени суток",function(on)
+if on then
+local now=Lighting.ClockTime
+if now < 6.4 then
+now=now + 24
+end
+cycleHour=now
+skyState.cycle=true
+applySky("day")
+else
+skyState.cycle=false
+applySky(skyState.chosen or "normal")
+end
+themeData.sky_cycle=on or nil
 saveTheme()
 end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
@@ -2605,15 +2748,144 @@ if themeData.player_left == true then
 setPlayerLeft(true)
 end
 if type(themeData.sky_preset) == "string" then
+skyState.chosen=themeData.sky_preset
 applySky(themeData.sky_preset)
 end
 if themeData.sky_freeze == true then
 setSkyFreeze(true)
+end
+if themeData.sky_cycle == true then
+setSkyCycle(true)
 end
 showSettingsPage("colors")
 end)
 if not okSettings then
 warn("Tilo Song: окно настроек не создалось: " .. tostring(errSettings))
 end
+end
+do
+local entries={
+{"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток"},
+{"v2.6.10","Исправлено небо, экран загрузки улетает вверх"},
+{"v2.6.9","Экран загрузки, небо, плеер слева, глушилки звука"},
+{"v2.6.8","Ползунки не двигают окно, исправлена палитра цветов"},
+{"v2.6.7","Кнопка «Ещё», проверка песен ✅/❌, новые запросы категорий"},
+{"v2.6.6","Вкладки «Цвета / Общие / Плеер / Визуалки», размер кнопки плеера"},
+{"v2.6.5","Вкладки в настройках, высота кнопки плеера, сжатый код"},
+{"v2.6.4","Расширенное время (секунды)"},
+{"v2.6.3","Цвет обводки окон"},
+{"v2.6.2","Цвет фона окон, сохранение в файл"},
+{"v2.6.1","Шестерёнка и окно настроек"},
+{"v2.6","Плейлист (☆), режимы «один раз» и «по кругу», сохранение в файл"},
+{"v2.5","Стабильная версия (без изменений кода)"},
+{"v2.4.1 beta","Исправлен слой панели плеера"},
+{"v2.4 beta","Локальный плеер: ввод ID, случайная песня, громкость"},
+{"v2.3.3 beta","Текст надписи переписан, подложка убрана"},
+{"v2.3.2 beta","Новый текст надписи, кнопка в две строки"},
+{"v2.3.1 beta","Кнопка шире, надпись в рамке"},
+{"v2.3 beta","Надпись, что скрипт сделан с помощью AI"},
+{"v2.2 beta","Надпись с Telegram и уведомление при копировании"},
+{"v2 beta","Поиск песен по категориям, копирование ID, часы"}
+}
+local WhatsNew=_I("Frame",ScreenGui)
+WhatsNew.Name="WhatsNew"
+WhatsNew.AnchorPoint=Vector2.new(0.5,0.5)
+WhatsNew.Position=_U(0.5,0,0.5,0)
+WhatsNew.Size=_U(0.92,0,0.8,0)
+WhatsNew.BackgroundColor3=_C(18,15,22)
+WhatsNew.BorderSizePixel=0
+WhatsNew.Active=true
+WhatsNew.Visible=false
+_Cr(WhatsNew,12)
+local WhatsNewLimit=_I("UISizeConstraint",WhatsNew)
+WhatsNewLimit.MaxSize=Vector2.new(340,460)
+local WhatsNewStroke=_St(WhatsNew,_PU,2)
+local WhatsNewClose=_I("TextButton",WhatsNew)
+WhatsNewClose.Size=_U(0,28,0,28)
+WhatsNewClose.Position=_U(1,-34,0,6)
+WhatsNewClose.BackgroundTransparency=1
+WhatsNewClose.Text="✕"
+WhatsNewClose.TextColor3=_C(255,80,80)
+WhatsNewClose.Font=_FB
+WhatsNewClose.TextSize=18
+local WhatsNewHead=_I("Frame",WhatsNew)
+WhatsNewHead.Size=_U(1,-20,0,116)
+WhatsNewHead.Position=_U(0,10,0,36)
+WhatsNewHead.BackgroundColor3=_C(28,25,38)
+WhatsNewHead.BorderSizePixel=0
+_Cr(WhatsNewHead,8)
+local WhatsNewHeadStroke=_St(WhatsNewHead,_C(0,170,90),1.5)
+local HeadTitle=_I("TextLabel",WhatsNewHead)
+HeadTitle.Size=_U(1,-16,0,24)
+HeadTitle.Position=_U(0,8,0,4)
+HeadTitle.BackgroundTransparency=1
+HeadTitle.Text="🎉 Новое в v2.7"
+HeadTitle.TextColor3=_W
+HeadTitle.Font=_FB
+HeadTitle.TextSize=16
+HeadTitle.TextXAlignment=_XL
+local HeadText=_I("TextLabel",WhatsNewHead)
+HeadText.Size=_U(1,-16,0,82)
+HeadText.Position=_U(0,8,0,30)
+HeadText.BackgroundTransparency=1
+HeadText.Text="• Это окно с историей версий\n• Утро и смена времени суток по кругу\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Исправлены загрузка и закат"
+HeadText.TextColor3=_C(220,220,240)
+HeadText.Font=_FN
+HeadText.TextSize=13
+HeadText.TextWrapped=true
+HeadText.TextXAlignment=_XL
+HeadText.TextYAlignment=Enum.TextYAlignment.Top
+local HistoryTitle=_I("TextLabel",WhatsNew)
+HistoryTitle.Size=_U(1,-24,0,22)
+HistoryTitle.Position=_U(0,12,0,158)
+HistoryTitle.BackgroundTransparency=1
+HistoryTitle.Text="📜 История версий"
+HistoryTitle.TextColor3=_C(200,160,255)
+HistoryTitle.Font=_FB
+HistoryTitle.TextSize=14
+HistoryTitle.TextXAlignment=_XL
+local HistoryList=_I("ScrollingFrame",WhatsNew)
+HistoryList.Size=_U(1,-20,1,-190)
+HistoryList.Position=_U(0,10,0,182)
+HistoryList.BackgroundTransparency=1
+HistoryList.BorderSizePixel=0
+HistoryList.ScrollBarThickness=4
+HistoryList.CanvasSize=_U(0,0,0,0)
+HistoryList.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local HistoryLayout=_I("UIListLayout",HistoryList)
+HistoryLayout.SortOrder=Enum.SortOrder.LayoutOrder
+HistoryLayout.Padding=_V(0,4)
+for index,entry in ipairs(entries) do
+local historyRow=_I("TextLabel",HistoryList)
+historyRow.LayoutOrder=index
+historyRow.Size=_U(1,-8,0,0)
+historyRow.AutomaticSize=Enum.AutomaticSize.Y
+historyRow.BackgroundColor3=_C(28,25,38)
+historyRow.BorderSizePixel=0
+historyRow.RichText=true
+historyRow.TextWrapped=true
+historyRow.TextXAlignment=_XL
+historyRow.TextYAlignment=Enum.TextYAlignment.Top
+historyRow.TextColor3=_C(220,220,240)
+historyRow.Font=_FN
+historyRow.TextSize=13
+historyRow.Text="<b>" .. entry[1] .. "</b>  " .. entry[2]
+_Cr(historyRow,6)
+local historyPad=_I("UIPadding",historyRow)
+historyPad.PaddingLeft=_V(0,8)
+historyPad.PaddingRight=_V(0,8)
+historyPad.PaddingTop=_V(0,5)
+historyPad.PaddingBottom=_V(0,5)
+end
+WhatsNewClose.MouseButton1Click:Connect(function()
+WhatsNew.Visible=false
+end)
+local function showWhatsNew()
+if ScreenGui:GetAttribute("LoadDone") == true then
+WhatsNew.Visible=true
+end
+end
+showWhatsNew()
+ScreenGui:GetAttributeChangedSignal("LoadDone"):Connect(showWhatsNew)
 end
 SearchAudio("phonk","Phonk")
