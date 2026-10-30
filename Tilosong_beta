@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.1"
+CardTitle.Text="🎵 TILO SONG v2.7.2"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -150,7 +150,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.1"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.2"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -190,7 +190,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.1"
+Title.Text="🎵 TILO SONG v2.7.2"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -1986,7 +1986,7 @@ if child:IsA("TextButton") then
 child:Destroy()
 end
 end
-local options={{color=false,name="Сброс"}}
+local options={{color=false,name="Стандартный"}}
 for colorIndex,color in ipairs(setting.colors) do
 table.insert(options,{color=color,name=(colorNames[setting.key] or {})[colorIndex] or ""})
 end
@@ -2003,7 +2003,7 @@ swatch.TextSize=20
 _Cr(swatch,6)
 local swatchStroke=_I("UIStroke",swatch)
 swatchStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-swatchStroke.Thickness=2
+swatchStroke.Thickness=0
 swatchStroke.Color=contrastColor(swatchColor)
 local swatchName=_I("TextLabel",swatch)
 swatchName.BackgroundTransparency=1
@@ -2069,7 +2069,7 @@ square.AutoButtonColor=false
 _Cr(square,5)
 local squareStroke=_I("UIStroke",square)
 squareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-squareStroke.Thickness=2
+squareStroke.Thickness=0
 squareStroke.Color=contrastColor(targets[1].original)
 setting.apply=function(color)
 for _,target in ipairs(targets) do
@@ -2177,48 +2177,6 @@ clockSquare.MouseButton1Click:Connect(function()
 local newState=not (ClockFrame:GetAttribute("Extended") == true)
 setClockExtended(newState)
 themeData[CLOCK_KEY]=newState or nil
-saveTheme()
-palettePopup.Visible=false
-end)
-local hideRow=_I("Frame",pageScript)
-hideRow.Size=_U(1,-10,0,40)
-hideRow.LayoutOrder=2
-hideRow.BackgroundColor3=_C(28,25,38)
-hideRow.BorderSizePixel=0
-_Cr(hideRow,6)
-local hideLabel=_I("TextLabel",hideRow)
-hideLabel.Size=_U(1,-72,1,0)
-hideLabel.Position=_U(0,10,0,0)
-hideLabel.BackgroundTransparency=1
-hideLabel.Text="Скрывать нерабочие песни"
-hideLabel.TextColor3=_C(220,220,240)
-hideLabel.Font=_FB
-hideLabel.TextSize=13
-hideLabel.TextXAlignment=_XL
-local hideSquare=_I("TextButton",hideRow)
-hideSquare.Size=_U(0,46,0,28)
-hideSquare.Position=_U(1,-56,0.5,-14)
-hideSquare.Text=""
-hideSquare.AutoButtonColor=false
-hideSquare.TextColor3=COLOR_WHITE
-hideSquare.Font=_FB
-hideSquare.TextSize=11
-hideSquare.TextStrokeTransparency=0.4
-_Cr(hideSquare,5)
-local hideSquareStroke=_I("UIStroke",hideSquare)
-hideSquareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-hideSquareStroke.Thickness=2
-hideSquareStroke.Color=_W
-local function setHideDead(on)
-hideSquare.BackgroundColor3=on and COLOR_GREEN or COLOR_RED
-hideSquare.Text=on and "ВКЛ" or "ВЫКЛ"
-ScreenGui:SetAttribute("HideDead",on)
-end
-setHideDead(false)
-hideSquare.MouseButton1Click:Connect(function()
-local newState=not (ScreenGui:GetAttribute("HideDead") == true)
-setHideDead(newState)
-themeData.hide_dead=newState or nil
 saveTheme()
 palettePopup.Visible=false
 end)
@@ -2465,7 +2423,7 @@ if not skyState.orig then
 skyState.orig={Brightness=Lighting.Brightness,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient,ClockTime=Lighting.ClockTime}
 end
 for _,child in ipairs(Lighting:GetChildren()) do
-if (child:IsA("Sky") or child:IsA("Atmosphere")) and child ~= skyState.atmo then
+if (child:IsA("Sky") or child:IsA("Atmosphere")) and child ~= skyState.atmo and child ~= skyState.fogAtmo then
 table.insert(skyState.stash,child)
 child.Parent=nil
 end
@@ -2479,6 +2437,8 @@ skyState.atmo.Decay=preset.atmo[2]
 skyState.atmo.Density=preset.atmo[3]
 skyState.atmo.Haze=preset.atmo[4]
 skyState.atmo.Glare=preset.atmo[5]
+skyState.baseDensity=preset.atmo[3]
+skyState.baseHaze=preset.atmo[4]
 Lighting.OutdoorAmbient=preset.amb
 if preset.tint then
 if not skyState.cc then
@@ -2593,6 +2553,7 @@ local cycleHour=6.4
 local cycleMinutes=2
 local fogStrength=0
 local fogOrig=nil
+local fogStash={}
 local cycleKeys={
 {h=6.4,p="morning"},
 {h=14,p="day"},
@@ -2642,6 +2603,8 @@ return
 end
 local v=sampleLook(hour)
 atmo.Color,atmo.Decay,atmo.Density,atmo.Haze,atmo.Glare=v[1],v[2],v[3],v[4],v[5]
+skyState.baseDensity=v[3]
+skyState.baseHaze=v[4]
 Lighting.OutdoorAmbient=v[6]
 if not skyState.cc then
 skyState.cc=_I("ColorCorrectionEffect")
@@ -2669,12 +2632,57 @@ if hr < 6.4 then
 hr=hr + 24
 end
 local k=1 - fogStrength / 100
+local fogLook=sampleLook(hr)[10]
 Lighting.FogStart=0
 Lighting.FogEnd=1500 * k * k + 40
-Lighting.FogColor=sampleLook(hr)[10]
+Lighting.FogColor=fogLook
+local power=fogStrength / 100
+if skyState.atmo then
+if skyState.fogAtmo then
+skyState.fogAtmo:Destroy()
+skyState.fogAtmo=nil
+for _,saved in ipairs(fogStash) do
+table.insert(skyState.stash,saved)
+end
+fogStash={}
+end
+local baseDensity=skyState.baseDensity or 0.3
+local baseHaze=skyState.baseHaze or 0
+skyState.atmo.Density=baseDensity + (1 - baseDensity) * power
+skyState.atmo.Haze=baseHaze + (10 - baseHaze) * power
+else
+if not skyState.fogAtmo then
+skyState.fogAtmo=_I("Atmosphere")
+for _,child in ipairs(Lighting:GetChildren()) do
+if child:IsA("Atmosphere") then
+table.insert(fogStash,child)
+child.Parent=nil
+end
+end
+skyState.fogAtmo.Parent=Lighting
+end
+skyState.fogAtmo.Color=fogLook
+skyState.fogAtmo.Decay=fogLook
+skyState.fogAtmo.Density=power
+skyState.fogAtmo.Haze=10 * power
+end
 elseif fogOrig then
 Lighting.FogStart,Lighting.FogEnd,Lighting.FogColor=fogOrig[1],fogOrig[2],fogOrig[3]
 fogOrig=nil
+if skyState.fogAtmo then
+skyState.fogAtmo:Destroy()
+skyState.fogAtmo=nil
+for _,saved in ipairs(fogStash) do
+pcall(function()
+saved.Parent=Lighting
+end)
+end
+fogStash={}
+end
+if skyState.atmo then
+skyState.atmo.Density=skyState.baseDensity or 0.3
+skyState.atmo.Haze=skyState.baseHaze or 0
+end
 end
 end)
 setSkyCycle=makeToggleRow(pageVisual,3,"Смена времени суток",function(on)
@@ -2833,9 +2841,6 @@ end
 if themeData[CLOCK_KEY] == true then
 setClockExtended(true)
 end
-if themeData.hide_dead == true then
-setHideDead(true)
-end
 if type(themeData.tab_pos) == "number" then
 setTabPos(themeData.tab_pos)
 end
@@ -2872,6 +2877,7 @@ end
 end
 do
 local entries={
+{"v2.7.2","Цвета без обводки, «Стандартный», густой туман скрывает небо","• Цвета без обводки, сброс называется «Стандартный»\n• Убрана настройка «Скрывать нерабочие песни»\n• Густой туман теперь скрывает и небо\n• Мелкие исправления"},
 {"v2.7.1","Вкладка «Время суток», туман, ползунки времени, исправлены подписи","• Исправлены подписи ВКЛ/ВЫКЛ\n• История версий раскрывается по нажатию\n• Вкладка «Время суток»: время, длительность суток, туман\n• Кнопка «Сбросить всё» для времени и тумана"},
 {"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток","• Окно «Что нового» с историей версий\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Утро и плавная смена времени суток\n• Исправлены загрузка и закат"},
 {"v2.6.10","Исправлено небо, экран загрузки улетает вверх","• «Обычное» небо возвращает всё как было\n• Вечер темнее и оранжево-серый\n• Закат светлее\n• Загрузка улетает вверх"},
@@ -2927,7 +2933,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.1"
+HeadTitle.Text="🎉 Новое в v2.7.2"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
