@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.2"
+CardTitle.Text="🎵 TILO SONG v2.7.3"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -150,7 +150,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.2"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.3"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -190,7 +190,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.2"
+Title.Text="🎵 TILO SONG v2.7.3"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -2755,6 +2755,290 @@ themeData.cycle_min=nil
 themeData.fog=nil
 saveTheme()
 end)
+local gfxState={mode="standard",potato=false,orig=nil,effects={}}
+local gfxModes={
+{id="potato",name="Картошка",desc="максимум FPS, без текстур"},
+{id="standard",name="Стандартный",desc="ничего не меняется"},
+{id="light",name="Лёгкий",desc="чуть света и блики"},
+{id="normal",name="Нормальный",desc="свечение, лучи, цвет"},
+{id="hard",name="Сложный",desc="максимум эффектов"}
+}
+local gfxConfigs={
+light={bloom=0.25,size=20,threshold=1.2,rays=0,sat=0.08,con=0.04},
+normal={bloom=0.5,size=24,threshold=1,rays=0.1,sat=0.18,con=0.1,shadows=true,soft=0.5,env=0.5},
+hard={bloom=0.8,size=40,threshold=0.9,rays=0.25,sat=0.3,con=0.15,shadows=true,soft=1,env=1,dof=true,quality=Enum.QualityLevel.Level21}
+}
+local function clearGfxEffects()
+for _,fx in ipairs(gfxState.effects) do
+fx:Destroy()
+end
+gfxState.effects={}
+end
+local function addGfxEffect(className,props)
+local fx=_I(className)
+for key,value in pairs(props) do
+fx[key]=value
+end
+fx.Parent=Lighting
+table.insert(gfxState.effects,fx)
+return fx
+end
+local function saveOrigGfx()
+if gfxState.orig then
+return
+end
+local quality=nil
+pcall(function()
+quality=settings().Rendering.QualityLevel
+end)
+gfxState.orig={shadows=Lighting.GlobalShadows,soft=Lighting.ShadowSoftness,diff=Lighting.EnvironmentDiffuseScale,spec=Lighting.EnvironmentSpecularScale,quality=quality}
+end
+local function restoreGfx()
+clearGfxEffects()
+local o=gfxState.orig
+if o then
+Lighting.GlobalShadows=o.shadows
+pcall(function()
+Lighting.ShadowSoftness=o.soft
+Lighting.EnvironmentDiffuseScale=o.diff
+Lighting.EnvironmentSpecularScale=o.spec
+end)
+if o.quality then
+pcall(function()
+settings().Rendering.QualityLevel=o.quality
+end)
+end
+end
+end
+local function applyGfx(mode)
+saveOrigGfx()
+restoreGfx()
+local cfg=gfxConfigs[mode]
+if not cfg then
+return
+end
+addGfxEffect("BloomEffect",{Intensity=cfg.bloom,Size=cfg.size,Threshold=cfg.threshold})
+if cfg.rays > 0 then
+addGfxEffect("SunRaysEffect",{Intensity=cfg.rays,Spread=0.25})
+end
+addGfxEffect("ColorCorrectionEffect",{Saturation=cfg.sat,Contrast=cfg.con})
+if cfg.shadows then
+Lighting.GlobalShadows=true
+pcall(function()
+Lighting.ShadowSoftness=cfg.soft
+Lighting.EnvironmentDiffuseScale=cfg.env
+Lighting.EnvironmentSpecularScale=cfg.env
+end)
+end
+if cfg.dof then
+addGfxEffect("DepthOfFieldEffect",{FarIntensity=0.15,FocusDistance=120,InFocusRadius=80,NearIntensity=0})
+end
+if cfg.quality then
+pcall(function()
+settings().Rendering.QualityLevel=cfg.quality
+end)
+end
+end
+local function potatoItem(item)
+if item:IsA("Decal") or item:IsA("Texture") or item:IsA("SurfaceAppearance") then
+item:Destroy()
+elseif item:IsA("ParticleEmitter") or item:IsA("Trail") or item:IsA("Beam") or item:IsA("Fire") or item:IsA("Smoke") or item:IsA("Sparkles") then
+item.Enabled=false
+elseif item:IsA("Terrain") then
+return
+elseif item:IsA("BasePart") then
+item.Material=Enum.Material.SmoothPlastic
+item.Reflectance=0
+if item:IsA("MeshPart") then
+pcall(function()
+item.TextureID=""
+end)
+end
+end
+end
+local function startPotato()
+saveOrigGfx()
+restoreGfx()
+gfxState.potato=true
+gfxState.mode="potato"
+Lighting.GlobalShadows=false
+pcall(function()
+settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
+end)
+for _,child in ipairs(Lighting:GetChildren()) do
+if child:IsA("PostEffect") and child ~= skyState.cc then
+child.Enabled=false
+end
+end
+pcall(function()
+workspace.Terrain.Decoration=false
+end)
+task.spawn(function()
+local count=0
+for _,item in ipairs(workspace:GetDescendants()) do
+pcall(potatoItem,item)
+count=count + 1
+if count % 300 == 0 then
+task.wait()
+end
+end
+end)
+workspace.DescendantAdded:Connect(function(item)
+task.defer(function()
+pcall(potatoItem,item)
+end)
+end)
+end
+local gfxDialog=_I("Frame",ScreenGui)
+gfxDialog.AnchorPoint=Vector2.new(0.5,0.5)
+gfxDialog.Position=_U(0.5,0,0.5,0)
+gfxDialog.Size=_U(0,300,0,170)
+gfxDialog.BackgroundColor3=_C(18,15,22)
+gfxDialog.BorderSizePixel=0
+gfxDialog.Active=true
+gfxDialog.Visible=false
+_Cr(gfxDialog,12)
+local gfxDialogStroke=_St(gfxDialog,_PU,2)
+local gfxDialogText=_I("TextLabel",gfxDialog)
+gfxDialogText.Size=_U(1,-24,0,100)
+gfxDialogText.Position=_U(0,12,0,12)
+gfxDialogText.BackgroundTransparency=1
+gfxDialogText.TextColor3=_W
+gfxDialogText.Font=_FN
+gfxDialogText.TextSize=14
+gfxDialogText.TextWrapped=true
+gfxDialogText.TextXAlignment=_XL
+gfxDialogText.TextYAlignment=Enum.TextYAlignment.Top
+local gfxOk=_I("TextButton",gfxDialog)
+gfxOk.Size=_U(0,120,0,34)
+gfxOk.BackgroundColor3=COLOR_GREEN
+gfxOk.TextColor3=COLOR_WHITE
+gfxOk.Font=_FB
+gfxOk.TextSize=14
+_Cr(gfxOk,8)
+local gfxCloseBtn=_I("TextButton",gfxDialog)
+gfxCloseBtn.Size=_U(0,120,0,34)
+gfxCloseBtn.Position=_U(0.5,10,1,-46)
+gfxCloseBtn.BackgroundColor3=COLOR_RED
+gfxCloseBtn.TextColor3=COLOR_WHITE
+gfxCloseBtn.Font=_FB
+gfxCloseBtn.TextSize=14
+_Cr(gfxCloseBtn,8)
+local gfxOkAction=nil
+local function showGfxDialog(text,okText,closeText,onOk)
+gfxDialogText.Text=text
+gfxOk.Text=okText
+gfxOkAction=onOk
+if closeText then
+gfxCloseBtn.Text=closeText
+gfxCloseBtn.Visible=true
+gfxOk.Position=_U(0.5,-130,1,-46)
+else
+gfxCloseBtn.Visible=false
+gfxOk.Position=_U(0.5,-60,1,-46)
+end
+gfxDialog.Visible=true
+end
+gfxOk.MouseButton1Click:Connect(function()
+gfxDialog.Visible=false
+local action=gfxOkAction
+gfxOkAction=nil
+if action then
+action()
+end
+end)
+gfxCloseBtn.MouseButton1Click:Connect(function()
+gfxDialog.Visible=false
+gfxOkAction=nil
+end)
+local gfxRow=_I("TextButton",pageScript)
+gfxRow.Size=_U(1,-10,0,40)
+gfxRow.LayoutOrder=2
+gfxRow.BackgroundColor3=_C(28,25,38)
+gfxRow.TextColor3=_C(220,220,240)
+gfxRow.Font=_FB
+gfxRow.TextSize=13
+gfxRow.AutoButtonColor=false
+gfxRow.Text="Графика: Стандартный (выбрать)"
+_Cr(gfxRow,6)
+local gfxPopup=_I("Frame",settingsFrame)
+gfxPopup.Size=_U(0,260,0,196)
+gfxPopup.Position=_U(0.5,-130,0,172)
+gfxPopup.BackgroundColor3=_C(30,26,42)
+gfxPopup.BorderSizePixel=0
+gfxPopup.Active=true
+gfxPopup.Visible=false
+_Cr(gfxPopup,10)
+local gfxPopupStroke=_St(gfxPopup,_C(110,90,170),2)
+local gfxPopupTitle=_I("TextLabel",gfxPopup)
+gfxPopupTitle.Size=_U(1,-40,0,24)
+gfxPopupTitle.Position=_U(0,10,0,4)
+gfxPopupTitle.BackgroundTransparency=1
+gfxPopupTitle.Text="Режим графики"
+gfxPopupTitle.TextColor3=_W
+gfxPopupTitle.Font=_FB
+gfxPopupTitle.TextSize=13
+gfxPopupTitle.TextXAlignment=_XL
+local gfxPopupClose=_I("TextButton",gfxPopup)
+gfxPopupClose.Size=_U(0,22,0,22)
+gfxPopupClose.Position=_U(1,-28,0,5)
+gfxPopupClose.BackgroundTransparency=1
+gfxPopupClose.Text="✕"
+gfxPopupClose.TextColor3=_C(255,80,80)
+gfxPopupClose.Font=_FB
+gfxPopupClose.TextSize=14
+gfxPopupClose.MouseButton1Click:Connect(function()
+gfxPopup.Visible=false
+end)
+local function chooseGfx(mode)
+gfxPopup.Visible=false
+if gfxState.potato then
+if mode.id ~= "potato" then
+showGfxDialog("Вы выбрали режим «Картошка». Другие режимы могут работать с багами. Чтобы это исправить, перезайдите в игру.","Понятно",nil,nil)
+end
+return
+end
+if mode.id == "potato" then
+showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты. После этого другие режимы графики нельзя будет включить, пока вы не перезайдёте в игру. Продолжить?","ОК","Закрыть",function()
+startPotato()
+gfxRow.Text="Графика: Картошка (перезайдите, чтобы сменить)"
+end)
+return
+end
+gfxState.mode=mode.id
+applyGfx(mode.id)
+gfxRow.Text="Графика: " .. mode.name .. " (выбрать)"
+end
+for index,mode in ipairs(gfxModes) do
+local modeBtn=_I("TextButton",gfxPopup)
+modeBtn.Size=_U(1,-20,0,28)
+modeBtn.Position=_U(0,10,0,30 + (index - 1) * 32)
+modeBtn.BackgroundColor3=_C(35,30,48)
+modeBtn.AutoButtonColor=false
+modeBtn.Text=mode.name .. " - " .. mode.desc
+modeBtn.TextColor3=_W
+modeBtn.Font=_FB
+modeBtn.TextSize=12
+_Cr(modeBtn,6)
+modeBtn.MouseButton1Click:Connect(function()
+chooseGfx(mode)
+end)
+end
+gfxRow.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+skyPopup.Visible=false
+gfxPopup.Visible=not gfxPopup.Visible
+end)
+pageScript:GetPropertyChangedSignal("Visible"):Connect(function()
+if not pageScript.Visible then
+gfxPopup.Visible=false
+end
+end)
+settingsFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+if not settingsFrame.Visible then
+gfxPopup.Visible=false
+end
+end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
 local winDrag,winStart,winOrigin=false,nil,nil
 settingsFrame.InputBegan:Connect(function(input)
@@ -2877,6 +3161,7 @@ end
 end
 do
 local entries={
+{"v2.7.3","Режимы графики: Картошка, Лёгкий, Нормальный, Сложный","• Выбор графики в «Общих» настройках\n• Картошка убирает текстуры для FPS (с предупреждением)\n• Лёгкий, Нормальный, Сложный: блики, свет и цвет\n• После Картошки другие режимы блокируются"},
 {"v2.7.2","Цвета без обводки, «Стандартный», густой туман скрывает небо","• Цвета без обводки, сброс называется «Стандартный»\n• Убрана настройка «Скрывать нерабочие песни»\n• Густой туман теперь скрывает и небо\n• Мелкие исправления"},
 {"v2.7.1","Вкладка «Время суток», туман, ползунки времени, исправлены подписи","• Исправлены подписи ВКЛ/ВЫКЛ\n• История версий раскрывается по нажатию\n• Вкладка «Время суток»: время, длительность суток, туман\n• Кнопка «Сбросить всё» для времени и тумана"},
 {"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток","• Окно «Что нового» с историей версий\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Утро и плавная смена времени суток\n• Исправлены загрузка и закат"},
@@ -2933,7 +3218,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.2"
+HeadTitle.Text="🎉 Новое в v2.7.3"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
