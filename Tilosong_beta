@@ -81,7 +81,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.3"
+CardTitle.Text="🎵 TILO SONG v2.7.4"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -150,7 +150,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.3"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.4"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -190,7 +190,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.3"
+Title.Text="🎵 TILO SONG v2.7.4"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -2755,90 +2755,7 @@ themeData.cycle_min=nil
 themeData.fog=nil
 saveTheme()
 end)
-local gfxState={mode="standard",potato=false,orig=nil,effects={}}
-local gfxModes={
-{id="potato",name="Картошка",desc="максимум FPS, без текстур"},
-{id="standard",name="Стандартный",desc="ничего не меняется"},
-{id="light",name="Лёгкий",desc="чуть света и блики"},
-{id="normal",name="Нормальный",desc="свечение, лучи, цвет"},
-{id="hard",name="Сложный",desc="максимум эффектов"}
-}
-local gfxConfigs={
-light={bloom=0.25,size=20,threshold=1.2,rays=0,sat=0.08,con=0.04},
-normal={bloom=0.5,size=24,threshold=1,rays=0.1,sat=0.18,con=0.1,shadows=true,soft=0.5,env=0.5},
-hard={bloom=0.8,size=40,threshold=0.9,rays=0.25,sat=0.3,con=0.15,shadows=true,soft=1,env=1,dof=true,quality=Enum.QualityLevel.Level21}
-}
-local function clearGfxEffects()
-for _,fx in ipairs(gfxState.effects) do
-fx:Destroy()
-end
-gfxState.effects={}
-end
-local function addGfxEffect(className,props)
-local fx=_I(className)
-for key,value in pairs(props) do
-fx[key]=value
-end
-fx.Parent=Lighting
-table.insert(gfxState.effects,fx)
-return fx
-end
-local function saveOrigGfx()
-if gfxState.orig then
-return
-end
-local quality=nil
-pcall(function()
-quality=settings().Rendering.QualityLevel
-end)
-gfxState.orig={shadows=Lighting.GlobalShadows,soft=Lighting.ShadowSoftness,diff=Lighting.EnvironmentDiffuseScale,spec=Lighting.EnvironmentSpecularScale,quality=quality}
-end
-local function restoreGfx()
-clearGfxEffects()
-local o=gfxState.orig
-if o then
-Lighting.GlobalShadows=o.shadows
-pcall(function()
-Lighting.ShadowSoftness=o.soft
-Lighting.EnvironmentDiffuseScale=o.diff
-Lighting.EnvironmentSpecularScale=o.spec
-end)
-if o.quality then
-pcall(function()
-settings().Rendering.QualityLevel=o.quality
-end)
-end
-end
-end
-local function applyGfx(mode)
-saveOrigGfx()
-restoreGfx()
-local cfg=gfxConfigs[mode]
-if not cfg then
-return
-end
-addGfxEffect("BloomEffect",{Intensity=cfg.bloom,Size=cfg.size,Threshold=cfg.threshold})
-if cfg.rays > 0 then
-addGfxEffect("SunRaysEffect",{Intensity=cfg.rays,Spread=0.25})
-end
-addGfxEffect("ColorCorrectionEffect",{Saturation=cfg.sat,Contrast=cfg.con})
-if cfg.shadows then
-Lighting.GlobalShadows=true
-pcall(function()
-Lighting.ShadowSoftness=cfg.soft
-Lighting.EnvironmentDiffuseScale=cfg.env
-Lighting.EnvironmentSpecularScale=cfg.env
-end)
-end
-if cfg.dof then
-addGfxEffect("DepthOfFieldEffect",{FarIntensity=0.15,FocusDistance=120,InFocusRadius=80,NearIntensity=0})
-end
-if cfg.quality then
-pcall(function()
-settings().Rendering.QualityLevel=cfg.quality
-end)
-end
-end
+local potatoOn=false
 local function potatoItem(item)
 if item:IsA("Decal") or item:IsA("Texture") or item:IsA("SurfaceAppearance") then
 item:Destroy()
@@ -2857,10 +2774,7 @@ end
 end
 end
 local function startPotato()
-saveOrigGfx()
-restoreGfx()
-gfxState.potato=true
-gfxState.mode="potato"
+potatoOn=true
 Lighting.GlobalShadows=false
 pcall(function()
 settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
@@ -2959,84 +2873,18 @@ gfxRow.TextColor3=_C(220,220,240)
 gfxRow.Font=_FB
 gfxRow.TextSize=13
 gfxRow.AutoButtonColor=false
-gfxRow.Text="Графика: Стандартный (выбрать)"
+gfxRow.Text="Режим «Картошка» (убрать текстуры)"
 _Cr(gfxRow,6)
-local gfxPopup=_I("Frame",settingsFrame)
-gfxPopup.Size=_U(0,260,0,196)
-gfxPopup.Position=_U(0.5,-130,0,172)
-gfxPopup.BackgroundColor3=_C(30,26,42)
-gfxPopup.BorderSizePixel=0
-gfxPopup.Active=true
-gfxPopup.Visible=false
-_Cr(gfxPopup,10)
-local gfxPopupStroke=_St(gfxPopup,_C(110,90,170),2)
-local gfxPopupTitle=_I("TextLabel",gfxPopup)
-gfxPopupTitle.Size=_U(1,-40,0,24)
-gfxPopupTitle.Position=_U(0,10,0,4)
-gfxPopupTitle.BackgroundTransparency=1
-gfxPopupTitle.Text="Режим графики"
-gfxPopupTitle.TextColor3=_W
-gfxPopupTitle.Font=_FB
-gfxPopupTitle.TextSize=13
-gfxPopupTitle.TextXAlignment=_XL
-local gfxPopupClose=_I("TextButton",gfxPopup)
-gfxPopupClose.Size=_U(0,22,0,22)
-gfxPopupClose.Position=_U(1,-28,0,5)
-gfxPopupClose.BackgroundTransparency=1
-gfxPopupClose.Text="✕"
-gfxPopupClose.TextColor3=_C(255,80,80)
-gfxPopupClose.Font=_FB
-gfxPopupClose.TextSize=14
-gfxPopupClose.MouseButton1Click:Connect(function()
-gfxPopup.Visible=false
-end)
-local function chooseGfx(mode)
-gfxPopup.Visible=false
-if gfxState.potato then
-if mode.id ~= "potato" then
-showGfxDialog("Вы выбрали режим «Картошка». Другие режимы могут работать с багами. Чтобы это исправить, перезайдите в игру.","Понятно",nil,nil)
-end
-return
-end
-if mode.id == "potato" then
-showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты. После этого другие режимы графики нельзя будет включить, пока вы не перезайдёте в игру. Продолжить?","ОК","Закрыть",function()
-startPotato()
-gfxRow.Text="Графика: Картошка (перезайдите, чтобы сменить)"
-end)
-return
-end
-gfxState.mode=mode.id
-applyGfx(mode.id)
-gfxRow.Text="Графика: " .. mode.name .. " (выбрать)"
-end
-for index,mode in ipairs(gfxModes) do
-local modeBtn=_I("TextButton",gfxPopup)
-modeBtn.Size=_U(1,-20,0,28)
-modeBtn.Position=_U(0,10,0,30 + (index - 1) * 32)
-modeBtn.BackgroundColor3=_C(35,30,48)
-modeBtn.AutoButtonColor=false
-modeBtn.Text=mode.name .. " - " .. mode.desc
-modeBtn.TextColor3=_W
-modeBtn.Font=_FB
-modeBtn.TextSize=12
-_Cr(modeBtn,6)
-modeBtn.MouseButton1Click:Connect(function()
-chooseGfx(mode)
-end)
-end
 gfxRow.MouseButton1Click:Connect(function()
 palettePopup.Visible=false
 skyPopup.Visible=false
-gfxPopup.Visible=not gfxPopup.Visible
+if potatoOn then
+showGfxDialog("Режим «Картошка» уже включён. Чтобы вернуть текстуры, перезайдите в игру.","Понятно",nil,nil)
+else
+showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты. Вернуть их можно будет только если перезайти в игру. Продолжить?","ОК","Закрыть",function()
+startPotato()
+gfxRow.Text="Режим «Картошка»: включён"
 end)
-pageScript:GetPropertyChangedSignal("Visible"):Connect(function()
-if not pageScript.Visible then
-gfxPopup.Visible=false
-end
-end)
-settingsFrame:GetPropertyChangedSignal("Visible"):Connect(function()
-if not settingsFrame.Visible then
-gfxPopup.Visible=false
 end
 end)
 ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
@@ -3080,8 +2928,8 @@ settingsClose.MouseButton1Click:Connect(function()
 settingsFrame.Visible=false
 palettePopup.Visible=false
 end)
-Title.Position=_U(0,44,0,4)
-Title.Size=_U(0,200,0,30)
+Title.Position=_U(0,76,0,4)
+Title.Size=_U(0,168,0,30)
 local gearBtn=_I("TextButton",MainFrame)
 gearBtn.Name="SettingsGear"
 gearBtn.Size=_U(0,28,0,28)
@@ -3092,6 +2940,19 @@ gearBtn.TextColor3=_W
 gearBtn.Font=_FB
 gearBtn.TextSize=16
 _Cr(gearBtn,6)
+local avatarBtn=_I("TextButton",MainFrame)
+avatarBtn.Name="AvatarEditorBtn"
+avatarBtn.Size=_U(0,28,0,28)
+avatarBtn.Position=_U(0,42,0,4)
+avatarBtn.BackgroundColor3=_C(35,30,48)
+avatarBtn.Text="🎨"
+avatarBtn.TextColor3=_W
+avatarBtn.Font=_FB
+avatarBtn.TextSize=16
+_Cr(avatarBtn,6)
+avatarBtn.MouseButton1Click:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",true)
+end)
 local positioned=false
 gearBtn.MouseButton1Click:Connect(function()
 if not settingsFrame.Visible and not positioned then
@@ -3160,7 +3021,273 @@ warn("Tilo Song: окно настроек не создалось: " .. tostrin
 end
 end
 do
+local RunService=game:GetService("RunService")
+local StarterGui=game:GetService("StarterGui")
+local Root=_I("Frame",ScreenGui)
+Root.Name="TiloEditor"
+Root.Size=_U(1,0,1,0)
+Root.BackgroundTransparency=1
+Root.Visible=false
+local function makePanel(anchorX,posX,width,height,title)
+local panel=_I("Frame",Root)
+panel.AnchorPoint=Vector2.new(anchorX,0)
+panel.Position=_U(anchorX,posX,0,58)
+panel.Size=_U(0,width,0,height)
+panel.BackgroundColor3=_C(18,15,22)
+panel.BackgroundTransparency=0.08
+panel.BorderSizePixel=0
+panel.Active=true
+_Cr(panel,10)
+local panelStroke=_St(panel,_PU,1.5)
+local panelTitle=_I("TextLabel",panel)
+panelTitle.Size=_U(1,-16,0,26)
+panelTitle.Position=_U(0,8,0,4)
+panelTitle.BackgroundTransparency=1
+panelTitle.Text=title
+panelTitle.TextColor3=_W
+panelTitle.Font=_FB
+panelTitle.TextSize=14
+panelTitle.TextXAlignment=_XL
+return panel
+end
+local CloseBtn=_I("TextButton",Root)
+CloseBtn.Size=_U(0,38,0,38)
+CloseBtn.Position=_U(0,10,0,10)
+CloseBtn.BackgroundColor3=_C(200,50,60)
+CloseBtn.Text="✕"
+CloseBtn.TextColor3=_W
+CloseBtn.Font=_FB
+CloseBtn.TextSize=20
+_Cr(CloseBtn,10)
+local LeftPanel=makePanel(0,10,170,130,"Категории")
+local RightPanel=makePanel(1,-10,210,220,"Настройки")
+local RightScroll=_I("ScrollingFrame",RightPanel)
+RightScroll.Size=_U(1,-16,1,-40)
+RightScroll.Position=_U(0,8,0,34)
+RightScroll.BackgroundTransparency=1
+RightScroll.BorderSizePixel=0
+RightScroll.ScrollBarThickness=4
+RightScroll.CanvasSize=_U(0,0,0,0)
+RightScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local HintLabel=_I("TextLabel",RightScroll)
+HintLabel.Size=_U(1,-6,0,0)
+HintLabel.AutomaticSize=Enum.AutomaticSize.Y
+HintLabel.BackgroundTransparency=1
+HintLabel.TextColor3=_C(200,200,220)
+HintLabel.Font=_FN
+HintLabel.TextSize=13
+HintLabel.TextWrapped=true
+HintLabel.TextXAlignment=_XL
+HintLabel.TextYAlignment=Enum.TextYAlignment.Top
+local VisibleNote=_I("TextLabel",Root)
+VisibleNote.AnchorPoint=Vector2.new(0.5,1)
+VisibleNote.Position=_U(0.5,0,1,-10)
+VisibleNote.Size=_U(0,260,0,22)
+VisibleNote.BackgroundTransparency=1
+VisibleNote.Text="Образ виден только тебе"
+VisibleNote.TextColor3=_C(220,220,240)
+VisibleNote.TextStrokeTransparency=0.5
+VisibleNote.Font=_FB
+VisibleNote.TextSize=13
+local goals={
+full={part="root",offset=Vector3.new(0,0.5,0),dist=10,height=1.5},
+head={part="head",offset=Vector3.new(0,0.3,0),dist=4.5,height=0.3},
+aura={part="root",offset=Vector3.new(0,0.5,0),dist=15,height=2}
+}
+local hints={
+full="Выбери категорию слева. Настройки категории появятся здесь.",
+head="Нимб: цвета и ползунки появятся в следующей версии.",
+aura="Аура: настройки появятся в следующих версиях."
+}
+local focusKey="full"
+local categoryButtons={}
+local function selectCategory(key)
+if key == nil or key == focusKey then
+focusKey="full"
+else
+focusKey=key
+end
+HintLabel.Text=hints[focusKey]
+for catKey,btn in pairs(categoryButtons) do
+btn.BackgroundColor3=(catKey == focusKey) and _PU or _C(35,30,48)
+end
+end
+for index,cat in ipairs({{"head","👼 Нимб"},{"aura","✨ Аура"}}) do
+local catBtn=_I("TextButton",LeftPanel)
+catBtn.Size=_U(1,-20,0,34)
+catBtn.Position=_U(0,10,0,34 + (index - 1) * 42)
+catBtn.BackgroundColor3=_C(35,30,48)
+catBtn.AutoButtonColor=false
+catBtn.Text=cat[2]
+catBtn.TextColor3=_W
+catBtn.Font=_FB
+catBtn.TextSize=14
+_Cr(catBtn,8)
+categoryButtons[cat[1]]=catBtn
+catBtn.MouseButton1Click:Connect(function()
+selectCategory(cat[1])
+end)
+end
+selectCategory(nil)
+local controlsModule=nil
+pcall(function()
+local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
+local module=scripts and scripts:FindFirstChild("PlayerModule")
+if module then
+controlsModule=require(module):GetControls()
+end
+end)
+local editorOpen=false
+local saved={}
+local angle=0
+local function closeEditor()
+if not editorOpen then
+return
+end
+editorOpen=false
+pcall(function()
+RunService:UnbindFromRenderStep("TiloEditorCamera")
+end)
+if saved.diedConn then
+saved.diedConn:Disconnect()
+saved.diedConn=nil
+end
+Root.Visible=false
+focusKey="full"
+selectCategory(nil)
+local character=LocalPlayer.Character
+local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+if rootPart then
+rootPart.Anchored=saved.rootAnchored == true
+end
+local camera=workspace.CurrentCamera
+if camera then
+camera.CameraType=saved.camType or Enum.CameraType.Custom
+if saved.camCF then
+camera.CFrame=saved.camCF
+end
+camera.FieldOfView=saved.camFov or 70
+local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+camera.CameraSubject=saved.camSubject or humanoid
+end
+if controlsModule then
+pcall(function()
+controlsModule:Enable()
+end)
+end
+for coreType,state in pairs(saved.core or {}) do
+pcall(function()
+StarterGui:SetCoreGuiEnabled(coreType,state)
+end)
+end
+for gui,state in pairs(saved.guis or {}) do
+if gui.Parent then
+gui.Enabled=state
+end
+end
+for obj,state in pairs(saved.hidden or {}) do
+if obj.Parent then
+obj.Visible=state
+end
+end
+saved={}
+end
+local function openEditor()
+if editorOpen then
+return
+end
+local character=LocalPlayer.Character
+local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+local camera=workspace.CurrentCamera
+if not rootPart or not camera then
+ScreenGui:SetAttribute("EditorOpen",false)
+return
+end
+editorOpen=true
+saved.camType=camera.CameraType
+saved.camCF=camera.CFrame
+saved.camFov=camera.FieldOfView
+saved.camSubject=camera.CameraSubject
+saved.rootAnchored=rootPart.Anchored
+saved.hidden={}
+for _,child in ipairs(ScreenGui:GetChildren()) do
+if child:IsA("GuiObject") and child ~= Root then
+saved.hidden[child]=child.Visible
+child.Visible=false
+end
+end
+saved.guis={}
+for _,gui in ipairs(PlayerGui:GetChildren()) do
+if gui:IsA("ScreenGui") and gui ~= ScreenGui then
+saved.guis[gui]=gui.Enabled
+gui.Enabled=false
+end
+end
+saved.core={}
+for _,coreType in ipairs({Enum.CoreGuiType.Chat,Enum.CoreGuiType.Backpack,Enum.CoreGuiType.PlayerList,Enum.CoreGuiType.Health,Enum.CoreGuiType.EmotesMenu}) do
+local ok,state=pcall(function()
+return StarterGui:GetCoreGuiEnabled(coreType)
+end)
+saved.core[coreType]=ok and state
+pcall(function()
+StarterGui:SetCoreGuiEnabled(coreType,false)
+end)
+end
+if controlsModule then
+pcall(function()
+controlsModule:Disable()
+end)
+end
+rootPart.Anchored=true
+local humanoid=character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+saved.diedConn=humanoid.Died:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",false)
+end)
+end
+camera.CameraType=Enum.CameraType.Scriptable
+angle=math.atan2(camera.CFrame.Position.X - rootPart.Position.X,camera.CFrame.Position.Z - rootPart.Position.Z)
+Root.Visible=true
+RunService:BindToRenderStep("TiloEditorCamera",Enum.RenderPriority.Camera.Value + 1,function(dt)
+local char=LocalPlayer.Character
+local root=char and char:FindFirstChild("HumanoidRootPart")
+local cam=workspace.CurrentCamera
+if not root or not cam then
+ScreenGui:SetAttribute("EditorOpen",false)
+return
+end
+if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+UserInputService.MouseBehavior=Enum.MouseBehavior.Default
+end
+root.Anchored=true
+local goal=goals[focusKey]
+local headPart=char:FindFirstChild("Head")
+local basePos=root.Position
+if goal.part == "head" and headPart then
+basePos=headPart.Position
+end
+local targetPos=basePos + goal.offset
+angle=angle + dt * 0.6
+local camPos=targetPos + Vector3.new(math.sin(angle) * goal.dist,goal.height,math.cos(angle) * goal.dist)
+local desired=CFrame.lookAt(camPos,targetPos)
+cam.CameraType=Enum.CameraType.Scriptable
+cam.CFrame=cam.CFrame:Lerp(desired,1 - math.exp(-6 * dt))
+end)
+end
+CloseBtn.MouseButton1Click:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",false)
+end)
+ScreenGui:GetAttributeChangedSignal("EditorOpen"):Connect(function()
+if ScreenGui:GetAttribute("EditorOpen") == true then
+openEditor()
+else
+closeEditor()
+end
+end)
+end
+do
 local entries={
+{"v2.7.4","Редактор образа: камера вокруг персонажа и панели. В графике только «Картошка»","• Кнопка 🎨 в главном меню открывает редактор образа\n• Камера крутится вокруг персонажа, управление и интерфейс игры скрыты\n• Слева категории, справа настройки, крестик возвращает всё назад\n• Из графики оставлен только режим «Картошка»"},
 {"v2.7.3","Режимы графики: Картошка, Лёгкий, Нормальный, Сложный","• Выбор графики в «Общих» настройках\n• Картошка убирает текстуры для FPS (с предупреждением)\n• Лёгкий, Нормальный, Сложный: блики, свет и цвет\n• После Картошки другие режимы блокируются"},
 {"v2.7.2","Цвета без обводки, «Стандартный», густой туман скрывает небо","• Цвета без обводки, сброс называется «Стандартный»\n• Убрана настройка «Скрывать нерабочие песни»\n• Густой туман теперь скрывает и небо\n• Мелкие исправления"},
 {"v2.7.1","Вкладка «Время суток», туман, ползунки времени, исправлены подписи","• Исправлены подписи ВКЛ/ВЫКЛ\n• История версий раскрывается по нажатию\n• Вкладка «Время суток»: время, длительность суток, туман\n• Кнопка «Сбросить всё» для времени и тумана"},
@@ -3218,7 +3345,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.3"
+HeadTitle.Text="🎉 Новое в v2.7.4"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
