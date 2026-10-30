@@ -1,0 +1,3487 @@
+local Players=game:GetService("Players")
+local AssetService=game:GetService("AssetService")
+local TweenService=game:GetService("TweenService")
+local UserInputService=game:GetService("UserInputService")
+local MarketplaceService=game:GetService("MarketplaceService")
+local ContentProvider=game:GetService("ContentProvider")
+local HttpService=game:GetService("HttpService")
+local _I,_C,_U,_V=Instance.new,Color3.fromRGB,UDim2.new,UDim.new
+local _W,_PU=_C(255,255,255),_C(160,30,255)
+local _TT,_M1,_MM=Enum.UserInputType.Touch,Enum.UserInputType.MouseButton1,Enum.UserInputType.MouseMovement
+local _FB,_FN,_XL=Enum.Font.SourceSansBold,Enum.Font.SourceSans,Enum.TextXAlignment.Left
+local function _Cr(p,r)
+local c=_I("UICorner",p)
+if r then c.CornerRadius=_V(0,r) end
+return c
+end
+local function _St(p,c,t)
+local s=_I("UIStroke",p)
+s.Color=c
+s.Thickness=t
+return s
+end
+local LocalPlayer=Players.LocalPlayer
+local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("TiloSongGui") then
+PlayerGui.TiloSongGui:Destroy()
+end
+local selectedMinDuration=30
+local selectedMaxDuration=60
+local currentQuery="phonk"
+local currentDisplayTitle="Phonk"
+local SearchAudio
+local ThemeExtra={bg={},stroke={},last={}}
+ThemeExtra.add=function(kind,instance,property)
+local list=ThemeExtra.stroke
+local key="window_outline"
+if kind == "bg" then
+list=ThemeExtra.bg
+key="window_bg"
+end
+table.insert(list,{instance=instance,prop=property,original=instance[property]})
+local last=ThemeExtra.last[key]
+if last then
+instance[property]=last
+end
+end
+local ScreenGui=_I("ScreenGui")
+ScreenGui.Name="TiloSongGui"
+ScreenGui.ResetOnSpawn=false
+ScreenGui.Parent=PlayerGui
+do
+local oldLoading=PlayerGui:FindFirstChild("TiloSongLoading")
+if oldLoading then
+oldLoading:Destroy()
+end
+local LoadGui=_I("ScreenGui")
+LoadGui.Name="TiloSongLoading"
+LoadGui.ResetOnSpawn=false
+LoadGui.IgnoreGuiInset=true
+LoadGui.DisplayOrder=1000
+LoadGui.Parent=PlayerGui
+local Dim=_I("Frame",LoadGui)
+Dim.Size=_U(1,0,1,0)
+Dim.BackgroundColor3=_C(8,4,16)
+Dim.BackgroundTransparency=0.2
+Dim.BorderSizePixel=0
+Dim.Active=true
+local DimGradient=_I("UIGradient",Dim)
+DimGradient.Color=ColorSequence.new(_C(40,12,70),_C(5,2,12))
+DimGradient.Rotation=90
+local notes={"🎵","🎶","🎧","🎵","🎶"}
+for i=1,16 do
+local note=_I("TextLabel",Dim)
+note.BackgroundTransparency=1
+note.Size=_U(0,40,0,40)
+note.Text=notes[(i % #notes) + 1]
+note.TextSize=math.random(22,38)
+note.TextTransparency=0.35
+note.Position=_U(math.random(2,96) / 100,0,1.1,0)
+task.delay(math.random(0,20) / 10,function()
+if note.Parent then
+TweenService:Create(note,TweenInfo.new(math.random(28,45) / 10,Enum.EasingStyle.Linear),{Position=_U(note.Position.X.Scale,0,-0.15,0)}):Play()
+end
+end)
+end
+local Card=_I("Frame",Dim)
+Card.AnchorPoint=Vector2.new(0.5,0.5)
+Card.Size=_U(0,280,0,120)
+Card.Position=_U(0.5,0,0.5,0)
+Card.BackgroundColor3=_C(18,15,22)
+Card.BorderSizePixel=0
+_Cr(Card,12)
+local CardStroke=_St(Card,_PU,2)
+local CardTitle=_I("TextLabel",Card)
+CardTitle.Size=_U(1,0,0,36)
+CardTitle.Position=_U(0,0,0,10)
+CardTitle.BackgroundTransparency=1
+CardTitle.Text="🎵 TILO SONG v2.7.5"
+CardTitle.TextColor3=_W
+CardTitle.Font=_FB
+CardTitle.TextSize=20
+local CardSub=_I("TextLabel",Card)
+CardSub.Size=_U(1,0,0,20)
+CardSub.Position=_U(0,0,0,46)
+CardSub.BackgroundTransparency=1
+CardSub.Text="Загрузка..."
+CardSub.TextColor3=_C(200,200,220)
+CardSub.Font=_FN
+CardSub.TextSize=14
+local BarTrack=_I("Frame",Card)
+BarTrack.Size=_U(1,-40,0,12)
+BarTrack.Position=_U(0,20,0,76)
+BarTrack.BackgroundColor3=_C(40,35,55)
+BarTrack.BorderSizePixel=0
+_Cr(BarTrack,6)
+local BarFill=_I("Frame",BarTrack)
+BarFill.Size=_U(0,0,1,0)
+BarFill.BackgroundColor3=_C(0,170,90)
+BarFill.BorderSizePixel=0
+_Cr(BarFill,6)
+local BarPercent=_I("TextLabel",Card)
+BarPercent.Size=_U(1,0,0,16)
+BarPercent.Position=_U(0,0,0,94)
+BarPercent.BackgroundTransparency=1
+BarPercent.Text="0%"
+BarPercent.TextColor3=_W
+BarPercent.Font=_FB
+BarPercent.TextSize=13
+task.spawn(function()
+local total=5
+local elapsed=0
+while elapsed < total and LoadGui.Parent do
+local ratio=elapsed / total
+ratio=ratio * ratio * (3 - 2 * ratio)
+BarFill.Size=_U(ratio,0,1,0)
+BarPercent.Text=math.floor(ratio * 100) .. "%"
+elapsed=elapsed + task.wait(0.05)
+end
+BarFill.Size=_U(1,0,1,0)
+BarPercent.Text="100%"
+CardSub.Text="Готово!"
+task.wait(0.4)
+local slideUp=TweenService:Create(Card,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=_U(0.5,0,-0.6,0)})
+slideUp:Play()
+slideUp.Completed:Wait()
+local fadeOut=TweenService:Create(Dim,TweenInfo.new(0.5),{BackgroundTransparency=1})
+fadeOut:Play()
+for _,child in ipairs(Dim:GetChildren()) do
+if child:IsA("TextLabel") then
+TweenService:Create(child,TweenInfo.new(0.5),{TextTransparency=1}):Play()
+end
+end
+fadeOut.Completed:Wait()
+LoadGui:Destroy()
+local scriptBtn=ScreenGui:FindFirstChild("ToggleTiloSong")
+if scriptBtn then
+scriptBtn.Visible=true
+end
+ScreenGui:SetAttribute("LoadDone",true)
+end)
+end
+local ToggleBtn=_I("TextButton",ScreenGui)
+ToggleBtn.Name="ToggleTiloSong"
+ToggleBtn.Size=_U(0,105,0,44)
+ToggleBtn.Position=_U(0.02,0,0.4,0)
+ToggleBtn.BackgroundColor3=_C(30,15,45)
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.5"
+ToggleBtn.TextColor3=_W
+ToggleBtn.Font=_FB
+ToggleBtn.TextSize=14
+ToggleBtn.Active=true
+ToggleBtn.Draggable=true
+ToggleBtn.Visible=false
+_Cr(ToggleBtn)
+local ToggleStroke=_St(ToggleBtn,_PU,1.5)
+local MainFrame=_I("Frame",ScreenGui)
+MainFrame.Name="MainFrame"
+MainFrame.Size=_U(0,390,0,570)
+MainFrame.Position=_U(0.5,-195,0.15,0)
+MainFrame.BackgroundColor3=_C(18,15,22)
+MainFrame.BorderSizePixel=0
+MainFrame.Active=true
+MainFrame.Draggable=true
+MainFrame.Visible=false
+_Cr(MainFrame,10)
+local MainStroke=_St(MainFrame,_PU,2)
+local categoryWasOpen=false
+ToggleBtn.MouseButton1Click:Connect(function()
+local categoryMenu=ScreenGui:FindFirstChild("CategoryMenu")
+if MainFrame.Visible then
+if categoryMenu then
+categoryWasOpen=categoryMenu.Visible
+categoryMenu.Visible=false
+end
+MainFrame.Visible=false
+else
+MainFrame.Visible=true
+if categoryMenu and categoryWasOpen then
+categoryMenu.Visible=true
+end
+end
+end)
+local Title=_I("TextLabel",MainFrame)
+Title.Size=_U(0,220,0,30)
+Title.Position=_U(0,10,0,4)
+Title.BackgroundTransparency=1
+Title.Text="🎵 TILO SONG v2.7.5"
+Title.TextColor3=_W
+Title.Font=_FB
+Title.TextSize=14
+Title.TextXAlignment=_XL
+local OpenCatBtn=_I("TextButton",MainFrame)
+OpenCatBtn.Size=_U(0,130,0,26)
+OpenCatBtn.Position=_U(1,-140,0,6)
+OpenCatBtn.BackgroundColor3=_C(120,20,200)
+OpenCatBtn.Text="📂 КАТЕГОРИИ"
+OpenCatBtn.TextColor3=_W
+OpenCatBtn.Font=_FB
+OpenCatBtn.TextSize=11
+_Cr(OpenCatBtn,5)
+local OpenCatStroke=_St(OpenCatBtn,_PU,1)
+local SearchFrame=_I("Frame",MainFrame)
+SearchFrame.Size=_U(0.7,-15,0,30)
+SearchFrame.Position=_U(0,10,0,36)
+SearchFrame.BackgroundColor3=_C(28,25,38)
+_Cr(SearchFrame)
+local SearchFrameStroke=_St(SearchFrame,_PU,1)
+local SearchBox=_I("TextBox",SearchFrame)
+SearchBox.Size=_U(1,-25,1,0)
+SearchBox.Position=_U(0,5,0,0)
+SearchBox.BackgroundTransparency=1
+SearchBox.PlaceholderText="Введите название трека..."
+SearchBox.Text=""
+SearchBox.TextColor3=_W
+SearchBox.Font=_FN
+SearchBox.TextSize=13
+SearchBox.TextXAlignment=_XL
+local ClearBtn=_I("TextButton",SearchFrame)
+ClearBtn.Size=_U(0,20,0,20)
+ClearBtn.Position=_U(1,-22,0.5,-10)
+ClearBtn.BackgroundTransparency=1
+ClearBtn.Text="❌"
+ClearBtn.TextSize=10
+ClearBtn.TextColor3=_C(180,180,180)
+ClearBtn.MouseButton1Click:Connect(function()
+SearchBox.Text=""
+end)
+local SearchBtn=_I("TextButton",MainFrame)
+SearchBtn.Size=_U(0.3,-10,0,30)
+SearchBtn.Position=_U(0.7,5,0,36)
+SearchBtn.BackgroundColor3=_PU
+SearchBtn.Text="🔎 ИСКАТЬ"
+SearchBtn.TextColor3=_W
+SearchBtn.Font=_FB
+SearchBtn.TextSize=11
+_Cr(SearchBtn)
+local StatusLabel=_I("TextLabel",MainFrame)
+StatusLabel.Size=_U(1,-170,0,18)
+StatusLabel.Position=_U(0,10,0,74)
+StatusLabel.BackgroundTransparency=1
+StatusLabel.Text="Выберите категорию или введите запрос"
+StatusLabel.TextColor3=_C(255,200,50)
+StatusLabel.Font=_FN
+StatusLabel.TextSize=11
+StatusLabel.TextXAlignment=_XL
+StatusLabel.TextTruncate=Enum.TextTruncate.AtEnd
+local Scroll=_I("ScrollingFrame",MainFrame)
+Scroll.Size=_U(1,-20,1,-160)
+Scroll.Position=_U(0,10,0,98)
+Scroll.BackgroundTransparency=1
+Scroll.BorderSizePixel=0
+Scroll.ScrollBarThickness=4
+local UIList=_I("UIListLayout",Scroll)
+UIList.SortOrder=Enum.SortOrder.LayoutOrder
+UIList.Padding=_V(0,6)
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+Scroll.CanvasSize=_U(0,0,0,UIList.AbsoluteContentSize.Y + 10)
+end)
+local CreditLabel=_I("TextButton",MainFrame)
+CreditLabel.Size=_U(1,-20,0,44)
+CreditLabel.Position=_U(0,10,1,-48)
+CreditLabel.BackgroundTransparency=1
+CreditLabel.BorderSizePixel=0
+CreditLabel.AutoButtonColor=false
+_Cr(CreditLabel,6)
+CreditLabel.Text="Этот Tilo Song был создан с помощью AI. Поэтому в нём могут быть баги. Если нашли баг, пишите мне в Telegram-канал. (Нажмите, чтобы скопировать ссылку на мой ТГ)"
+CreditLabel.TextColor3=_C(160,160,180)
+CreditLabel.Font=Enum.Font.SourceSansItalic
+CreditLabel.TextSize=11
+CreditLabel.TextWrapped=true
+local CreditStroke=_St(CreditLabel,_C(190,140,255),1.5)
+CreditStroke.Transparency=0.88
+local creditPulseInfo=TweenInfo.new(1.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true)
+TweenService:Create(CreditLabel,creditPulseInfo,{
+TextColor3=_C(245,225,255)
+}):Play()
+TweenService:Create(CreditStroke,creditPulseInfo,{Transparency=0.4}):Play()
+local Toast=_I("Frame",ScreenGui)
+Toast.Name="TiloToast"
+Toast.AnchorPoint=Vector2.new(0.5,1)
+Toast.Size=_U(0,330,0,46)
+Toast.Position=_U(0.5,0,1,80)
+Toast.BackgroundColor3=_C(28,25,38)
+Toast.BorderSizePixel=0
+Toast.ZIndex=50
+Toast.Visible=false
+_Cr(Toast,8)
+local ToastStroke=_St(Toast,_PU,1.5)
+local ToastLabel=_I("TextLabel",Toast)
+ToastLabel.Size=_U(1,-16,1,-8)
+ToastLabel.Position=_U(0,8,0,4)
+ToastLabel.BackgroundTransparency=1
+ToastLabel.Text=""
+ToastLabel.TextColor3=_W
+ToastLabel.Font=_FB
+ToastLabel.TextSize=13
+ToastLabel.TextWrapped=true
+ToastLabel.ZIndex=51
+local toastToken=0
+local toastTween=nil
+local function showToast(text,holdTime,isSmall)
+toastToken=toastToken + 1
+local myToken=toastToken
+if toastTween then
+toastTween:Cancel()
+end
+if isSmall then
+Toast.Size=_U(0,290,0,30)
+ToastLabel.TextSize=11
+else
+Toast.Size=_U(0,330,0,46)
+ToastLabel.TextSize=13
+end
+ToastLabel.Text=text
+if not Toast.Visible then
+Toast.Position=_U(0.5,0,1,80)
+Toast.Visible=true
+end
+toastTween=TweenService:Create(
+Toast,
+TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+{Position=_U(0.5,0,1,-30)}
+)
+toastTween:Play()
+task.delay(holdTime + 0.35,function()
+if myToken ~= toastToken then return end
+local outTween=TweenService:Create(
+Toast,
+TweenInfo.new(0.35,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+{Position=_U(0.5,0,1,80)}
+)
+toastTween=outTween
+outTween:Play()
+outTween.Completed:Wait()
+if myToken == toastToken then
+Toast.Visible=false
+end
+end)
+end
+local TG_LINK="https://t.me/TIL555555LIT"
+local tgLinkCopiedOnce=false
+local function clipboardHasTgLink()
+if getclipboard then
+local ok,content=pcall(getclipboard)
+if ok and type(content) == "string" then
+local trimmed=string.gsub(content,"^%s*(.-)%s*$","%1")
+return trimmed == TG_LINK
+end
+end
+return nil
+end
+CreditLabel.MouseButton1Click:Connect(function()
+local alreadyCopied
+local clipboardState=clipboardHasTgLink()
+if clipboardState ~= nil then
+alreadyCopied=clipboardState
+else
+alreadyCopied=tgLinkCopiedOnce
+end
+if alreadyCopied then
+showToast("Вы уже скопировали ссылку. Больше копировать нельзя.",2.5,true)
+return
+end
+if setclipboard then
+local ok=pcall(setclipboard,TG_LINK)
+if ok then
+tgLinkCopiedOnce=true
+showToast("✅ Ссылка на мой Telegram-канал скопирована в буфер обмена",5,false)
+else
+print("Telegram: " .. TG_LINK)
+showToast("Не удалось скопировать. Ссылка выведена в консоль.",4,false)
+end
+else
+print("Telegram: " .. TG_LINK)
+showToast("Копирование не поддерживается. Ссылка выведена в консоль.",4,false)
+end
+end)
+local ClockFrame=_I("Frame",MainFrame)
+ClockFrame.Name="ClockFrame"
+ClockFrame.Size=_U(0,64,0,22)
+ClockFrame.Position=_U(1,-74,0,70)
+ClockFrame.BackgroundColor3=_C(28,25,38)
+ClockFrame.BorderSizePixel=0
+_Cr(ClockFrame,6)
+local ClockStroke=_St(ClockFrame,_PU,1)
+local ClockLabel=_I("TextLabel",ClockFrame)
+ClockLabel.Size=_U(1,0,1,0)
+ClockLabel.BackgroundTransparency=1
+ClockLabel.Text="🕒 --:--"
+ClockLabel.TextColor3=_W
+ClockLabel.Font=_FB
+ClockLabel.TextSize=13
+local function getClockText()
+local extended=ClockFrame:GetAttribute("Extended") == true
+local ok,text=pcall(function()
+return DateTime.now():FormatLocalTime(extended and "HH:mm:ss" or "HH:mm","en-us")
+end)
+if ok and text then
+return text
+end
+return os.date(extended and "%H:%M:%S" or "%H:%M")
+end
+local function getSecondsLeftInMinute()
+local ok,seconds=pcall(function()
+return tonumber(DateTime.now():FormatLocalTime("ss","en-us"))
+end)
+if not ok or not seconds then
+seconds=tonumber(os.date("%S")) or 0
+end
+return 60 - seconds
+end
+do
+local clockToken=0
+local function runClock()
+clockToken=clockToken + 1
+local myToken=clockToken
+task.spawn(function()
+while ClockFrame.Parent and myToken == clockToken do
+ClockLabel.Text="🕒 " .. getClockText()
+if ClockFrame:GetAttribute("Extended") == true then
+task.wait((1000 - DateTime.now().UnixTimestampMillis % 1000) / 1000 + 0.02)
+else
+task.wait(getSecondsLeftInMinute() + 0.05)
+end
+end
+end)
+end
+ClockFrame:GetAttributeChangedSignal("Extended"):Connect(runClock)
+runClock()
+end
+local CategoryFrame=_I("Frame",ScreenGui)
+CategoryFrame.Name="CategoryMenu"
+CategoryFrame.Size=_U(0,270,0,440)
+CategoryFrame.Position=_U(0.5,205,0.15,0)
+CategoryFrame.BackgroundColor3=_C(22,18,28)
+CategoryFrame.BorderSizePixel=0
+CategoryFrame.Active=true
+CategoryFrame.Draggable=true
+CategoryFrame.Visible=false
+_Cr(CategoryFrame,10)
+local CatStroke=_St(CategoryFrame,_C(120,20,200),2)
+local CatTitle=_I("TextLabel",CategoryFrame)
+CatTitle.Size=_U(1,-30,0,30)
+CatTitle.Position=_U(0,10,0,5)
+CatTitle.BackgroundTransparency=1
+CatTitle.Text="📂 КАТЕГОРИИ И ДЛИТЕЛЬНОСТЬ"
+CatTitle.TextColor3=_W
+CatTitle.Font=_FB
+CatTitle.TextSize=13
+CatTitle.TextXAlignment=_XL
+local CloseCatBtn=_I("TextButton",CategoryFrame)
+CloseCatBtn.Size=_U(0,20,0,20)
+CloseCatBtn.Position=_U(1,-25,0,8)
+CloseCatBtn.BackgroundTransparency=1
+CloseCatBtn.Text="X"
+CloseCatBtn.TextColor3=_C(255,80,80)
+CloseCatBtn.Font=_FB
+CloseCatBtn.TextSize=14
+CloseCatBtn.MouseButton1Click:Connect(function()
+CategoryFrame.Visible=false
+end)
+OpenCatBtn.MouseButton1Click:Connect(function()
+CategoryFrame.Visible=not CategoryFrame.Visible
+end)
+local DurHeader=_I("TextLabel",CategoryFrame)
+DurHeader.Size=_U(1,-20,0,20)
+DurHeader.Position=_U(0,10,0,34)
+DurHeader.BackgroundTransparency=1
+DurHeader.Text="⏱️ Длительность треков:"
+DurHeader.TextColor3=_C(200,200,220)
+DurHeader.Font=_FB
+DurHeader.TextSize=11
+DurHeader.TextXAlignment=_XL
+local DurFrame=_I("Frame",CategoryFrame)
+DurFrame.Size=_U(1,-20,0,52)
+DurFrame.Position=_U(0,10,0,56)
+DurFrame.BackgroundTransparency=1
+local DurGrid=_I("UIGridLayout",DurFrame)
+DurGrid.CellSize=_U(0.24,-2,0,24)
+DurGrid.CellPadding=_U(0,3,0,4)
+local durationRanges={
+{Name="1с-30с",Min=1,Max=30},
+{Name="30с-1м",Min=30,Max=60},
+{Name="1м-2м",Min=60,Max=120},
+{Name="2м-3м",Min=120,Max=180},
+{Name="3м-5м",Min=180,Max=300},
+{Name="5м-10м",Min=300,Max=600},
+{Name="10м+",Min=600,Max=0},
+{Name="Любое",Min=30,Max=0}
+}
+local durButtons={}
+for _,dur in ipairs(durationRanges) do
+local btn=_I("TextButton",DurFrame)
+btn.BackgroundColor3=(dur.Min == selectedMinDuration and dur.Max == selectedMaxDuration) and _PU or _C(35,30,48)
+btn.Text=dur.Name
+btn.TextColor3=_W
+btn.Font=_FB
+btn.TextSize=10
+_Cr(btn,4)
+table.insert(durButtons,{Btn=btn,Min=dur.Min,Max=dur.Max})
+btn.MouseButton1Click:Connect(function()
+selectedMinDuration=dur.Min
+selectedMaxDuration=dur.Max
+for _,item in ipairs(durButtons) do
+if item.Min == selectedMinDuration and item.Max == selectedMaxDuration then
+item.Btn.BackgroundColor3=_PU
+else
+item.Btn.BackgroundColor3=_C(35,30,48)
+end
+end
+if SearchAudio and currentQuery then
+SearchAudio(currentQuery,currentDisplayTitle)
+end
+end)
+end
+local Line=_I("Frame",CategoryFrame)
+Line.Size=_U(1,-20,0,1)
+Line.Position=_U(0,10,0,114)
+Line.BackgroundColor3=_C(50,40,70)
+Line.BorderSizePixel=0
+local CatScroll=_I("ScrollingFrame",CategoryFrame)
+CatScroll.Size=_U(1,-16,1,-122)
+CatScroll.Position=_U(0,8,0,118)
+CatScroll.BackgroundTransparency=1
+CatScroll.BorderSizePixel=0
+CatScroll.ScrollBarThickness=4
+local CatGrid=_I("UIGridLayout",CatScroll)
+CatGrid.CellSize=_U(0.48,-4,0,32)
+CatGrid.CellPadding=_U(0,6,0,6)
+local categoryList={
+{Name="Phonk",Query="phonk"},
+{Name="Russian Phonk",Query="русский фонк"},
+{Name="Memes TikTok",Query="meme tiktok"},
+{Name="TikTok Hits",Query="tiktok hits"},
+{Name="TikTok Phonk",Query="tiktok phonk"},
+{Name="Hard Phonk",Query="hard phonk"},
+{Name="Classic",Query="classical music"},
+{Name="Anime",Query="anime"},
+{Name="Drift Phonk",Query="drift phonk"},
+{Name="Bass Boosted",Query="bass boosted"},
+{Name="Русский рэп",Query="русский рэп"},
+{Name="Мемные звуки",Query="мем"}
+}
+local previewSound=_I("Sound",ScreenGui)
+previewSound.Volume=0.5
+local localSound=_I("Sound")
+localSound.Name="TiloLocalPlayerSound"
+localSound.Looped=false
+localSound.Volume=1
+localSound.Parent=ScreenGui
+local COLOR_GREEN=_C(0,170,90)
+local COLOR_RED=_C(200,50,60)
+local COLOR_WHITE=_W
+local COLOR_YELLOW=_C(255,200,50)
+local COLOR_ERROR=_C(255,80,80)
+local COLOR_PURPLE=_PU
+local COLOR_DARK=_C(35,30,48)
+local COLOR_STAR_ON=_C(255,205,40)
+local COLOR_STAR_OFF=_C(150,150,170)
+local currentTrackId=nil
+local currentTrackInfo=nil
+local trackCards={}
+local sendTrackToPlayer=nil
+local function formatDuration(totalSeconds)
+local seconds=tonumber(totalSeconds)
+if not seconds or seconds <= 0 then
+return "--:--"
+end
+seconds=math.floor(seconds)
+local hours=math.floor(seconds / 3600)
+local minutes=math.floor((seconds % 3600) / 60)
+local secs=seconds % 60
+if hours > 0 then
+return string.format("%d:%02d:%02d",hours,minutes,secs)
+end
+return string.format("%d:%02d",minutes,secs)
+end
+local PLAYLIST_FILE="TiloSong_playlist.json"
+local playlist={}
+local playlistListeners={}
+local warnedNoFileSupport=false
+local function canUseFiles()
+return writefile ~= nil and readfile ~= nil and isfile ~= nil
+end
+local function savePlaylist()
+if not canUseFiles() then
+return false
+end
+local ok=pcall(function()
+writefile(PLAYLIST_FILE,HttpService:JSONEncode(playlist))
+end)
+return ok
+end
+local function loadPlaylist()
+if not canUseFiles() then
+return
+end
+pcall(function()
+if isfile(PLAYLIST_FILE) then
+local data=HttpService:JSONDecode(readfile(PLAYLIST_FILE))
+if type(data) == "table" then
+playlist={}
+for _,item in ipairs(data) do
+if type(item) == "table" and item.id then
+table.insert(playlist,{
+id=tostring(item.id),
+name=tostring(item.name or ("Трек " .. tostring(item.id))),
+creator=tostring(item.creator or ""),
+duration=tonumber(item.duration) or 0
+})
+end
+end
+end
+end
+end)
+end
+local function findPlaylistIndex(id)
+local idText=tostring(id)
+for index,item in ipairs(playlist) do
+if item.id == idText then
+return index
+end
+end
+return nil
+end
+local function isInPlaylist(id)
+return findPlaylistIndex(id) ~= nil
+end
+local function notifyPlaylistChanged()
+for _,listener in ipairs(playlistListeners) do
+pcall(listener)
+end
+end
+local function togglePlaylistTrack(track)
+if not track or not track.id then
+return
+end
+local id=tostring(track.id)
+local index=findPlaylistIndex(id)
+if index then
+table.remove(playlist,index)
+else
+table.insert(playlist,{
+id=id,
+name=track.name or ("Трек " .. id),
+creator=track.creator or "",
+duration=tonumber(track.duration) or 0
+})
+end
+local saved=savePlaylist()
+if not saved and not warnedNoFileSupport then
+warnedNoFileSupport=true
+showToast("⚠ Плейлист не сохранится после выхода: экзекьютор не даёт записывать файлы",4,false)
+end
+notifyPlaylistChanged()
+end
+loadPlaylist()
+local function animateStar(starBtn)
+local baseSize=20
+TweenService:Create(
+starBtn,
+TweenInfo.new(0.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+{TextSize=baseSize + 8}
+):Play()
+task.delay(0.1,function()
+if starBtn.Parent then
+TweenService:Create(
+starBtn,
+TweenInfo.new(0.15,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+{TextSize=baseSize}
+):Play()
+end
+end)
+end
+local function setCardPlayingVisual(card,playing)
+if playing then
+if not card.pulse then
+card.stroke.Enabled=true
+card.stroke.Transparency=0.1
+card.pulse=TweenService:Create(
+card.stroke,
+TweenInfo.new(0.9,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),
+{Transparency=0.7}
+)
+card.pulse:Play()
+end
+else
+if card.pulse then
+card.pulse:Cancel()
+card.pulse=nil
+end
+card.stroke.Enabled=false
+end
+end
+local function refreshTrackCards()
+local playingId=nil
+if localSound.IsPlaying and currentTrackId then
+playingId=currentTrackId
+end
+for index=#trackCards,1,-1 do
+local card=trackCards[index]
+if not card.frame.Parent then
+if card.pulse then
+card.pulse:Cancel()
+end
+table.remove(trackCards,index)
+else
+setCardPlayingVisual(card,playingId ~= nil and card.id == playingId)
+card.updateStar()
+end
+end
+end
+local function buildTrackCard(parent,track)
+local id=tostring(track.id)
+local name=track.name or ("Трек " .. id)
+local creator=track.creator
+local authorText=(creator and creator ~= "") and creator or "Неизвестен"
+local trackData={
+id=id,
+name=name,
+creator=creator or "",
+duration=tonumber(track.duration) or 0
+}
+local Frame=_I("Frame",parent)
+Frame.Size=_U(1,-6,0,62)
+Frame.BackgroundColor3=_C(25,22,32)
+Frame.BorderSizePixel=0
+_Cr(Frame,6)
+local PlayingStroke=_St(Frame,COLOR_PURPLE,2)
+PlayingStroke.Enabled=false
+local NameLabel=_I("TextLabel",Frame)
+NameLabel.Size=_U(0.42,-8,0,18)
+NameLabel.Position=_U(0,8,0,4)
+NameLabel.BackgroundTransparency=1
+NameLabel.Text=name
+NameLabel.TextColor3=COLOR_WHITE
+NameLabel.Font=_FB
+NameLabel.TextSize=12
+NameLabel.TextXAlignment=_XL
+NameLabel.TextTruncate=Enum.TextTruncate.AtEnd
+local AuthorLabel=_I("TextLabel",Frame)
+AuthorLabel.Size=_U(0.42,-8,0,16)
+AuthorLabel.Position=_U(0,8,0,23)
+AuthorLabel.BackgroundTransparency=1
+AuthorLabel.Text="👤 " .. authorText
+AuthorLabel.TextColor3=_C(180,180,210)
+AuthorLabel.Font=_FN
+AuthorLabel.TextSize=10
+AuthorLabel.TextXAlignment=_XL
+AuthorLabel.TextTruncate=Enum.TextTruncate.AtEnd
+local IdLabel=_I("TextLabel",Frame)
+IdLabel.Size=_U(0.42,-8,0,16)
+IdLabel.Position=_U(0,8,0,40)
+IdLabel.BackgroundTransparency=1
+IdLabel.Text="ID: " .. id
+IdLabel.TextColor3=_C(0,255,150)
+IdLabel.Font=_FN
+IdLabel.TextSize=10
+IdLabel.TextXAlignment=_XL
+IdLabel.TextTruncate=Enum.TextTruncate.AtEnd
+local StarBtn=_I("TextButton",Frame)
+StarBtn.AnchorPoint=Vector2.new(0.5,0)
+StarBtn.Size=_U(0,28,0,24)
+StarBtn.Position=_U(0.48,0,0,6)
+StarBtn.BackgroundTransparency=1
+StarBtn.AutoButtonColor=false
+StarBtn.Text="☆"
+StarBtn.TextColor3=COLOR_STAR_OFF
+StarBtn.Font=_FB
+StarBtn.TextSize=20
+local DurationLabel=_I("TextLabel",Frame)
+DurationLabel.AnchorPoint=Vector2.new(0.5,0)
+DurationLabel.Size=_U(0.12,0,0,16)
+DurationLabel.Position=_U(0.48,0,0,38)
+DurationLabel.BackgroundTransparency=1
+DurationLabel.Text=formatDuration(trackData.duration)
+DurationLabel.TextColor3=COLOR_YELLOW
+DurationLabel.Font=_FB
+DurationLabel.TextSize=11
+local TestBtn=_I("TextButton",Frame)
+TestBtn.Size=_U(0.18,0,0,24)
+TestBtn.Position=_U(0.55,0,0,6)
+TestBtn.BackgroundColor3=_C(50,150,255)
+TestBtn.Text="▶ ТЕСТ"
+TestBtn.TextColor3=COLOR_WHITE
+TestBtn.Font=_FB
+TestBtn.TextSize=10
+_Cr(TestBtn,4)
+local CopyBtn=_I("TextButton",Frame)
+CopyBtn.Size=_U(0.25,0,0,24)
+CopyBtn.Position=_U(0.74,0,0,6)
+CopyBtn.BackgroundColor3=COLOR_PURPLE
+CopyBtn.Text="КОПИРОВАТЬ"
+CopyBtn.TextColor3=COLOR_WHITE
+CopyBtn.Font=_FB
+CopyBtn.TextSize=10
+_Cr(CopyBtn,4)
+local ToPlayerBtn=_I("TextButton",Frame)
+ToPlayerBtn.Size=_U(0.44,0,0,24)
+ToPlayerBtn.Position=_U(0.55,0,0,34)
+ToPlayerBtn.BackgroundColor3=COLOR_GREEN
+ToPlayerBtn.Text="🎧 В ПЛЕЕР"
+ToPlayerBtn.TextColor3=COLOR_WHITE
+ToPlayerBtn.Font=_FB
+ToPlayerBtn.TextSize=11
+_Cr(ToPlayerBtn,4)
+local card={
+frame=Frame,
+id=id,
+stroke=PlayingStroke,
+pulse=nil
+}
+card.updateStar=function()
+if isInPlaylist(id) then
+StarBtn.Text="★"
+StarBtn.TextColor3=COLOR_STAR_ON
+else
+StarBtn.Text="☆"
+StarBtn.TextColor3=COLOR_STAR_OFF
+end
+end
+card.updateStar()
+card.dead=false
+card.setCheck=function(state)
+if state == "ok" then
+NameLabel.Text="✅ " .. name
+elseif state == "bad" then
+NameLabel.Text="❌ " .. name
+card.dead=true
+elseif state == "wait" then
+NameLabel.Text="⏳ " .. name
+else
+NameLabel.Text=name
+end
+if card.dead and ScreenGui:GetAttribute("HideDead") == true then
+Frame.Visible=false
+end
+end
+table.insert(trackCards,card)
+StarBtn.MouseButton1Click:Connect(function()
+animateStar(StarBtn)
+task.delay(0.15,function()
+togglePlaylistTrack(trackData)
+end)
+end)
+TestBtn.MouseButton1Click:Connect(function()
+previewSound:Stop()
+previewSound.SoundId="rbxassetid://" .. id
+previewSound:Play()
+TestBtn.Text="🔊 ИГРАЕТ"
+task.wait(3.5)
+if previewSound.SoundId == "rbxassetid://" .. id then
+previewSound:Stop()
+end
+TestBtn.Text="▶ ТЕСТ"
+end)
+CopyBtn.MouseButton1Click:Connect(function()
+if setclipboard then
+setclipboard(tostring(id))
+CopyBtn.Text="СКОПИРОВАНО!"
+CopyBtn.BackgroundColor3=_C(0,180,80)
+task.wait(1.2)
+CopyBtn.Text="КОПИРОВАТЬ"
+CopyBtn.BackgroundColor3=COLOR_PURPLE
+else
+print("Audio ID: " .. tostring(id))
+CopyBtn.Text="В КОНСОЛИ"
+task.wait(1.2)
+CopyBtn.Text="КОПИРОВАТЬ"
+CopyBtn.BackgroundColor3=COLOR_PURPLE
+end
+end)
+ToPlayerBtn.MouseButton1Click:Connect(function()
+if sendTrackToPlayer then
+sendTrackToPlayer(trackData)
+end
+end)
+return Frame,card
+end
+local function CreateTrackCard(name,id,creator,duration)
+local _,card=buildTrackCard(Scroll,{
+id=id,
+name=name,
+creator=creator,
+duration=duration
+})
+return card
+end
+local MAX_VOLUME=2
+local PlayerToggleBtn=_I("TextButton",MainFrame)
+PlayerToggleBtn.Name="PlayerToggleBtn"
+PlayerToggleBtn.Size=_U(0,72,0,22)
+PlayerToggleBtn.Position=_U(1,-156,0,70)
+PlayerToggleBtn.BackgroundColor3=_C(0,120,70)
+PlayerToggleBtn.Text="🎧 Плеер"
+PlayerToggleBtn.TextColor3=COLOR_WHITE
+PlayerToggleBtn.Font=_FB
+PlayerToggleBtn.TextSize=11
+_Cr(PlayerToggleBtn,6)
+local PlayerToggleStroke=_St(PlayerToggleBtn,COLOR_GREEN,1)
+local PlayerPanel=_I("Frame",ScreenGui)
+PlayerPanel.Name="LocalPlayerPanel"
+PlayerPanel.AnchorPoint=Vector2.new(0,0.5)
+PlayerPanel.Size=_U(0,320,0,360)
+PlayerPanel.Position=_U(1,0,0.5,0)
+PlayerPanel.BackgroundColor3=_C(18,15,22)
+PlayerPanel.BorderSizePixel=0
+PlayerPanel.Active=true
+PlayerPanel.Visible=false
+_Cr(PlayerPanel,10)
+local PlayerPanelStroke=_St(PlayerPanel,COLOR_PURPLE,2)
+local PlayerTab=_I("TextButton",PlayerPanel)
+PlayerTab.Name="PlayerTab"
+PlayerTab.Size=_U(0,32,0,40)
+PlayerTab.Position=_U(0,-32,0.5,-20)
+PlayerTab.BackgroundColor3=COLOR_GREEN
+PlayerTab.Text="<"
+PlayerTab.TextColor3=COLOR_WHITE
+PlayerTab.Font=_FB
+PlayerTab.TextSize=22
+_Cr(PlayerTab,8)
+local PlayerTitle=_I("TextLabel",PlayerPanel)
+PlayerTitle.Size=_U(1,-20,0,24)
+PlayerTitle.Position=_U(0,10,0,6)
+PlayerTitle.BackgroundTransparency=1
+PlayerTitle.Text="🎧 Локальный плеер музыки"
+PlayerTitle.TextColor3=COLOR_WHITE
+PlayerTitle.Font=_FB
+PlayerTitle.TextSize=14
+PlayerTitle.TextXAlignment=_XL
+local TabPlayerBtn=_I("TextButton",PlayerPanel)
+TabPlayerBtn.Size=_U(0,145,0,26)
+TabPlayerBtn.Position=_U(0,10,0,34)
+TabPlayerBtn.BackgroundColor3=COLOR_PURPLE
+TabPlayerBtn.Text="🎧 Плеер"
+TabPlayerBtn.TextColor3=COLOR_WHITE
+TabPlayerBtn.Font=_FB
+TabPlayerBtn.TextSize=12
+_Cr(TabPlayerBtn,6)
+local TabPlaylistBtn=_I("TextButton",PlayerPanel)
+TabPlaylistBtn.Size=_U(0,145,0,26)
+TabPlaylistBtn.Position=_U(0,165,0,34)
+TabPlaylistBtn.BackgroundColor3=COLOR_DARK
+TabPlaylistBtn.Text="📋 Плейлист (0)"
+TabPlaylistBtn.TextColor3=COLOR_WHITE
+TabPlaylistBtn.Font=_FB
+TabPlaylistBtn.TextSize=12
+_Cr(TabPlaylistBtn,6)
+local PlayerView=_I("Frame",PlayerPanel)
+PlayerView.Size=_U(1,0,1,-66)
+PlayerView.Position=_U(0,0,0,66)
+PlayerView.BackgroundTransparency=1
+local IdFrame=_I("Frame",PlayerView)
+IdFrame.Size=_U(0,230,0,30)
+IdFrame.Position=_U(0,10,0,4)
+IdFrame.BackgroundColor3=_C(28,25,38)
+_Cr(IdFrame)
+local IdFrameStroke=_St(IdFrame,COLOR_PURPLE,1)
+local IdBox=_I("TextBox",IdFrame)
+IdBox.Size=_U(1,-10,1,0)
+IdBox.Position=_U(0,5,0,0)
+IdBox.BackgroundTransparency=1
+IdBox.PlaceholderText="Вставьте ID песни..."
+IdBox.Text=""
+IdBox.ClearTextOnFocus=false
+IdBox.TextColor3=COLOR_WHITE
+IdBox.Font=_FN
+IdBox.TextSize=13
+IdBox.TextXAlignment=_XL
+local LoadBtn=_I("TextButton",PlayerView)
+LoadBtn.Size=_U(0,64,0,30)
+LoadBtn.Position=_U(0,246,0,4)
+LoadBtn.BackgroundColor3=COLOR_PURPLE
+LoadBtn.Text="OK"
+LoadBtn.TextColor3=COLOR_WHITE
+LoadBtn.Font=_FB
+LoadBtn.TextSize=13
+_Cr(LoadBtn)
+local PlayerStatus=_I("TextLabel",PlayerView)
+PlayerStatus.Size=_U(0,264,0,34)
+PlayerStatus.Position=_U(0,10,0,40)
+PlayerStatus.BackgroundTransparency=1
+PlayerStatus.Text="Введите ID песни и нажмите OK"
+PlayerStatus.TextColor3=COLOR_YELLOW
+PlayerStatus.Font=_FN
+PlayerStatus.TextSize=12
+PlayerStatus.TextWrapped=true
+PlayerStatus.TextXAlignment=_XL
+PlayerStatus.TextYAlignment=Enum.TextYAlignment.Top
+PlayerStatus.TextTruncate=Enum.TextTruncate.AtEnd
+local PlayerStar=_I("TextButton",PlayerView)
+PlayerStar.Size=_U(0,28,0,28)
+PlayerStar.Position=_U(0,282,0,42)
+PlayerStar.BackgroundTransparency=1
+PlayerStar.AutoButtonColor=false
+PlayerStar.Text="☆"
+PlayerStar.TextColor3=COLOR_STAR_OFF
+PlayerStar.Font=_FB
+PlayerStar.TextSize=20
+local PlayBtn=_I("TextButton",PlayerView)
+PlayBtn.Size=_U(0,145,0,36)
+PlayBtn.Position=_U(0,10,0,80)
+PlayBtn.BackgroundColor3=COLOR_GREEN
+PlayBtn.Text="▶ СЛУШАТЬ"
+PlayBtn.TextColor3=COLOR_WHITE
+PlayBtn.Font=_FB
+PlayBtn.TextSize=12
+_Cr(PlayBtn,6)
+local RandomBtn=_I("TextButton",PlayerView)
+RandomBtn.Size=_U(0,145,0,36)
+RandomBtn.Position=_U(0,165,0,80)
+RandomBtn.BackgroundColor3=_C(50,150,255)
+RandomBtn.Text="🎲 СЛУЧАЙНАЯ"
+RandomBtn.TextColor3=COLOR_WHITE
+RandomBtn.Font=_FB
+RandomBtn.TextSize=12
+_Cr(RandomBtn,6)
+local ModeOnceBtn=_I("TextButton",PlayerView)
+ModeOnceBtn.Size=_U(0,145,0,28)
+ModeOnceBtn.Position=_U(0,10,0,124)
+ModeOnceBtn.BackgroundColor3=COLOR_PURPLE
+ModeOnceBtn.Text="1️⃣ Один раз"
+ModeOnceBtn.TextColor3=COLOR_WHITE
+ModeOnceBtn.Font=_FB
+ModeOnceBtn.TextSize=12
+_Cr(ModeOnceBtn,6)
+local ModeLoopBtn=_I("TextButton",PlayerView)
+ModeLoopBtn.Size=_U(0,145,0,28)
+ModeLoopBtn.Position=_U(0,165,0,124)
+ModeLoopBtn.BackgroundColor3=COLOR_DARK
+ModeLoopBtn.Text="🔁 По кругу"
+ModeLoopBtn.TextColor3=COLOR_WHITE
+ModeLoopBtn.Font=_FB
+ModeLoopBtn.TextSize=12
+_Cr(ModeLoopBtn,6)
+local VolumeLabel=_I("TextLabel",PlayerView)
+VolumeLabel.Size=_U(0,300,0,18)
+VolumeLabel.Position=_U(0,10,0,162)
+VolumeLabel.BackgroundTransparency=1
+VolumeLabel.Text="🔊 Громкость: 50%"
+VolumeLabel.TextColor3=_C(200,200,220)
+VolumeLabel.Font=_FB
+VolumeLabel.TextSize=12
+VolumeLabel.TextXAlignment=_XL
+local SliderHit=_I("Frame",PlayerView)
+SliderHit.Size=_U(0,300,0,28)
+SliderHit.Position=_U(0,10,0,184)
+SliderHit.BackgroundTransparency=1
+SliderHit.Active=true
+local SliderTrack=_I("Frame",SliderHit)
+SliderTrack.Size=_U(1,0,0,6)
+SliderTrack.Position=_U(0,0,0.5,-3)
+SliderTrack.BackgroundColor3=_C(40,35,55)
+SliderTrack.BorderSizePixel=0
+_Cr(SliderTrack,3)
+local SliderFill=_I("Frame",SliderTrack)
+SliderFill.Size=_U(0.5,0,1,0)
+SliderFill.BackgroundColor3=COLOR_PURPLE
+SliderFill.BorderSizePixel=0
+_Cr(SliderFill,3)
+local SliderKnob=_I("Frame",SliderTrack)
+SliderKnob.AnchorPoint=Vector2.new(0.5,0.5)
+SliderKnob.Size=_U(0,16,0,16)
+SliderKnob.Position=_U(0.5,0,0.5,0)
+SliderKnob.BackgroundColor3=COLOR_WHITE
+SliderKnob.BorderSizePixel=0
+_Cr(SliderKnob).CornerRadius=_V(1,0)
+local PlaylistView=_I("Frame",PlayerPanel)
+PlaylistView.Size=_U(1,0,1,-66)
+PlaylistView.Position=_U(0,0,0,66)
+PlaylistView.BackgroundTransparency=1
+PlaylistView.Visible=false
+local PlayAllBtn=_I("TextButton",PlaylistView)
+PlayAllBtn.Size=_U(1,-20,0,30)
+PlayAllBtn.Position=_U(0,10,0,4)
+PlayAllBtn.BackgroundColor3=COLOR_GREEN
+PlayAllBtn.Text="▶ Играть плейлист"
+PlayAllBtn.TextColor3=COLOR_WHITE
+PlayAllBtn.Font=_FB
+PlayAllBtn.TextSize=13
+_Cr(PlayAllBtn,6)
+local PlaylistScroll=_I("ScrollingFrame",PlaylistView)
+PlaylistScroll.Size=_U(1,-20,1,-48)
+PlaylistScroll.Position=_U(0,10,0,42)
+PlaylistScroll.BackgroundTransparency=1
+PlaylistScroll.BorderSizePixel=0
+PlaylistScroll.ScrollBarThickness=4
+local PlaylistList=_I("UIListLayout",PlaylistScroll)
+PlaylistList.SortOrder=Enum.SortOrder.LayoutOrder
+PlaylistList.Padding=_V(0,6)
+PlaylistList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+PlaylistScroll.CanvasSize=_U(0,0,0,PlaylistList.AbsoluteContentSize.Y + 10)
+end)
+local PlaylistEmptyLabel=_I("TextLabel",PlaylistView)
+PlaylistEmptyLabel.Size=_U(1,-40,0,60)
+PlaylistEmptyLabel.Position=_U(0,20,0,60)
+PlaylistEmptyLabel.BackgroundTransparency=1
+PlaylistEmptyLabel.Text="Плейлист пуст.\nНажмите ☆ на песне, чтобы добавить её сюда."
+PlaylistEmptyLabel.TextColor3=_C(160,160,180)
+PlaylistEmptyLabel.Font=_FN
+PlaylistEmptyLabel.TextSize=13
+PlaylistEmptyLabel.TextWrapped=true
+local trackLoaded=false
+local isBusy=false
+local playerEnabled=false
+local repeatMode="once"
+local playlistActive=false
+local playlistRunToken=0
+local function setPlayerStatus(text,color)
+PlayerStatus.Text=text
+PlayerStatus.TextColor3=color or COLOR_WHITE
+end
+local function applyLoopFlag()
+localSound.Looped=(repeatMode == "loop") and not playlistActive
+end
+local function setVolumeRatio(ratio)
+ratio=math.clamp(ratio,0,1)
+localSound.Volume=ratio * MAX_VOLUME
+SliderFill.Size=_U(ratio,0,1,0)
+SliderKnob.Position=_U(ratio,0,0.5,0)
+local percent=math.floor(ratio * 100 + 0.5)
+if percent == 0 then
+VolumeLabel.Text="🔇 Громкость: 0%"
+else
+VolumeLabel.Text="🔊 Громкость: " .. percent .. "%"
+end
+end
+setVolumeRatio(0.5)
+local sliderDragging=false
+local function updateVolumeFromInput(input)
+local trackWidth=SliderTrack.AbsoluteSize.X
+if trackWidth <= 0 then return end
+local relative=(input.Position.X - SliderTrack.AbsolutePosition.X) / trackWidth
+setVolumeRatio(relative)
+end
+SliderHit.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+sliderDragging=true
+updateVolumeFromInput(input)
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if sliderDragging and (input.UserInputType == _MM or input.UserInputType == _TT) then
+updateVolumeFromInput(input)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+sliderDragging=false
+end
+end)
+local PANEL_OPEN_POS=_U(1,-320,0.5,0)
+local PANEL_CLOSED_POS=_U(1,0,0.5,0)
+local playerPanelOpen=false
+local panelTween=nil
+local function setPlayerPanelOpen(open,instant)
+playerPanelOpen=open
+local onLeft=ScreenGui:GetAttribute("PlayerSide") == "left"
+PlayerTab.Text=(open ~= onLeft) and ">" or "<"
+if panelTween then
+panelTween:Cancel()
+panelTween=nil
+end
+local openPos,closedPos=PANEL_OPEN_POS,PANEL_CLOSED_POS
+if onLeft then
+openPos=_U(0,0,0.5,0)
+closedPos=_U(0,-320,0.5,0)
+end
+local target=open and openPos or closedPos
+if instant then
+PlayerPanel.Position=target
+else
+panelTween=TweenService:Create(
+PlayerPanel,
+TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+{Position=target}
+)
+panelTween:Play()
+end
+end
+PlayerTab.MouseButton1Click:Connect(function()
+setPlayerPanelOpen(not playerPanelOpen,false)
+end)
+local function setPlayerTab(tab)
+PlayerView.Visible=(tab == "player")
+PlaylistView.Visible=(tab == "playlist")
+TabPlayerBtn.BackgroundColor3=(tab == "player") and COLOR_PURPLE or COLOR_DARK
+TabPlaylistBtn.BackgroundColor3=(tab == "playlist") and COLOR_PURPLE or COLOR_DARK
+end
+TabPlayerBtn.MouseButton1Click:Connect(function()
+setPlayerTab("player")
+end)
+TabPlaylistBtn.MouseButton1Click:Connect(function()
+setPlayerTab("playlist")
+end)
+local function refreshPlayButton()
+if localSound.IsPlaying then
+PlayBtn.Text="⏸ ПАУЗА"
+PlayBtn.BackgroundColor3=COLOR_RED
+else
+if localSound.IsPaused then
+PlayBtn.Text="▶ ПРОДОЛЖИТЬ"
+else
+PlayBtn.Text="▶ СЛУШАТЬ"
+end
+PlayBtn.BackgroundColor3=COLOR_GREEN
+end
+end
+local function refreshPlaylistButton()
+if playlistActive then
+PlayAllBtn.Text="⏹ Остановить плейлист"
+PlayAllBtn.BackgroundColor3=COLOR_RED
+else
+PlayAllBtn.Text="▶ Играть плейлист"
+PlayAllBtn.BackgroundColor3=COLOR_GREEN
+end
+end
+local function setPlaylistActive(active)
+playlistActive=active
+applyLoopFlag()
+refreshPlaylistButton()
+end
+local function stopPlaylist()
+playlistRunToken=playlistRunToken + 1
+if playlistActive then
+setPlaylistActive(false)
+end
+end
+local function updatePlayerStar()
+if currentTrackId and isInPlaylist(currentTrackId) then
+PlayerStar.Text="★"
+PlayerStar.TextColor3=COLOR_STAR_ON
+else
+PlayerStar.Text="☆"
+PlayerStar.TextColor3=COLOR_STAR_OFF
+end
+end
+PlayerStar.MouseButton1Click:Connect(function()
+if not currentTrackInfo then
+setPlayerStatus("Сначала загрузите песню, потом нажмите звёздочку",COLOR_YELLOW)
+return
+end
+local info=currentTrackInfo
+animateStar(PlayerStar)
+task.delay(0.15,function()
+togglePlaylistTrack(info)
+end)
+end)
+local function onSoundStateChanged()
+refreshPlayButton()
+refreshTrackCards()
+end
+localSound.Played:Connect(onSoundStateChanged)
+localSound.Paused:Connect(onSoundStateChanged)
+localSound.Resumed:Connect(onSoundStateChanged)
+localSound.Stopped:Connect(onSoundStateChanged)
+localSound.Ended:Connect(onSoundStateChanged)
+local function rebuildPlaylistView()
+for _,child in ipairs(PlaylistScroll:GetChildren()) do
+if child:IsA("Frame") then
+child:Destroy()
+end
+end
+for _,item in ipairs(playlist) do
+buildTrackCard(PlaylistScroll,item)
+end
+TabPlaylistBtn.Text="📋 Плейлист (" .. #playlist .. ")"
+PlaylistEmptyLabel.Visible=(#playlist == 0)
+refreshTrackCards()
+end
+local function onPlaylistChanged()
+updatePlayerStar()
+rebuildPlaylistView()
+end
+table.insert(playlistListeners,onPlaylistChanged)
+rebuildPlaylistView()
+local function setPlayerEnabled(enabled)
+playerEnabled=enabled
+if enabled then
+setPlayerPanelOpen(false,true)
+PlayerPanel.Visible=true
+PlayerToggleBtn.BackgroundColor3=COLOR_GREEN
+else
+stopPlaylist()
+localSound:Stop()
+setPlayerPanelOpen(false,true)
+PlayerPanel.Visible=false
+PlayerToggleBtn.BackgroundColor3=_C(0,120,70)
+end
+end
+PlayerToggleBtn.MouseButton1Click:Connect(function()
+setPlayerEnabled(not playerEnabled)
+end)
+do
+local MuteAllBtn=_I("TextButton",PlayerView)
+MuteAllBtn.Size=_U(0,145,0,30)
+MuteAllBtn.Position=_U(0,10,0,224)
+MuteAllBtn.TextColor3=COLOR_WHITE
+MuteAllBtn.Font=_FB
+MuteAllBtn.TextSize=12
+_Cr(MuteAllBtn,6)
+local MuteMusicBtn=_I("TextButton",PlayerView)
+MuteMusicBtn.Size=_U(0,145,0,30)
+MuteMusicBtn.Position=_U(0,165,0,224)
+MuteMusicBtn.TextColor3=COLOR_WHITE
+MuteMusicBtn.Font=_FB
+MuteMusicBtn.TextSize=12
+_Cr(MuteMusicBtn,6)
+local muteMode=nil
+local savedVolume={}
+local volumeWatch={}
+local function isMusic(snd)
+if snd:FindFirstAncestorOfClass("Tool") then
+return true
+end
+local model=snd:FindFirstAncestorOfClass("Model")
+local parent=snd.Parent
+if model and parent and model:FindFirstChildOfClass("Humanoid") and (parent == model or parent.Name == "HumanoidRootPart" or parent.Name == "Head") then
+return false
+end
+if snd.Looped or snd.TimeLength >= 20 then
+return true
+end
+local lowerName=snd.Name:lower()
+return lowerName:find("music") ~= nil or lowerName:find("song") ~= nil or lowerName:find("boombox") ~= nil or lowerName:find("radio") ~= nil or lowerName:find("track") ~= nil
+end
+local function shouldMute(snd)
+if snd == localSound or snd == previewSound or snd:IsDescendantOf(ScreenGui) then
+return false
+end
+if muteMode == "all" then
+return true
+end
+if muteMode == "music" then
+return isMusic(snd)
+end
+return false
+end
+local function muteSound(snd)
+if savedVolume[snd] ~= nil or not shouldMute(snd) then
+return
+end
+savedVolume[snd]=snd.Volume
+snd.Volume=0
+volumeWatch[snd]=snd:GetPropertyChangedSignal("Volume"):Connect(function()
+if muteMode and savedVolume[snd] ~= nil and snd.Volume ~= 0 then
+savedVolume[snd]=snd.Volume
+snd.Volume=0
+end
+end)
+end
+local function unmuteAll()
+for snd,vol in pairs(savedVolume) do
+if volumeWatch[snd] then
+volumeWatch[snd]:Disconnect()
+end
+if snd.Parent then
+snd.Volume=vol
+end
+end
+savedVolume={}
+volumeWatch={}
+end
+local function updateMuteButtons()
+MuteAllBtn.Text=(muteMode == "all") and "✅ Всё заглушено" or "🔇 Заглушить всё"
+MuteAllBtn.BackgroundColor3=(muteMode == "all") and COLOR_RED or COLOR_DARK
+MuteMusicBtn.Text=(muteMode == "music") and "✅ Музыка заглушена" or "🎵 Заглушить музыку"
+MuteMusicBtn.BackgroundColor3=(muteMode == "music") and COLOR_RED or COLOR_DARK
+end
+local function setMuteMode(mode)
+unmuteAll()
+if muteMode == mode then
+muteMode=nil
+else
+muteMode=mode
+end
+if muteMode then
+for _,root in ipairs({workspace,game:GetService("SoundService"),PlayerGui}) do
+for _,item in ipairs(root:GetDescendants()) do
+if item:IsA("Sound") then
+muteSound(item)
+end
+end
+end
+end
+updateMuteButtons()
+end
+game.DescendantAdded:Connect(function(item)
+if muteMode and item:IsA("Sound") then
+task.defer(muteSound,item)
+end
+end)
+MuteAllBtn.MouseButton1Click:Connect(function()
+setMuteMode("all")
+end)
+MuteMusicBtn.MouseButton1Click:Connect(function()
+setMuteMode("music")
+end)
+updateMuteButtons()
+end
+local function setRepeatMode(mode)
+repeatMode=mode
+ModeOnceBtn.BackgroundColor3=(mode == "once") and COLOR_PURPLE or COLOR_DARK
+ModeLoopBtn.BackgroundColor3=(mode == "loop") and COLOR_PURPLE or COLOR_DARK
+applyLoopFlag()
+end
+ModeOnceBtn.MouseButton1Click:Connect(function()
+setRepeatMode("once")
+end)
+ModeLoopBtn.MouseButton1Click:Connect(function()
+setRepeatMode("loop")
+end)
+local function loadTrackInternal(idText,knownName,knownCreator)
+local digits=string.match(tostring(idText),"%d+")
+local id=digits and tonumber(digits)
+if not id then
+setPlayerStatus("❌ Введите ID песни (только цифры)",COLOR_ERROR)
+return false
+end
+trackLoaded=false
+currentTrackId=nil
+currentTrackInfo=nil
+localSound:Stop()
+refreshTrackCards()
+updatePlayerStar()
+setPlayerStatus("⏳ Загрузка...",COLOR_YELLOW)
+local trackName=knownName
+local creatorName=knownCreator
+if not trackName or not creatorName or creatorName == "" then
+local okInfo,info=pcall(function()
+return MarketplaceService:GetProductInfo(id)
+end)
+if okInfo and info then
+trackName=trackName or info.Name
+if (not creatorName or creatorName == "") and info.Creator then
+creatorName=info.Creator.Name
+end
+end
+end
+localSound.SoundId="rbxassetid://" .. tostring(id)
+pcall(function()
+ContentProvider:PreloadAsync({localSound})
+end)
+local waited=0
+while waited < 4 and not (localSound.IsLoaded and localSound.TimeLength > 0) do
+task.wait(0.1)
+waited=waited + 0.1
+end
+if localSound.IsLoaded and localSound.TimeLength > 0 then
+trackLoaded=true
+currentTrackId=tostring(id)
+currentTrackInfo={
+id=tostring(id),
+name=trackName or ("Трек " .. tostring(id)),
+creator=creatorName or "",
+duration=localSound.TimeLength
+}
+applyLoopFlag()
+setPlayerStatus("🎵 " .. currentTrackInfo.name .. "  (" .. formatDuration(localSound.TimeLength) .. ")",COLOR_WHITE)
+refreshPlayButton()
+updatePlayerStar()
+refreshTrackCards()
+return true
+end
+setPlayerStatus("❌ Песня не найдена или недоступна",COLOR_ERROR)
+return false
+end
+local function loadFromInput()
+if isBusy then return end
+stopPlaylist()
+isBusy=true
+pcall(loadTrackInternal,IdBox.Text,nil,nil)
+isBusy=false
+end
+LoadBtn.MouseButton1Click:Connect(loadFromInput)
+IdBox.FocusLost:Connect(function(enterPressed)
+if enterPressed then
+loadFromInput()
+end
+end)
+PlayBtn.MouseButton1Click:Connect(function()
+if not trackLoaded then
+setPlayerStatus("Сначала введите ID песни и нажмите OK",COLOR_YELLOW)
+return
+end
+if localSound.IsPlaying then
+localSound:Pause()
+elseif localSound.IsPaused then
+localSound:Resume()
+else
+localSound:Play()
+end
+task.defer(onSoundStateChanged)
+end)
+local function playPlaylistFrom(startIndex)
+if isBusy then return end
+if #playlist == 0 then
+setPlayerStatus("📋 Плейлист пуст. Нажмите ☆ на песне, чтобы добавить",COLOR_YELLOW)
+return
+end
+playlistRunToken=playlistRunToken + 1
+local myToken=playlistRunToken
+setPlaylistActive(true)
+local index=startIndex or 1
+local failuresInRow=0
+local finished=false
+while playlistActive and myToken == playlistRunToken do
+if index > #playlist then
+if repeatMode == "loop" then
+index=1
+else
+finished=true
+break
+end
+end
+local item=playlist[index]
+if not item then
+finished=true
+break
+end
+isBusy=true
+local okCall,loaded=pcall(loadTrackInternal,item.id,item.name,item.creator)
+isBusy=false
+if not (playlistActive and myToken == playlistRunToken) then
+return
+end
+if okCall and loaded then
+failuresInRow=0
+localSound:Play()
+task.wait(0.5)
+while playlistActive and myToken == playlistRunToken do
+if not localSound.IsPlaying and not localSound.IsPaused then
+break
+end
+task.wait(0.25)
+end
+else
+failuresInRow=failuresInRow + 1
+if failuresInRow >= #playlist then
+setPlayerStatus("❌ Ни одна песня плейлиста не загрузилась",COLOR_ERROR)
+break
+end
+end
+index=index + 1
+end
+if myToken == playlistRunToken then
+setPlaylistActive(false)
+if finished then
+setPlayerStatus("📋 Плейлист закончился",COLOR_YELLOW)
+end
+end
+end
+PlayAllBtn.MouseButton1Click:Connect(function()
+if playlistActive then
+stopPlaylist()
+localSound:Stop()
+setPlayerStatus("⏹ Плейлист остановлен",COLOR_YELLOW)
+else
+playPlaylistFrom(1)
+end
+end)
+sendTrackToPlayer=function(track)
+if not playerEnabled then
+setPlayerEnabled(true)
+end
+setPlayerTab("player")
+setPlayerPanelOpen(true,false)
+IdBox.Text=tostring(track.id)
+if isBusy then return end
+stopPlaylist()
+isBusy=true
+pcall(loadTrackInternal,tostring(track.id),track.name,track.creator)
+isBusy=false
+end
+local randomKeywords={
+"music","beat","song","remix","lofi","bass","drums","piano","guitar","synth",
+"chill","party","dance","epic","retro","funk","jazz","rock","hip hop","electronic",
+"ambient","trap","house","pop","meme","tiktok","phonk","anime","classic","game",
+"фонк","ремикс","русский рэп"
+}
+local function pickRandomTrack()
+local found=nil
+pcall(function()
+local keyword=randomKeywords[math.random(1,#randomKeywords)]
+local searchParams=_I("AudioSearchParams")
+searchParams.SearchKeyword=keyword
+searchParams.MinDuration=30
+local pages=AssetService:SearchAudioAsync(searchParams)
+local advanceCount=math.random(0,2)
+for _=1,advanceCount do
+if pages.IsFinished then break end
+pages:AdvanceToNextPageAsync()
+end
+local page=pages:GetCurrentPage()
+if #page > 0 then
+found=page[math.random(1,#page)]
+end
+end)
+return found
+end
+local function playRandomTrack()
+if isBusy then return end
+stopPlaylist()
+isBusy=true
+local success=false
+for attempt=1,4 do
+setPlayerStatus("🎲 Ищу случайную песню... (" .. attempt .. "/4)",COLOR_YELLOW)
+local item=pickRandomTrack()
+if item and item.Id then
+IdBox.Text=tostring(item.Id)
+local okCall,loaded=pcall(loadTrackInternal,tostring(item.Id),item.Title,item.Artist)
+if okCall and loaded then
+localSound:Play()
+success=true
+break
+end
+end
+end
+if not success then
+setPlayerStatus("❌ Не удалось найти случайную песню. Нажмите ещё раз",COLOR_ERROR)
+end
+isBusy=false
+end
+RandomBtn.MouseButton1Click:Connect(playRandomTrack)
+local isSearching=false
+local SS={pages=nil,seen={},count=0,token=0}
+local MoreBtn=_I("TextButton",Scroll)
+MoreBtn.Name="MoreBtn"
+MoreBtn.LayoutOrder=1000000
+MoreBtn.Size=_U(1,-6,0,32)
+MoreBtn.BackgroundColor3=COLOR_PURPLE
+MoreBtn.Text="⬇ ЕЩЁ ПЕСНИ"
+MoreBtn.TextColor3=COLOR_WHITE
+MoreBtn.Font=_FB
+MoreBtn.TextSize=12
+MoreBtn.Visible=false
+_Cr(MoreBtn,6)
+ScreenGui:GetAttributeChangedSignal("HideDead"):Connect(function()
+local hide=ScreenGui:GetAttribute("HideDead") == true
+for _,card in ipairs(trackCards) do
+if card.dead and card.frame.Parent then
+card.frame.Visible=not hide
+end
+end
+end)
+local function checkTrackAlive(id)
+local snd=_I("Sound")
+snd.Volume=0
+snd.SoundId="rbxassetid://" .. id
+snd.Parent=ScreenGui
+pcall(function()
+ContentProvider:PreloadAsync({snd})
+end)
+local waited=0
+while waited < 3 and not (snd.IsLoaded and snd.TimeLength > 0) do
+task.wait(0.1)
+waited=waited + 0.1
+end
+local alive=snd.IsLoaded and snd.TimeLength > 0
+snd:Destroy()
+return alive
+end
+local function runChecks(cards,token)
+local nextIndex=1
+local function worker()
+while true do
+local i=nextIndex
+nextIndex=i + 1
+local card=cards[i]
+if not card or token ~= SS.token then
+return
+end
+local alive=false
+pcall(function()
+alive=checkTrackAlive(card.id)
+end)
+card.setCheck(alive and "ok" or "bad")
+end
+end
+for _=1,6 do
+task.spawn(worker)
+end
+end
+local function addPage(page,newCards)
+for _,audioInfo in ipairs(page) do
+local id=tostring(audioInfo.Id)
+if not SS.seen[id] then
+SS.seen[id]=true
+local card=CreateTrackCard(audioInfo.Title,id,audioInfo.Artist or audioInfo.CreatorName or "",audioInfo.Duration)
+card.setCheck("wait")
+table.insert(newCards,card)
+SS.count=SS.count + 1
+end
+end
+end
+local function updateSearchStatus()
+local rangeText
+if selectedMaxDuration == 0 then
+rangeText=string.format("от %dс",selectedMinDuration)
+else
+rangeText=string.format("%d-%d сек",selectedMinDuration,selectedMaxDuration)
+end
+StatusLabel.Text=string.format("Готово! Найдено %d треков (%s).",SS.count,rangeText)
+StatusLabel.TextColor3=_C(0,255,150)
+end
+SearchAudio=function(searchQuery,displayTitle)
+if isSearching or not searchQuery or searchQuery == "" then return end
+isSearching=true
+currentQuery=searchQuery
+currentDisplayTitle=displayTitle or searchQuery
+SS.token=SS.token + 1
+SS.pages=nil
+SS.seen={}
+SS.count=0
+MoreBtn.Visible=false
+for _,child in ipairs(Scroll:GetChildren()) do
+if child:IsA("Frame") then child:Destroy() end
+end
+local titleToShow=currentDisplayTitle
+if selectedMaxDuration == 0 then
+StatusLabel.Text=string.format("🔍 Поиск: '%s' (от %dс)...",titleToShow,selectedMinDuration)
+else
+StatusLabel.Text=string.format("🔍 Поиск: '%s' (%d-%d сек)...",titleToShow,selectedMinDuration,selectedMaxDuration)
+end
+StatusLabel.TextColor3=_C(255,200,50)
+local newCards={}
+pcall(function()
+local searchParams=_I("AudioSearchParams")
+searchParams.SearchKeyword=searchQuery
+if selectedMinDuration > 0 then
+searchParams.MinDuration=selectedMinDuration
+end
+if selectedMaxDuration > 0 then
+searchParams.MaxDuration=selectedMaxDuration
+end
+SS.pages=AssetService:SearchAudioAsync(searchParams)
+addPage(SS.pages:GetCurrentPage(),newCards)
+end)
+if #newCards == 0 then
+StatusLabel.Text="❌ Ничего не найдено для этого времени."
+StatusLabel.TextColor3=_C(255,80,80)
+isSearching=false
+return
+end
+updateSearchStatus()
+MoreBtn.Visible=SS.pages ~= nil and not SS.pages.IsFinished
+isSearching=false
+runChecks(newCards,SS.token)
+end
+MoreBtn.MouseButton1Click:Connect(function()
+if isSearching or not SS.pages then return end
+isSearching=true
+MoreBtn.Text="⏳ Загрузка..."
+local newCards={}
+pcall(function()
+SS.pages:AdvanceToNextPageAsync()
+addPage(SS.pages:GetCurrentPage(),newCards)
+end)
+MoreBtn.Text="⬇ ЕЩЁ ПЕСНИ"
+MoreBtn.Visible=not SS.pages.IsFinished and #newCards > 0
+if #newCards > 0 then
+updateSearchStatus()
+else
+StatusLabel.Text="Больше песен не найдено."
+StatusLabel.TextColor3=_C(255,200,50)
+end
+isSearching=false
+runChecks(newCards,SS.token)
+end)
+for _,catData in ipairs(categoryList) do
+local btn=_I("TextButton",CatScroll)
+btn.BackgroundColor3=_C(35,30,48)
+btn.Text=catData.Name
+btn.TextColor3=_C(220,220,240)
+btn.Font=_FB
+btn.TextSize=11
+_Cr(btn)
+btn.MouseButton1Click:Connect(function()
+SearchBox.Text=catData.Name
+SearchAudio(catData.Query,catData.Name)
+end)
+end
+CatGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+CatScroll.CanvasSize=_U(0,0,0,CatGrid.AbsoluteContentSize.Y + 10)
+end)
+SearchBtn.MouseButton1Click:Connect(function()
+SearchAudio(SearchBox.Text,SearchBox.Text)
+end)
+SearchBox.FocusLost:Connect(function(enterPressed)
+if enterPressed then
+SearchAudio(SearchBox.Text,SearchBox.Text)
+end
+end)
+do
+local okSettings,errSettings=pcall(function()
+local settingsFrame=_I("Frame",ScreenGui)
+settingsFrame.Name="SettingsMenu"
+settingsFrame.Size=_U(0,300,0,380)
+settingsFrame.Position=_U(0,10,0.15,0)
+settingsFrame.BackgroundColor3=_C(18,15,22)
+settingsFrame.BorderSizePixel=0
+settingsFrame.Active=true
+settingsFrame.Draggable=false
+settingsFrame.Visible=false
+_Cr(settingsFrame,10)
+local settingsStroke=_St(settingsFrame,_PU,2)
+local settingsTitle=_I("TextLabel",settingsFrame)
+settingsTitle.Size=_U(1,-50,0,30)
+settingsTitle.Position=_U(0,10,0,5)
+settingsTitle.BackgroundTransparency=1
+settingsTitle.Text="⚙️ Настройки"
+settingsTitle.TextColor3=_W
+settingsTitle.Font=_FB
+settingsTitle.TextSize=14
+settingsTitle.TextXAlignment=_XL
+local settingsClose=_I("TextButton",settingsFrame)
+settingsClose.Size=_U(0,22,0,22)
+settingsClose.Position=_U(1,-28,0,9)
+settingsClose.BackgroundTransparency=1
+settingsClose.Text="X"
+settingsClose.TextColor3=_C(255,80,80)
+settingsClose.Font=_FB
+settingsClose.TextSize=14
+local settingsLine=_I("Frame",settingsFrame)
+settingsLine.Size=_U(1,-20,0,1)
+settingsLine.Position=_U(0,10,0,38)
+settingsLine.BackgroundColor3=_C(50,40,70)
+settingsLine.BorderSizePixel=0
+local function makeSettingsPage()
+local page=_I("ScrollingFrame",settingsFrame)
+page.Size=_U(1,-20,1,-90)
+page.Position=_U(0,10,0,80)
+page.BackgroundTransparency=1
+page.BorderSizePixel=0
+page.ScrollBarThickness=4
+page.CanvasSize=_U(0,0,0,0)
+page.Visible=false
+local pageList=_I("UIListLayout",page)
+pageList.SortOrder=Enum.SortOrder.LayoutOrder
+pageList.Padding=_V(0,6)
+pageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+page.CanvasSize=_U(0,0,0,pageList.AbsoluteContentSize.Y + 8)
+end)
+return page
+end
+local palettePopup
+local pageColors=makeSettingsPage()
+local pageScript=makeSettingsPage()
+local pagePlayer=makeSettingsPage()
+local pageVisual=makeSettingsPage()
+local settingsTabs={}
+local function showSettingsPage(name)
+pageColors.Visible=(name == "colors")
+pageScript.Visible=(name == "general")
+pagePlayer.Visible=(name == "player")
+pageVisual.Visible=(name == "visual")
+for key,btn in pairs(settingsTabs) do
+btn.BackgroundColor3=(key == name) and _PU or _C(35,30,48)
+end
+end
+local function makeSettingsTab(key,text,x,w)
+local btn=_I("TextButton",settingsFrame)
+btn.Size=_U(0,w,0,26)
+btn.Position=_U(0,x,0,44)
+btn.Text=text
+btn.TextColor3=_W
+btn.Font=_FB
+btn.TextSize=11
+btn.AutoButtonColor=false
+_Cr(btn,6)
+settingsTabs[key]=btn
+btn.MouseButton1Click:Connect(function()
+showSettingsPage(key)
+if palettePopup then
+palettePopup.Visible=false
+end
+end)
+end
+makeSettingsTab("colors","Цвета",10,56)
+makeSettingsTab("general","Общие",71,56)
+makeSettingsTab("player","Плеер",132,56)
+makeSettingsTab("visual","Время суток",193,98)
+local function contrastColor(color)
+local brightness=0.299 * color.R + 0.587 * color.G + 0.114 * color.B
+if brightness < 0.5 then
+return _W
+end
+return _C(0,0,0)
+end
+palettePopup=_I("Frame",settingsFrame)
+palettePopup.Size=_U(0,260,0,152)
+palettePopup.Position=_U(0.5,-130,0,218)
+palettePopup.BackgroundColor3=_C(30,26,42)
+palettePopup.BorderSizePixel=0
+palettePopup.Active=true
+palettePopup.Visible=false
+_Cr(palettePopup,10)
+local palettePopupStroke=_St(palettePopup,_C(110,90,170),2)
+local paletteTitle=_I("TextLabel",palettePopup)
+paletteTitle.Size=_U(1,-40,0,24)
+paletteTitle.Position=_U(0,10,0,4)
+paletteTitle.BackgroundTransparency=1
+paletteTitle.Text="Выберите цвет"
+paletteTitle.TextColor3=_W
+paletteTitle.Font=_FB
+paletteTitle.TextSize=13
+paletteTitle.TextXAlignment=_XL
+local paletteClose=_I("TextButton",palettePopup)
+paletteClose.Size=_U(0,22,0,22)
+paletteClose.Position=_U(1,-28,0,5)
+paletteClose.BackgroundTransparency=1
+paletteClose.Text="X"
+paletteClose.TextColor3=_C(255,80,80)
+paletteClose.Font=_FB
+paletteClose.TextSize=14
+local paletteGrid=_I("Frame",palettePopup)
+paletteGrid.Size=_U(1,-20,0,112)
+paletteGrid.Position=_U(0,10,0,32)
+paletteGrid.BackgroundTransparency=1
+local paletteLayout=_I("UIGridLayout",paletteGrid)
+paletteLayout.CellSize=_U(0,42,0,52)
+paletteLayout.CellPadding=_U(0,6,0,6)
+paletteLayout.SortOrder=Enum.SortOrder.LayoutOrder
+local THEME_FILE="TiloSong_theme.json"
+local themeData={}
+local function filesSupported()
+return writefile ~= nil and readfile ~= nil and isfile ~= nil
+end
+local function saveTheme()
+if not filesSupported() then
+return
+end
+pcall(function()
+writefile(THEME_FILE,HttpService:JSONEncode(themeData))
+end)
+end
+local function loadTheme()
+if not filesSupported() then
+return
+end
+pcall(function()
+if isfile(THEME_FILE) then
+local data=HttpService:JSONDecode(readfile(THEME_FILE))
+if type(data) == "table" then
+themeData=data
+end
+end
+end)
+end
+local function makeTargets(property,list)
+local targets={}
+for _,instance in ipairs(list) do
+table.insert(targets,{instance=instance,property=property,original=instance[property]})
+end
+return targets
+end
+local colorNames={
+window_bg={"Чёрный","Графит","Серый","Белый","Бордовый","Т.зелёный","Т.синий","Фиолет.","Коричн."},
+window_outline={"Белый","Серый","Красный","Оранжев.","Жёлтый","Зелёный","Голубой","Синий","Розовый"}
+}
+local function nameFor(setting,color)
+if not color then
+return "Стандартный"
+end
+local names=colorNames[setting.key] or {}
+for index,candidate in ipairs(setting.colors) do
+if math.abs(candidate.R - color.R) < 0.004 and math.abs(candidate.G - color.G) < 0.004 and math.abs(candidate.B - color.B) < 0.004 then
+return names[index] or "Свой"
+end
+end
+return "Свой"
+end
+local allSettings={}
+local currentSetting=nil
+local function openPalette(setting)
+currentSetting=setting
+paletteTitle.Text=setting.popupTitle
+for _,child in ipairs(paletteGrid:GetChildren()) do
+if child:IsA("TextButton") then
+child:Destroy()
+end
+end
+local options={{color=false,name="Стандартный"}}
+for colorIndex,color in ipairs(setting.colors) do
+table.insert(options,{color=color,name=(colorNames[setting.key] or {})[colorIndex] or ""})
+end
+for index,option in ipairs(options) do
+local swatchColor=option.color or setting.targets[1].original
+local swatch=_I("TextButton",paletteGrid)
+swatch.LayoutOrder=index
+swatch.BackgroundColor3=swatchColor
+swatch.AutoButtonColor=false
+swatch.Text=option.color and "" or "↺"
+swatch.TextColor3=contrastColor(swatchColor)
+swatch.Font=_FB
+swatch.TextSize=20
+_Cr(swatch,6)
+local swatchStroke=_I("UIStroke",swatch)
+swatchStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+swatchStroke.Thickness=0
+swatchStroke.Color=contrastColor(swatchColor)
+local swatchName=_I("TextLabel",swatch)
+swatchName.BackgroundTransparency=1
+swatchName.Size=_U(1,-4,0,16)
+swatchName.Position=_U(0,2,1,-18)
+swatchName.Text=option.name
+swatchName.TextColor3=contrastColor(swatchColor)
+swatchName.Font=_FB
+swatchName.TextScaled=true
+local swatchLimit=_I("UITextSizeConstraint",swatchName)
+swatchLimit.MaxTextSize=11
+swatchLimit.MinTextSize=6
+swatch.MouseButton1Click:Connect(function()
+setting.apply(option.color or nil)
+if option.color then
+themeData[setting.key]={
+math.floor(option.color.R * 255 + 0.5),
+math.floor(option.color.G * 255 + 0.5),
+math.floor(option.color.B * 255 + 0.5)
+}
+else
+themeData[setting.key]=nil
+end
+saveTheme()
+palettePopup.Visible=false
+end)
+end
+palettePopup.Visible=true
+end
+local function createSetting(key,label,popupTitle,colors,targets)
+local order=#allSettings + 1
+local setting={key=key,popupTitle=popupTitle,colors=colors,targets=targets}
+local row=_I("Frame",pageColors)
+row.Size=_U(1,-10,0,40)
+row.LayoutOrder=order
+row.BackgroundColor3=_C(28,25,38)
+row.BorderSizePixel=0
+_Cr(row,6)
+local rowLabel=_I("TextLabel",row)
+rowLabel.Size=_U(1,-60,0,22)
+rowLabel.Position=_U(0,10,0,3)
+rowLabel.BackgroundTransparency=1
+rowLabel.Text=label
+rowLabel.TextColor3=_C(220,220,240)
+rowLabel.Font=_FB
+rowLabel.TextSize=13
+rowLabel.TextXAlignment=_XL
+local nameLabel=_I("TextLabel",row)
+nameLabel.Size=_U(1,-60,0,14)
+nameLabel.Position=_U(0,10,0,23)
+nameLabel.BackgroundTransparency=1
+nameLabel.Text="Сейчас: Стандартный"
+nameLabel.TextColor3=_C(160,160,185)
+nameLabel.Font=_FN
+nameLabel.TextSize=11
+nameLabel.TextXAlignment=_XL
+local square=_I("TextButton",row)
+square.Size=_U(0,34,0,28)
+square.Position=_U(1,-44,0.5,-14)
+square.BackgroundColor3=targets[1].original
+square.Text=""
+square.AutoButtonColor=false
+_Cr(square,5)
+local squareStroke=_I("UIStroke",square)
+squareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+squareStroke.Thickness=0
+squareStroke.Color=contrastColor(targets[1].original)
+setting.apply=function(color)
+for _,target in ipairs(targets) do
+target.instance[target.property]=color or target.original
+end
+local shown=color or targets[1].original
+square.BackgroundColor3=shown
+squareStroke.Color=contrastColor(shown)
+nameLabel.Text="Сейчас: " .. nameFor(setting,color)
+end
+square.MouseButton1Click:Connect(function()
+if palettePopup.Visible and currentSetting == setting then
+palettePopup.Visible=false
+else
+openPalette(setting)
+end
+end)
+table.insert(allSettings,setting)
+return setting
+end
+createSetting(
+"window_bg",
+"Цвет заднего фона",
+"Выберите цвет фона",
+{
+_C(10,10,12),
+_C(35,35,42),
+_C(90,90,100),
+_C(245,245,250),
+_C(80,15,25),
+_C(15,60,35),
+_C(18,28,70),
+_C(45,18,75),
+_C(70,45,25)
+},
+makeTargets("BackgroundColor3",{MainFrame,CategoryFrame,PlayerPanel,settingsFrame})
+)
+createSetting(
+"window_outline",
+"Цвет обводки окон",
+"Выберите цвет обводки",
+{
+_C(245,245,250),
+_C(130,130,140),
+_C(225,40,50),
+_C(255,140,30),
+_C(255,210,40),
+_C(70,205,80),
+_C(30,200,220),
+_C(50,120,255),
+_C(255,100,180)
+},
+makeTargets("Color",{MainStroke,CatStroke,PlayerPanelStroke,settingsStroke,ToggleStroke,SearchFrameStroke,IdFrameStroke,ClockStroke,ToastStroke})
+)
+for _,setting in ipairs(allSettings) do
+local baseApply=setting.apply
+setting.apply=function(color)
+baseApply(color)
+local list=ThemeExtra.stroke
+if setting.key == "window_bg" then
+list=ThemeExtra.bg
+end
+for _,entry in ipairs(list) do
+entry.instance[entry.prop]=color or entry.original
+end
+ThemeExtra.last[setting.key]=color or false
+end
+end
+local CLOCK_KEY="clock_seconds"
+local clockRow=_I("Frame",pageScript)
+clockRow.Size=_U(1,-10,0,40)
+clockRow.LayoutOrder=1
+clockRow.BackgroundColor3=_C(28,25,38)
+clockRow.BorderSizePixel=0
+_Cr(clockRow,6)
+local clockRowLabel=_I("TextLabel",clockRow)
+clockRowLabel.Size=_U(1,-72,1,0)
+clockRowLabel.Position=_U(0,10,0,0)
+clockRowLabel.BackgroundTransparency=1
+clockRowLabel.Text="Расширенное время"
+clockRowLabel.TextColor3=_C(220,220,240)
+clockRowLabel.Font=_FB
+clockRowLabel.TextSize=13
+clockRowLabel.TextXAlignment=_XL
+local clockSquare=_I("TextButton",clockRow)
+clockSquare.Size=_U(0,46,0,28)
+clockSquare.Position=_U(1,-56,0.5,-14)
+clockSquare.Text=""
+clockSquare.AutoButtonColor=false
+clockSquare.TextColor3=COLOR_WHITE
+clockSquare.Font=_FB
+clockSquare.TextSize=11
+clockSquare.TextStrokeTransparency=0.4
+_Cr(clockSquare,5)
+local clockSquareStroke=_I("UIStroke",clockSquare)
+clockSquareStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+clockSquareStroke.Thickness=2
+clockSquareStroke.Color=_W
+local function setClockExtended(on)
+if on then
+clockSquare.BackgroundColor3=COLOR_GREEN
+clockSquare.Text="ВКЛ"
+ClockFrame.Size=_U(0,82,0,22)
+ClockFrame.Position=_U(1,-92,0,70)
+PlayerToggleBtn.Position=_U(1,-174,0,70)
+StatusLabel.Size=_U(1,-188,0,18)
+else
+clockSquare.BackgroundColor3=COLOR_RED
+clockSquare.Text="ВЫКЛ"
+ClockFrame.Size=_U(0,64,0,22)
+ClockFrame.Position=_U(1,-74,0,70)
+PlayerToggleBtn.Position=_U(1,-156,0,70)
+StatusLabel.Size=_U(1,-170,0,18)
+end
+ClockFrame:SetAttribute("Extended",on)
+end
+setClockExtended(false)
+clockSquare.MouseButton1Click:Connect(function()
+local newState=not (ClockFrame:GetAttribute("Extended") == true)
+setClockExtended(newState)
+themeData[CLOCK_KEY]=newState or nil
+saveTheme()
+palettePopup.Visible=false
+end)
+local GuiService=game:GetService("GuiService")
+local tabPos,tabW,tabH=50,32,40
+local function layoutTab()
+local screenH=ScreenGui.AbsoluteSize.Y
+local inset=GuiService:GetGuiInset().Y
+local top=-inset
+local centerY=top + tabH / 2 + (tabPos / 100) * math.max(screenH - top - tabH,0)
+PlayerTab.Size=_U(0,tabW,0,tabH)
+local onLeft=ScreenGui:GetAttribute("PlayerSide") == "left"
+PlayerTab.Position=_U(onLeft and 1 or 0,onLeft and 0 or -tabW,0.5,(centerY - screenH / 2) - tabH / 2)
+end
+local function makeSlider(page,order,title,minV,maxV,defaultV,key,suffix,onChange,fmt,noInit)
+local row=_I("Frame",page)
+row.Size=_U(1,-10,0,64)
+row.LayoutOrder=order
+row.BackgroundColor3=_C(28,25,38)
+row.BorderSizePixel=0
+_Cr(row,6)
+local label=_I("TextLabel",row)
+label.Size=_U(1,-20,0,24)
+label.Position=_U(0,10,0,4)
+label.BackgroundTransparency=1
+label.TextColor3=_C(220,220,240)
+label.Font=_FB
+label.TextSize=13
+label.TextXAlignment=_XL
+local hit=_I("Frame",row)
+hit.Size=_U(1,-30,0,26)
+hit.Position=_U(0,15,0,30)
+hit.BackgroundTransparency=1
+hit.Active=true
+local track=_I("Frame",hit)
+track.Size=_U(1,0,0,6)
+track.Position=_U(0,0,0.5,-3)
+track.BackgroundColor3=_C(40,35,55)
+track.BorderSizePixel=0
+_Cr(track,3)
+local fill=_I("Frame",track)
+fill.BackgroundColor3=COLOR_PURPLE
+fill.BorderSizePixel=0
+_Cr(fill,3)
+local knob=_I("Frame",track)
+knob.AnchorPoint=Vector2.new(0.5,0.5)
+knob.Size=_U(0,16,0,16)
+knob.BackgroundColor3=COLOR_WHITE
+knob.BorderSizePixel=0
+_Cr(knob).CornerRadius=_V(1,0)
+local current=defaultV
+local sliding=false
+local function setValue(v,silent)
+v=math.clamp(math.floor(v + 0.5),minV,maxV)
+current=v
+local ratio=(v - minV) / (maxV - minV)
+fill.Size=_U(ratio,0,1,0)
+knob.Position=_U(ratio,0,0.5,0)
+label.Text=title .. ": " .. (fmt and fmt(v) or (v .. suffix))
+if not silent then
+onChange(v)
+end
+end
+local function fromInput(input)
+local w=track.AbsoluteSize.X
+if w <= 0 then return end
+local ratio=math.clamp((input.Position.X - track.AbsolutePosition.X) / w,0,1)
+setValue(minV + ratio * (maxV - minV))
+end
+hit.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+sliding=true
+ScreenGui:SetAttribute("NoDrag",true)
+fromInput(input)
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if sliding and (input.UserInputType == _MM or input.UserInputType == _TT) then
+fromInput(input)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if sliding and (input.UserInputType == _M1 or input.UserInputType == _TT) then
+sliding=false
+ScreenGui:SetAttribute("NoDrag",false)
+if key then
+if current == defaultV then
+themeData[key]=nil
+else
+themeData[key]=current
+end
+saveTheme()
+end
+end
+end)
+setValue(defaultV,noInit)
+return setValue
+end
+local setTabPos=makeSlider(pagePlayer,1,"Высота кнопки плеера",0,100,50,"tab_pos","%",function(v)
+tabPos=v
+layoutTab()
+end)
+local setTabW=makeSlider(pagePlayer,2,"Ширина кнопки плеера",24,64,32,"tab_w"," px",function(v)
+tabW=v
+layoutTab()
+end)
+local setTabH=makeSlider(pagePlayer,3,"Высота кнопки (размер)",30,120,40,"tab_h"," px",function(v)
+tabH=v
+layoutTab()
+end)
+local function makeToggleRow(page,order,text,onChange)
+local row=_I("Frame",page)
+row.Size=_U(1,-10,0,40)
+row.LayoutOrder=order
+row.BackgroundColor3=_C(28,25,38)
+row.BorderSizePixel=0
+_Cr(row,6)
+local rowText=_I("TextLabel",row)
+rowText.Size=_U(1,-72,1,0)
+rowText.Position=_U(0,10,0,0)
+rowText.BackgroundTransparency=1
+rowText.Text=text
+rowText.TextColor3=_C(220,220,240)
+rowText.Font=_FB
+rowText.TextSize=13
+rowText.TextXAlignment=_XL
+local rowSquare=_I("TextButton",row)
+rowSquare.Size=_U(0,46,0,28)
+rowSquare.Position=_U(1,-56,0.5,-14)
+rowSquare.Text=""
+rowSquare.AutoButtonColor=false
+rowSquare.TextColor3=COLOR_WHITE
+rowSquare.Font=_FB
+rowSquare.TextSize=11
+rowSquare.TextStrokeTransparency=0.4
+_Cr(rowSquare,5)
+local rowStroke=_I("UIStroke",rowSquare)
+rowStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+rowStroke.Thickness=2
+rowStroke.Color=_W
+local state=false
+local function setState(on,silent)
+state=on and true or false
+rowSquare.BackgroundColor3=state and COLOR_GREEN or COLOR_RED
+rowSquare.Text=state and "ВКЛ" or "ВЫКЛ"
+if not silent then
+onChange(state)
+end
+end
+rowSquare.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+setState(not state)
+end)
+setState(false,true)
+return setState
+end
+local setPlayerLeft=makeToggleRow(pagePlayer,4,"Плеер слева",function(on)
+ScreenGui:SetAttribute("PlayerSide",on and "left" or "right")
+themeData.player_left=on or nil
+saveTheme()
+end)
+ScreenGui:GetAttributeChangedSignal("PlayerSide"):Connect(function()
+setPlayerPanelOpen(playerPanelOpen,true)
+layoutTab()
+end)
+local Lighting=game:GetService("Lighting")
+local skyPresets={
+{id="normal",name="Обычное",c1=_C(95,95,110),c2=_C(45,45,55)},
+{id="morning",name="Утро",c1=_C(120,160,220),c2=_C(255,200,150),time=6.4,amb=_C(150,140,130),atmo={_C(230,200,170),_C(210,140,100),0.3,0.8,0.2},tint=_C(255,225,200),bright=-0.02,sat=0},
+{id="day",name="День",c1=_C(70,140,255),c2=_C(200,230,255),time=14,amb=_C(140,150,170),atmo={_C(180,205,235),_C(106,112,125),0.25,0.4,0}},
+{id="evening",name="Вечер",c1=_C(80,60,140),c2=_C(255,170,120),time=17,amb=_C(135,120,120),atmo={_C(190,160,140),_C(150,100,70),0.3,0.5,0.1},tint=_C(255,205,170),bright=-0.05,sat=-0.2},
+{id="sunset",name="Закат",c1=_C(50,40,100),c2=_C(255,110,60),time=17.9,amb=_C(140,105,95),atmo={_C(235,160,120),_C(170,85,60),0.33,1,0.25},tint=_C(255,185,150),bright=-0.04,sat=-0.05},
+{id="night",name="Ночь",c1=_C(5,5,25),c2=_C(40,50,110),time=0,amb=_C(55,60,90),atmo={_C(40,50,90),_C(20,25,45),0.3,0,0}}
+}
+local skyById={}
+for _,preset in ipairs(skyPresets) do
+skyById[preset.id]=preset
+end
+local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil,cycle=false,chosen="normal"}
+local setSkyCycle
+local function updateSkyLock()
+local preset=skyById[skyState.preset]
+if skyState.cycle then
+skyState.lock=nil
+return
+elseif skyState.manual then
+skyState.lock=skyState.manual
+elseif preset and preset.time then
+skyState.lock=preset.time
+elseif skyState.frozen then
+skyState.lock=skyState.frozenTime
+else
+skyState.lock=nil
+end
+if skyState.lock then
+Lighting.ClockTime=skyState.lock
+end
+end
+Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+if skyState.lock and math.abs(Lighting.ClockTime - skyState.lock) > 0.01 then
+Lighting.ClockTime=skyState.lock
+end
+end)
+local skyRow=_I("TextButton",pageVisual)
+skyRow.Size=_U(1,-10,0,40)
+skyRow.LayoutOrder=2
+skyRow.BackgroundColor3=_C(28,25,38)
+skyRow.TextColor3=_C(220,220,240)
+skyRow.Font=_FB
+skyRow.TextSize=13
+skyRow.AutoButtonColor=false
+skyRow.Text="Небо: Обычное (выбрать)"
+_Cr(skyRow,6)
+local function applySky(id)
+local preset=skyById[id] or skyById.normal
+skyState.preset=preset.id
+if preset.id == "normal" then
+if skyState.orig then
+Lighting.Brightness=skyState.orig.Brightness
+Lighting.Ambient=skyState.orig.Ambient
+Lighting.OutdoorAmbient=skyState.orig.OutdoorAmbient
+Lighting.ClockTime=skyState.orig.ClockTime
+if skyState.frozen then
+skyState.frozenTime=skyState.orig.ClockTime
+end
+skyState.orig=nil
+end
+if skyState.cc then
+skyState.cc:Destroy()
+skyState.cc=nil
+end
+for _,obj in ipairs(skyState.stash) do
+pcall(function()
+obj.Parent=Lighting
+end)
+end
+skyState.stash={}
+if skyState.atmo then
+skyState.atmo:Destroy()
+skyState.atmo=nil
+end
+else
+if not skyState.orig then
+skyState.orig={Brightness=Lighting.Brightness,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient,ClockTime=Lighting.ClockTime}
+end
+for _,child in ipairs(Lighting:GetChildren()) do
+if (child:IsA("Sky") or child:IsA("Atmosphere")) and child ~= skyState.atmo and child ~= skyState.fogAtmo then
+table.insert(skyState.stash,child)
+child.Parent=nil
+end
+end
+if not skyState.atmo then
+skyState.atmo=_I("Atmosphere")
+end
+skyState.atmo.Parent=Lighting
+skyState.atmo.Color=preset.atmo[1]
+skyState.atmo.Decay=preset.atmo[2]
+skyState.atmo.Density=preset.atmo[3]
+skyState.atmo.Haze=preset.atmo[4]
+skyState.atmo.Glare=preset.atmo[5]
+skyState.baseDensity=preset.atmo[3]
+skyState.baseHaze=preset.atmo[4]
+Lighting.OutdoorAmbient=preset.amb
+if preset.tint then
+if not skyState.cc then
+skyState.cc=_I("ColorCorrectionEffect")
+end
+skyState.cc.Parent=Lighting
+skyState.cc.TintColor=preset.tint
+skyState.cc.Brightness=preset.bright
+skyState.cc.Saturation=preset.sat
+elseif skyState.cc then
+skyState.cc:Destroy()
+skyState.cc=nil
+end
+end
+updateSkyLock()
+skyRow.Text="Небо: " .. preset.name .. " (выбрать)"
+end
+local skyPopup=_I("Frame",settingsFrame)
+skyPopup.Size=_U(0,260,0,160)
+skyPopup.Position=_U(0.5,-130,0,200)
+skyPopup.BackgroundColor3=_C(30,26,42)
+skyPopup.BorderSizePixel=0
+skyPopup.Active=true
+skyPopup.Visible=false
+_Cr(skyPopup,10)
+local skyPopupStroke=_St(skyPopup,_C(110,90,170),2)
+local skyPopupTitle=_I("TextLabel",skyPopup)
+skyPopupTitle.Size=_U(1,-40,0,24)
+skyPopupTitle.Position=_U(0,10,0,4)
+skyPopupTitle.BackgroundTransparency=1
+skyPopupTitle.Text="Выберите небо"
+skyPopupTitle.TextColor3=_W
+skyPopupTitle.Font=_FB
+skyPopupTitle.TextSize=13
+skyPopupTitle.TextXAlignment=_XL
+local skyPopupClose=_I("TextButton",skyPopup)
+skyPopupClose.Size=_U(0,22,0,22)
+skyPopupClose.Position=_U(1,-28,0,5)
+skyPopupClose.BackgroundTransparency=1
+skyPopupClose.Text="X"
+skyPopupClose.TextColor3=_C(255,80,80)
+skyPopupClose.Font=_FB
+skyPopupClose.TextSize=14
+skyPopupClose.MouseButton1Click:Connect(function()
+skyPopup.Visible=false
+end)
+local skyGrid=_I("Frame",skyPopup)
+skyGrid.Size=_U(1,-20,0,120)
+skyGrid.Position=_U(0,10,0,32)
+skyGrid.BackgroundTransparency=1
+local skyGridLayout=_I("UIGridLayout",skyGrid)
+skyGridLayout.CellSize=_U(0,76,0,56)
+skyGridLayout.CellPadding=_U(0,6,0,6)
+skyGridLayout.SortOrder=Enum.SortOrder.LayoutOrder
+for index,preset in ipairs(skyPresets) do
+local skyBtn=_I("TextButton",skyGrid)
+skyBtn.LayoutOrder=index
+skyBtn.BackgroundColor3=_W
+skyBtn.AutoButtonColor=false
+skyBtn.Text=preset.name
+skyBtn.TextColor3=_W
+skyBtn.TextStrokeTransparency=0.3
+skyBtn.Font=_FB
+skyBtn.TextSize=12
+_Cr(skyBtn,6)
+local skyGradient=_I("UIGradient",skyBtn)
+skyGradient.Color=ColorSequence.new(preset.c1,preset.c2)
+skyGradient.Rotation=90
+skyBtn.MouseButton1Click:Connect(function()
+if skyState.cycle then
+skyState.cycle=false
+setSkyCycle(false,true)
+themeData.sky_cycle=nil
+end
+skyState.chosen=preset.id
+skyState.manual=nil
+applySky(preset.id)
+if preset.id == "normal" then
+themeData.sky_preset=nil
+else
+themeData.sky_preset=preset.id
+end
+saveTheme()
+skyPopup.Visible=false
+end)
+end
+skyRow.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+skyPopup.Visible=not skyPopup.Visible
+end)
+pageVisual:GetPropertyChangedSignal("Visible"):Connect(function()
+if not pageVisual.Visible then
+skyPopup.Visible=false
+end
+end)
+settingsFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+if not settingsFrame.Visible then
+skyPopup.Visible=false
+end
+end)
+local setSkyFreeze=makeToggleRow(pageVisual,1,"Заморозить небо",function(on)
+skyState.frozen=on
+if on then
+skyState.frozenTime=Lighting.ClockTime
+end
+updateSkyLock()
+themeData.sky_freeze=on or nil
+saveTheme()
+end)
+local RunService=game:GetService("RunService")
+local cycleHour=6.4
+local cycleMinutes=2
+local fogStrength=0
+local fogOrig=nil
+local fogStash={}
+local cycleKeys={
+{h=6.4,p="morning"},
+{h=14,p="day"},
+{h=17,p="evening"},
+{h=17.9,p="sunset"},
+{h=21.5,p="night"},
+{h=28,p="night"},
+{h=30.4,p="morning"}
+}
+local whiteTint=_W
+local fogColors={
+morning=_C(205,190,175),
+day=_C(190,200,215),
+evening=_C(160,140,135),
+sunset=_C(170,120,100),
+night=_C(12,14,24)
+}
+local function lookOf(p)
+return {p.atmo[1],p.atmo[2],p.atmo[3],p.atmo[4],p.atmo[5],p.amb,p.tint or whiteTint,p.bright or 0,p.sat or 0,fogColors[p.id]}
+end
+local function mix(a,b,t)
+if typeof(a) == "Color3" then
+return a:Lerp(b,t)
+end
+return a + (b - a) * t
+end
+local function sampleLook(hour)
+local k1,k2=cycleKeys[1],cycleKeys[2]
+for i=1,#cycleKeys - 1 do
+if hour >= cycleKeys[i].h and hour < cycleKeys[i + 1].h then
+k1,k2=cycleKeys[i],cycleKeys[i + 1]
+break
+end
+end
+local t=math.clamp((hour - k1.h) / (k2.h - k1.h),0,1)
+local a,b=lookOf(skyById[k1.p]),lookOf(skyById[k2.p])
+local v={}
+for i=1,10 do
+v[i]=mix(a[i],b[i],t)
+end
+return v
+end
+local function blendAt(hour)
+local atmo=skyState.atmo
+if not atmo then
+return
+end
+local v=sampleLook(hour)
+atmo.Color,atmo.Decay,atmo.Density,atmo.Haze,atmo.Glare=v[1],v[2],v[3],v[4],v[5]
+skyState.baseDensity=v[3]
+skyState.baseHaze=v[4]
+Lighting.OutdoorAmbient=v[6]
+if not skyState.cc then
+skyState.cc=_I("ColorCorrectionEffect")
+skyState.cc.Parent=Lighting
+end
+skyState.cc.TintColor=v[7]
+skyState.cc.Brightness=v[8]
+skyState.cc.Saturation=v[9]
+end
+RunService.Heartbeat:Connect(function(dt)
+if skyState.cycle and skyState.atmo then
+cycleHour=cycleHour + dt * 24 / (cycleMinutes * 60)
+if cycleHour >= 30.4 then
+cycleHour=cycleHour - 24
+end
+Lighting.ClockTime=cycleHour % 24
+blendAt(cycleHour)
+end
+if fogStrength > 0 then
+if not fogOrig then
+fogOrig={Lighting.FogStart,Lighting.FogEnd,Lighting.FogColor}
+end
+local hr=Lighting.ClockTime
+if hr < 6.4 then
+hr=hr + 24
+end
+local k=1 - fogStrength / 100
+local fogLook=sampleLook(hr)[10]
+Lighting.FogStart=0
+Lighting.FogEnd=1500 * k * k + 40
+Lighting.FogColor=fogLook
+local power=fogStrength / 100
+if skyState.atmo then
+if skyState.fogAtmo then
+skyState.fogAtmo:Destroy()
+skyState.fogAtmo=nil
+for _,saved in ipairs(fogStash) do
+table.insert(skyState.stash,saved)
+end
+fogStash={}
+end
+local baseDensity=skyState.baseDensity or 0.3
+local baseHaze=skyState.baseHaze or 0
+skyState.atmo.Density=baseDensity + (1 - baseDensity) * power
+skyState.atmo.Haze=baseHaze + (10 - baseHaze) * power
+else
+if not skyState.fogAtmo then
+skyState.fogAtmo=_I("Atmosphere")
+for _,child in ipairs(Lighting:GetChildren()) do
+if child:IsA("Atmosphere") then
+table.insert(fogStash,child)
+child.Parent=nil
+end
+end
+skyState.fogAtmo.Parent=Lighting
+end
+skyState.fogAtmo.Color=fogLook
+skyState.fogAtmo.Decay=fogLook
+skyState.fogAtmo.Density=power
+skyState.fogAtmo.Haze=10 * power
+end
+elseif fogOrig then
+Lighting.FogStart,Lighting.FogEnd,Lighting.FogColor=fogOrig[1],fogOrig[2],fogOrig[3]
+fogOrig=nil
+if skyState.fogAtmo then
+skyState.fogAtmo:Destroy()
+skyState.fogAtmo=nil
+for _,saved in ipairs(fogStash) do
+pcall(function()
+saved.Parent=Lighting
+end)
+end
+fogStash={}
+end
+if skyState.atmo then
+skyState.atmo.Density=skyState.baseDensity or 0.3
+skyState.atmo.Haze=skyState.baseHaze or 0
+end
+end
+end)
+setSkyCycle=makeToggleRow(pageVisual,3,"Смена времени суток",function(on)
+if on then
+local now=Lighting.ClockTime
+if now < 6.4 then
+now=now + 24
+end
+cycleHour=now
+skyState.manual=nil
+skyState.cycle=true
+applySky("day")
+else
+skyState.cycle=false
+applySky(skyState.chosen or "normal")
+end
+themeData.sky_cycle=on or nil
+saveTheme()
+end)
+local setTimeSlider
+local setCycleMin
+local setFog
+setTimeSlider=makeSlider(pageVisual,4,"Время суток",0,1439,math.floor(Lighting.ClockTime * 60),nil,"",function(v)
+local hour=v / 60
+if skyState.cycle then
+skyState.cycle=false
+setSkyCycle(false,true)
+end
+if not skyState.atmo then
+applySky("day")
+end
+skyState.manual=hour
+blendAt(hour < 6.4 and hour + 24 or hour)
+updateSkyLock()
+skyRow.Text="Небо: по времени (выбрать)"
+end,function(v)
+return string.format("%02d:%02d",math.floor(v / 60),v % 60)
+end,true)
+setCycleMin=makeSlider(pageVisual,5,"Длительность суток",1,30,2,"cycle_min"," мин",function(v)
+cycleMinutes=v
+end)
+setFog=makeSlider(pageVisual,6,"Туман",0,100,0,"fog","%",function(v)
+fogStrength=v
+end)
+local resetSky=_I("TextButton",pageVisual)
+resetSky.Size=_U(1,-10,0,40)
+resetSky.LayoutOrder=7
+resetSky.BackgroundColor3=_C(80,20,30)
+resetSky.TextColor3=COLOR_WHITE
+resetSky.Font=_FB
+resetSky.TextSize=13
+resetSky.AutoButtonColor=false
+resetSky.Text="Сбросить всё (время суток и туман)"
+_Cr(resetSky,6)
+resetSky.MouseButton1Click:Connect(function()
+skyState.cycle=false
+setSkyCycle(false,true)
+skyState.manual=nil
+skyState.frozen=false
+setSkyFreeze(false,true)
+skyState.chosen="normal"
+applySky("normal")
+setCycleMin(2)
+setFog(0)
+setTimeSlider(math.floor(Lighting.ClockTime * 60),true)
+themeData.sky_preset=nil
+themeData.sky_freeze=nil
+themeData.sky_cycle=nil
+themeData.cycle_min=nil
+themeData.fog=nil
+saveTheme()
+end)
+local potatoOn=false
+local function potatoItem(item)
+if item:IsA("Decal") or item:IsA("Texture") or item:IsA("SurfaceAppearance") then
+item:Destroy()
+elseif item:IsA("ParticleEmitter") or item:IsA("Trail") or item:IsA("Beam") or item:IsA("Fire") or item:IsA("Smoke") or item:IsA("Sparkles") then
+item.Enabled=false
+elseif item:IsA("Terrain") then
+return
+elseif item:IsA("BasePart") then
+item.Material=Enum.Material.SmoothPlastic
+item.Reflectance=0
+if item:IsA("MeshPart") then
+pcall(function()
+item.TextureID=""
+end)
+end
+end
+end
+local function startPotato()
+potatoOn=true
+Lighting.GlobalShadows=false
+pcall(function()
+settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
+end)
+for _,child in ipairs(Lighting:GetChildren()) do
+if child:IsA("PostEffect") and child ~= skyState.cc then
+child.Enabled=false
+end
+end
+pcall(function()
+workspace.Terrain.Decoration=false
+end)
+task.spawn(function()
+local count=0
+for _,item in ipairs(workspace:GetDescendants()) do
+pcall(potatoItem,item)
+count=count + 1
+if count % 300 == 0 then
+task.wait()
+end
+end
+end)
+workspace.DescendantAdded:Connect(function(item)
+task.defer(function()
+pcall(potatoItem,item)
+end)
+end)
+end
+local gfxDialog=_I("Frame",ScreenGui)
+gfxDialog.AnchorPoint=Vector2.new(0.5,0.5)
+gfxDialog.Position=_U(0.5,0,0.5,0)
+gfxDialog.Size=_U(0,300,0,170)
+gfxDialog.BackgroundColor3=_C(18,15,22)
+gfxDialog.BorderSizePixel=0
+gfxDialog.Active=true
+gfxDialog.Visible=false
+_Cr(gfxDialog,12)
+local gfxDialogStroke=_St(gfxDialog,_PU,2)
+ThemeExtra.add("bg",gfxDialog,"BackgroundColor3")
+ThemeExtra.add("stroke",gfxDialogStroke,"Color")
+local gfxDialogText=_I("TextLabel",gfxDialog)
+gfxDialogText.Size=_U(1,-24,0,100)
+gfxDialogText.Position=_U(0,12,0,12)
+gfxDialogText.BackgroundTransparency=1
+gfxDialogText.TextColor3=_W
+gfxDialogText.Font=_FN
+gfxDialogText.TextSize=14
+gfxDialogText.TextWrapped=true
+gfxDialogText.TextXAlignment=_XL
+gfxDialogText.TextYAlignment=Enum.TextYAlignment.Top
+local gfxOk=_I("TextButton",gfxDialog)
+gfxOk.Size=_U(0,120,0,34)
+gfxOk.BackgroundColor3=COLOR_GREEN
+gfxOk.TextColor3=COLOR_WHITE
+gfxOk.Font=_FB
+gfxOk.TextSize=14
+_Cr(gfxOk,8)
+local gfxCloseBtn=_I("TextButton",gfxDialog)
+gfxCloseBtn.Size=_U(0,120,0,34)
+gfxCloseBtn.Position=_U(0.5,10,1,-46)
+gfxCloseBtn.BackgroundColor3=COLOR_RED
+gfxCloseBtn.TextColor3=COLOR_WHITE
+gfxCloseBtn.Font=_FB
+gfxCloseBtn.TextSize=14
+_Cr(gfxCloseBtn,8)
+local gfxOkAction=nil
+local function showGfxDialog(text,okText,closeText,onOk)
+gfxDialogText.Text=text
+gfxOk.Text=okText
+gfxOkAction=onOk
+if closeText then
+gfxCloseBtn.Text=closeText
+gfxCloseBtn.Visible=true
+gfxOk.Position=_U(0.5,-130,1,-46)
+else
+gfxCloseBtn.Visible=false
+gfxOk.Position=_U(0.5,-60,1,-46)
+end
+gfxDialog.Visible=true
+end
+gfxOk.MouseButton1Click:Connect(function()
+gfxDialog.Visible=false
+local action=gfxOkAction
+gfxOkAction=nil
+if action then
+action()
+end
+end)
+gfxCloseBtn.MouseButton1Click:Connect(function()
+gfxDialog.Visible=false
+gfxOkAction=nil
+end)
+local gfxRow=_I("TextButton",pageScript)
+gfxRow.Size=_U(1,-10,0,40)
+gfxRow.LayoutOrder=2
+gfxRow.BackgroundColor3=_C(28,25,38)
+gfxRow.TextColor3=_C(220,220,240)
+gfxRow.Font=_FB
+gfxRow.TextSize=13
+gfxRow.AutoButtonColor=false
+gfxRow.Text="Режим «Картошка» (убрать текстуры)"
+_Cr(gfxRow,6)
+gfxRow.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+skyPopup.Visible=false
+if potatoOn then
+showGfxDialog("Режим «Картошка» уже включён. Чтобы вернуть текстуры, перезайдите в игру.","Понятно",nil,nil)
+else
+showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты. Вернуть их можно будет только если перезайти в игру. Продолжить?","ОК","Закрыть",function()
+startPotato()
+gfxRow.Text="Режим «Картошка»: включён"
+end)
+end
+end)
+ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutTab)
+local winDrag,winStart,winOrigin=false,nil,nil
+settingsFrame.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+local startPos=input.Position
+local origin=settingsFrame.Position
+task.wait()
+if ScreenGui:GetAttribute("NoDrag") == true then
+return
+end
+winDrag=true
+winStart=startPos
+winOrigin=origin
+end
+end)
+for _,scrollPage in ipairs({pageColors,pageScript,pagePlayer,pageVisual}) do
+scrollPage.InputBegan:Connect(function(input)
+if (input.UserInputType == _M1 or input.UserInputType == _TT) and scrollPage.CanvasSize.Y.Offset > scrollPage.AbsoluteSize.Y then
+ScreenGui:SetAttribute("NoDrag",true)
+end
+end)
+end
+UserInputService.InputChanged:Connect(function(input)
+if winDrag and (input.UserInputType == _MM or input.UserInputType == _TT) then
+local delta=input.Position - winStart
+settingsFrame.Position=_U(winOrigin.X.Scale,winOrigin.X.Offset + delta.X,winOrigin.Y.Scale,winOrigin.Y.Offset + delta.Y)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+winDrag=false
+ScreenGui:SetAttribute("NoDrag",false)
+end
+end)
+paletteClose.MouseButton1Click:Connect(function()
+palettePopup.Visible=false
+end)
+settingsClose.MouseButton1Click:Connect(function()
+settingsFrame.Visible=false
+palettePopup.Visible=false
+end)
+Title.Position=_U(0,126,0,4)
+Title.Size=_U(0,118,0,30)
+Title.TextScaled=true
+local titleLimit=_I("UITextSizeConstraint",Title)
+titleLimit.MaxTextSize=14
+titleLimit.MinTextSize=8
+local gearBtn=_I("TextButton",MainFrame)
+gearBtn.Name="SettingsGear"
+gearBtn.Size=_U(0,28,0,28)
+gearBtn.Position=_U(0,10,0,4)
+gearBtn.BackgroundColor3=_C(35,30,48)
+gearBtn.Text="⚙️"
+gearBtn.TextColor3=_W
+gearBtn.Font=_FB
+gearBtn.TextSize=16
+_Cr(gearBtn,6)
+local avatarBtn=_I("TextButton",MainFrame)
+avatarBtn.Name="AvatarEditorBtn"
+avatarBtn.Size=_U(0,78,0,28)
+avatarBtn.Position=_U(0,42,0,4)
+avatarBtn.BackgroundColor3=_C(35,30,48)
+avatarBtn.Text="Редактор"
+avatarBtn.TextColor3=_W
+avatarBtn.Font=_FB
+avatarBtn.TextSize=12
+_Cr(avatarBtn,6)
+avatarBtn.MouseButton1Click:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",true)
+end)
+local positioned=false
+gearBtn.MouseButton1Click:Connect(function()
+if not settingsFrame.Visible and not positioned then
+positioned=true
+local centerX=ScreenGui.AbsoluteSize.X / 2
+if centerX - 505 >= 0 then
+settingsFrame.Position=_U(0.5,-505,0.15,0)
+end
+end
+settingsFrame.Visible=not settingsFrame.Visible
+palettePopup.Visible=false
+end)
+local wasOpen=false
+MainFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+if not MainFrame.Visible then
+wasOpen=settingsFrame.Visible
+settingsFrame.Visible=false
+palettePopup.Visible=false
+elseif wasOpen then
+settingsFrame.Visible=true
+wasOpen=false
+end
+end)
+loadTheme()
+for _,setting in ipairs(allSettings) do
+local rgb=themeData[setting.key]
+if type(rgb) == "table" and #rgb == 3 then
+setting.apply(_C(rgb[1],rgb[2],rgb[3]))
+end
+end
+if themeData[CLOCK_KEY] == true then
+setClockExtended(true)
+end
+if type(themeData.tab_pos) == "number" then
+setTabPos(themeData.tab_pos)
+end
+if type(themeData.tab_w) == "number" then
+setTabW(themeData.tab_w)
+end
+if type(themeData.tab_h) == "number" then
+setTabH(themeData.tab_h)
+end
+if themeData.player_left == true then
+setPlayerLeft(true)
+end
+if type(themeData.sky_preset) == "string" then
+skyState.chosen=themeData.sky_preset
+applySky(themeData.sky_preset)
+end
+if themeData.sky_freeze == true then
+setSkyFreeze(true)
+end
+if type(themeData.cycle_min) == "number" then
+setCycleMin(themeData.cycle_min)
+end
+if type(themeData.fog) == "number" then
+setFog(themeData.fog)
+end
+if themeData.sky_cycle == true then
+setSkyCycle(true)
+end
+showSettingsPage("colors")
+end)
+if not okSettings then
+warn("Tilo Song: окно настроек не создалось: " .. tostring(errSettings))
+end
+end
+do
+local RunService=game:GetService("RunService")
+local StarterGui=game:GetService("StarterGui")
+local ContextActionService=game:GetService("ContextActionService")
+local Root=_I("Frame",ScreenGui)
+Root.Name="TiloEditor"
+Root.Size=_U(1,0,1,0)
+Root.BackgroundTransparency=1
+Root.Visible=false
+local function makePanel(anchorX,posX,width,heightScale,title)
+local panel=_I("Frame",Root)
+panel.AnchorPoint=Vector2.new(anchorX,0)
+panel.Position=_U(anchorX,posX,0,58)
+panel.Size=_U(0,width,heightScale,0)
+panel.BackgroundColor3=_C(18,15,22)
+panel.BackgroundTransparency=0.08
+panel.BorderSizePixel=0
+panel.Active=true
+_Cr(panel,10)
+local panelStroke=_St(panel,_PU,1.5)
+ThemeExtra.add("bg",panel,"BackgroundColor3")
+ThemeExtra.add("stroke",panelStroke,"Color")
+local panelTitle=_I("TextLabel",panel)
+panelTitle.Size=_U(1,-16,0,26)
+panelTitle.Position=_U(0,8,0,4)
+panelTitle.BackgroundTransparency=1
+panelTitle.Text=title
+panelTitle.TextColor3=_W
+panelTitle.Font=_FB
+panelTitle.TextSize=14
+panelTitle.TextXAlignment=_XL
+return panel
+end
+local CloseBtn=_I("TextButton",Root)
+CloseBtn.Size=_U(0,38,0,38)
+CloseBtn.Position=_U(0,10,0,10)
+CloseBtn.BackgroundColor3=_C(200,50,60)
+CloseBtn.Text="X"
+CloseBtn.TextColor3=_W
+CloseBtn.Font=_FB
+CloseBtn.TextSize=20
+_Cr(CloseBtn,10)
+local LeftPanel=makePanel(0,10,190,0.6,"Категории")
+local RightPanel=makePanel(1,-10,250,0.8,"Настройки")
+local RightScroll=_I("ScrollingFrame",RightPanel)
+RightScroll.Size=_U(1,-16,1,-40)
+RightScroll.Position=_U(0,8,0,34)
+RightScroll.BackgroundTransparency=1
+RightScroll.BorderSizePixel=0
+RightScroll.ScrollBarThickness=4
+RightScroll.CanvasSize=_U(0,0,0,0)
+RightScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local HintLabel=_I("TextLabel",RightScroll)
+HintLabel.Size=_U(1,-6,0,0)
+HintLabel.AutomaticSize=Enum.AutomaticSize.Y
+HintLabel.BackgroundTransparency=1
+HintLabel.TextColor3=_C(200,200,220)
+HintLabel.Font=_FN
+HintLabel.TextSize=13
+HintLabel.TextWrapped=true
+HintLabel.TextXAlignment=_XL
+HintLabel.TextYAlignment=Enum.TextYAlignment.Top
+local VisibleNote=_I("TextLabel",Root)
+VisibleNote.AnchorPoint=Vector2.new(0.5,1)
+VisibleNote.Position=_U(0.5,0,1,-10)
+VisibleNote.Size=_U(0,260,0,22)
+VisibleNote.BackgroundTransparency=1
+VisibleNote.Text="Образ виден только тебе"
+VisibleNote.TextColor3=_C(220,220,240)
+VisibleNote.TextStrokeTransparency=0.5
+VisibleNote.Font=_FB
+VisibleNote.TextSize=13
+local goals={
+full={part="root",offset=Vector3.new(0,0.5,0),dist=10,height=1.5},
+head={part="head",offset=Vector3.new(0,0.3,0),dist=4.5,height=0.3},
+aura={part="root",offset=Vector3.new(0,0.5,0),dist=15,height=2}
+}
+local hints={
+full="Выбери категорию слева. Настройки категории появятся здесь.",
+head="Нимб: цвета и ползунки появятся в следующей версии.",
+aura="Аура: настройки появятся в следующих версиях."
+}
+local focusKey="full"
+local categoryButtons={}
+local function selectCategory(key)
+if key == nil or key == focusKey then
+focusKey="full"
+else
+focusKey=key
+end
+HintLabel.Text=hints[focusKey]
+for catKey,btn in pairs(categoryButtons) do
+btn.BackgroundColor3=(catKey == focusKey) and _PU or _C(35,30,48)
+end
+end
+for index,cat in ipairs({{"head","👼 Нимб"},{"aura","✨ Аура"}}) do
+local catBtn=_I("TextButton",LeftPanel)
+catBtn.Size=_U(1,-20,0,40)
+catBtn.Position=_U(0,10,0,36 + (index - 1) * 48)
+catBtn.BackgroundColor3=_C(35,30,48)
+catBtn.AutoButtonColor=false
+catBtn.Text=cat[2]
+catBtn.TextColor3=_W
+catBtn.Font=_FB
+catBtn.TextSize=16
+_Cr(catBtn,8)
+categoryButtons[cat[1]]=catBtn
+catBtn.MouseButton1Click:Connect(function()
+selectCategory(cat[1])
+end)
+end
+selectCategory(nil)
+local controlsModule=nil
+pcall(function()
+local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
+local module=scripts and scripts:FindFirstChild("PlayerModule")
+if module then
+controlsModule=require(module):GetControls()
+end
+end)
+local editorOpen=false
+local saved={}
+local angle=0
+local function closeEditor()
+if not editorOpen then
+return
+end
+editorOpen=false
+pcall(function()
+RunService:UnbindFromRenderStep("TiloEditorCamera")
+end)
+if saved.diedConn then
+saved.diedConn:Disconnect()
+saved.diedConn=nil
+end
+Root.Visible=false
+focusKey="full"
+selectCategory(nil)
+local character=LocalPlayer.Character
+local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+local camera=workspace.CurrentCamera
+if camera then
+camera.CameraType=saved.camType or Enum.CameraType.Custom
+if saved.camCF then
+camera.CFrame=saved.camCF
+end
+camera.FieldOfView=saved.camFov or 70
+local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+camera.CameraSubject=saved.camSubject or humanoid
+end
+if controlsModule then
+pcall(function()
+controlsModule:Enable()
+end)
+end
+pcall(function()
+ContextActionService:UnbindAction("TiloEditorSink")
+end)
+for coreType,state in pairs(saved.core or {}) do
+pcall(function()
+StarterGui:SetCoreGuiEnabled(coreType,state)
+end)
+end
+for gui,state in pairs(saved.guis or {}) do
+if gui.Parent then
+gui.Enabled=state
+end
+end
+for obj,state in pairs(saved.hidden or {}) do
+if obj.Parent then
+obj.Visible=state
+end
+end
+saved={}
+end
+local function openEditor()
+if editorOpen then
+return
+end
+local character=LocalPlayer.Character
+local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+local camera=workspace.CurrentCamera
+if not rootPart or not camera then
+ScreenGui:SetAttribute("EditorOpen",false)
+return
+end
+editorOpen=true
+saved.camType=camera.CameraType
+saved.camCF=camera.CFrame
+saved.camFov=camera.FieldOfView
+saved.camSubject=camera.CameraSubject
+saved.hidden={}
+for _,child in ipairs(ScreenGui:GetChildren()) do
+if child:IsA("GuiObject") and child ~= Root then
+saved.hidden[child]=child.Visible
+child.Visible=false
+end
+end
+saved.guis={}
+for _,gui in ipairs(PlayerGui:GetChildren()) do
+if gui:IsA("ScreenGui") and gui ~= ScreenGui then
+saved.guis[gui]=gui.Enabled
+gui.Enabled=false
+end
+end
+saved.core={}
+for _,coreType in ipairs({Enum.CoreGuiType.Chat,Enum.CoreGuiType.Backpack,Enum.CoreGuiType.PlayerList,Enum.CoreGuiType.Health,Enum.CoreGuiType.EmotesMenu}) do
+local ok,state=pcall(function()
+return StarterGui:GetCoreGuiEnabled(coreType)
+end)
+saved.core[coreType]=ok and state
+pcall(function()
+StarterGui:SetCoreGuiEnabled(coreType,false)
+end)
+end
+if controlsModule then
+pcall(function()
+controlsModule:Disable()
+end)
+end
+pcall(function()
+ContextActionService:BindActionAtPriority("TiloEditorSink",function()
+return Enum.ContextActionResult.Sink
+end,false,Enum.ContextActionPriority.High.Value + 100,Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.KeyCode.Up,Enum.KeyCode.Down,Enum.KeyCode.Left,Enum.KeyCode.Right,Enum.KeyCode.Space,Enum.KeyCode.LeftShift,Enum.KeyCode.RightShift,Enum.KeyCode.ButtonA,Enum.KeyCode.Thumbstick1)
+end)
+local humanoid=character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+saved.diedConn=humanoid.Died:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",false)
+end)
+end
+camera.CameraType=Enum.CameraType.Scriptable
+angle=math.atan2(camera.CFrame.Position.X - rootPart.Position.X,camera.CFrame.Position.Z - rootPart.Position.Z)
+Root.Visible=true
+RunService:BindToRenderStep("TiloEditorCamera",Enum.RenderPriority.Camera.Value + 1,function(dt)
+local char=LocalPlayer.Character
+local root=char and char:FindFirstChild("HumanoidRootPart")
+local cam=workspace.CurrentCamera
+if not root or not cam then
+ScreenGui:SetAttribute("EditorOpen",false)
+return
+end
+if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+UserInputService.MouseBehavior=Enum.MouseBehavior.Default
+end
+local goal=goals[focusKey]
+local headPart=char:FindFirstChild("Head")
+local basePos=root.Position
+if goal.part == "head" and headPart then
+basePos=headPart.Position
+end
+local targetPos=basePos + goal.offset
+angle=angle + dt * 0.6
+local camPos=targetPos + Vector3.new(math.sin(angle) * goal.dist,goal.height,math.cos(angle) * goal.dist)
+local desired=CFrame.lookAt(camPos,targetPos)
+cam.CameraType=Enum.CameraType.Scriptable
+cam.CFrame=cam.CFrame:Lerp(desired,1 - math.exp(-6 * dt))
+end)
+end
+CloseBtn.MouseButton1Click:Connect(function()
+ScreenGui:SetAttribute("EditorOpen",false)
+end)
+ScreenGui:GetAttributeChangedSignal("EditorOpen"):Connect(function()
+if ScreenGui:GetAttribute("EditorOpen") == true then
+openEditor()
+else
+closeEditor()
+end
+end)
+end
+do
+local entries={
+{"v2.7.5","Исправления редактора: камера, цвета окон, кнопка «Редактор»","• Персонаж больше не зависает в воздухе\n• Цвета фона и обводки применяются к редактору и окнам\n• Кнопка «Редактор» с подписью, крестик заменён на букву X\n• Панели редактора стали больше"},
+{"v2.7.4","Редактор образа: камера вокруг персонажа и панели. В графике только «Картошка»","• Кнопка 🎨 в главном меню открывает редактор образа\n• Камера крутится вокруг персонажа, управление и интерфейс игры скрыты\n• Слева категории, справа настройки, крестик возвращает всё назад\n• Из графики оставлен только режим «Картошка»"},
+{"v2.7.3","Режимы графики: Картошка, Лёгкий, Нормальный, Сложный","• Выбор графики в «Общих» настройках\n• Картошка убирает текстуры для FPS (с предупреждением)\n• Лёгкий, Нормальный, Сложный: блики, свет и цвет\n• После Картошки другие режимы блокируются"},
+{"v2.7.2","Цвета без обводки, «Стандартный», густой туман скрывает небо","• Цвета без обводки, сброс называется «Стандартный»\n• Убрана настройка «Скрывать нерабочие песни»\n• Густой туман теперь скрывает и небо\n• Мелкие исправления"},
+{"v2.7.1","Вкладка «Время суток», туман, ползунки времени, исправлены подписи","• Исправлены подписи ВКЛ/ВЫКЛ\n• История версий раскрывается по нажатию\n• Вкладка «Время суток»: время, длительность суток, туман\n• Кнопка «Сбросить всё» для времени и тумана"},
+{"v2.7","Окно «Что нового», подписи ВКЛ/ВЫКЛ, названия цветов, утро и смена времени суток","• Окно «Что нового» с историей версий\n• Подписи ВКЛ/ВЫКЛ и названия цветов\n• Утро и плавная смена времени суток\n• Исправлены загрузка и закат"},
+{"v2.6.10","Исправлено небо, экран загрузки улетает вверх","• «Обычное» небо возвращает всё как было\n• Вечер темнее и оранжево-серый\n• Закат светлее\n• Загрузка улетает вверх"},
+{"v2.6.9","Экран загрузки, небо, плеер слева, глушилки звука","• Экран загрузки с полоской\n• Небо: день, вечер, закат, ночь\n• Плеер можно поставить слева\n• «Заглушить всё» и «Заглушить музыку»"},
+{"v2.6.8","Ползунки не двигают окно, исправлена палитра цветов","• Ползунки больше не двигают окно\n• Исправлена палитра цветов\n• Мелкие правки окна настроек"},
+{"v2.6.7","Кнопка «Ещё», проверка песен, новые запросы категорий","• Кнопка «Ещё» подгружает больше песен\n• Проверка песен: ✅ работает, ❌ нет\n• «Скрывать нерабочие песни»\n• Точнее запросы в категориях"},
+{"v2.6.6","Вкладки в настройках, размер кнопки плеера","• Вкладки «Цвета», «Общие», «Плеер», «Визуалки»\n• Размер и высота кнопки плеера\n• Кнопка плеера доходит до верха экрана\n• Окошко времени стало уже"},
+{"v2.6.5","Вкладки в настройках, высота кнопки плеера, сжатый код","• Окно настроек разделено на вкладки\n• Ползунок высоты кнопки плеера\n• Код стал короче (оптимизация)"},
+{"v2.6.4","Расширенное время (секунды)","• Настройка «Расширенное время»\n• Часы показывают секунды\n• Настройка сохраняется"},
+{"v2.6.3","Цвет обводки окон","• Выбор цвета обводки окон\n• Цвета сохраняются в файл"},
+{"v2.6.2","Цвет фона окон, сохранение в файл","• Выбор цвета заднего фона окон\n• Сохранение выбранного цвета в файл\n• Версия без комментариев в коде (lite)"},
+{"v2.6.1","Шестерёнка и окно настроек","• Шестерёнка слева сверху\n• Первое окно настроек (пока пустое)"},
+{"v2.6","Плейлист, режимы повтора, сохранение в файл","• Плейлист: нажми ☆ у песни\n• Режимы «один раз» и «по кругу»\n• Плейлист сохраняется в файл"},
+{"v2.5","Стабильная версия (без изменений кода)","• Стабильная версия на основе 2.4.1\n• Код не менялся, обновился только номер"},
+{"v2.4.1 beta","Исправлен слой панели плеера","• Исправлен слой панели плеера"},
+{"v2.4 beta","Локальный плеер музыки","• Локальный плеер музыки\n• Ввод ID и кнопка «Слушать»\n• Случайная песня\n• Громкость плеера"},
+{"v2.3.3 beta","Текст надписи переписан, подложка убрана","• Переписан текст надписи внизу\n• Убрана подложка, кнопка стала уже"},
+{"v2.3.2 beta","Новый текст надписи, кнопка в две строки","• Новый текст надписи\n• Кнопка скрипта в две строки"},
+{"v2.3.1 beta","Кнопка шире, надпись в рамке","• Кнопка шире\n• Надпись внизу в рамке"},
+{"v2.3 beta","Надпись, что скрипт сделан с помощью AI","• Надпись, что скрипт сделан с помощью AI"},
+{"v2.2 beta","Надпись с Telegram и уведомление при копировании","• Надпись со ссылкой на Telegram\n• Плавное уведомление при копировании ссылки"},
+{"v2 beta","Поиск песен по категориям, копирование ID, часы","• Поиск песен по категориям\n• Копирование ID песни\n• Часы в окне"}
+}
+local WhatsNew=_I("Frame",ScreenGui)
+WhatsNew.Name="WhatsNew"
+WhatsNew.AnchorPoint=Vector2.new(0.5,0.5)
+WhatsNew.Position=_U(0.5,0,0.5,0)
+WhatsNew.Size=_U(0.92,0,0.8,0)
+WhatsNew.BackgroundColor3=_C(18,15,22)
+WhatsNew.BorderSizePixel=0
+WhatsNew.Active=true
+WhatsNew.Visible=false
+_Cr(WhatsNew,12)
+local WhatsNewLimit=_I("UISizeConstraint",WhatsNew)
+WhatsNewLimit.MaxSize=Vector2.new(340,460)
+local WhatsNewStroke=_St(WhatsNew,_PU,2)
+ThemeExtra.add("bg",WhatsNew,"BackgroundColor3")
+ThemeExtra.add("stroke",WhatsNewStroke,"Color")
+local WhatsNewClose=_I("TextButton",WhatsNew)
+WhatsNewClose.Size=_U(0,28,0,28)
+WhatsNewClose.Position=_U(1,-34,0,6)
+WhatsNewClose.BackgroundTransparency=1
+WhatsNewClose.Text="X"
+WhatsNewClose.TextColor3=_C(255,80,80)
+WhatsNewClose.Font=_FB
+WhatsNewClose.TextSize=18
+local WhatsNewHead=_I("Frame",WhatsNew)
+WhatsNewHead.Size=_U(1,-20,0,116)
+WhatsNewHead.Position=_U(0,10,0,36)
+WhatsNewHead.BackgroundColor3=_C(28,25,38)
+WhatsNewHead.BorderSizePixel=0
+_Cr(WhatsNewHead,8)
+local WhatsNewHeadStroke=_St(WhatsNewHead,_C(0,170,90),1.5)
+local HeadTitle=_I("TextLabel",WhatsNewHead)
+HeadTitle.Size=_U(1,-16,0,24)
+HeadTitle.Position=_U(0,8,0,4)
+HeadTitle.BackgroundTransparency=1
+HeadTitle.Text="🎉 Новое в v2.7.5"
+HeadTitle.TextColor3=_W
+HeadTitle.Font=_FB
+HeadTitle.TextSize=16
+HeadTitle.TextXAlignment=_XL
+local HeadText=_I("TextLabel",WhatsNewHead)
+HeadText.Size=_U(1,-16,0,82)
+HeadText.Position=_U(0,8,0,30)
+HeadText.BackgroundTransparency=1
+HeadText.Text=entries[1][3]
+HeadText.TextColor3=_C(220,220,240)
+HeadText.Font=_FN
+HeadText.TextSize=13
+HeadText.TextWrapped=true
+HeadText.TextXAlignment=_XL
+HeadText.TextYAlignment=Enum.TextYAlignment.Top
+local HistoryTitle=_I("TextLabel",WhatsNew)
+HistoryTitle.Size=_U(1,-24,0,22)
+HistoryTitle.Position=_U(0,12,0,158)
+HistoryTitle.BackgroundTransparency=1
+HistoryTitle.Text="📜 История версий (нажми на версию)"
+HistoryTitle.TextColor3=_C(200,160,255)
+HistoryTitle.Font=_FB
+HistoryTitle.TextSize=14
+HistoryTitle.TextXAlignment=_XL
+local HistoryList=_I("ScrollingFrame",WhatsNew)
+HistoryList.Size=_U(1,-20,1,-190)
+HistoryList.Position=_U(0,10,0,182)
+HistoryList.BackgroundTransparency=1
+HistoryList.BorderSizePixel=0
+HistoryList.ScrollBarThickness=4
+HistoryList.CanvasSize=_U(0,0,0,0)
+HistoryList.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local HistoryLayout=_I("UIListLayout",HistoryList)
+HistoryLayout.SortOrder=Enum.SortOrder.LayoutOrder
+HistoryLayout.Padding=_V(0,4)
+for index,entry in ipairs(entries) do
+local historyRow=_I("Frame",HistoryList)
+historyRow.LayoutOrder=index
+historyRow.Size=_U(1,-8,0,0)
+historyRow.AutomaticSize=Enum.AutomaticSize.Y
+historyRow.BackgroundColor3=_C(28,25,38)
+historyRow.BorderSizePixel=0
+_Cr(historyRow,6)
+local rowLayout=_I("UIListLayout",historyRow)
+rowLayout.SortOrder=Enum.SortOrder.LayoutOrder
+rowLayout.Padding=_V(0,3)
+local historyPad=_I("UIPadding",historyRow)
+historyPad.PaddingLeft=_V(0,8)
+historyPad.PaddingRight=_V(0,8)
+historyPad.PaddingTop=_V(0,5)
+historyPad.PaddingBottom=_V(0,5)
+local headBtn=_I("TextButton",historyRow)
+headBtn.LayoutOrder=1
+headBtn.Size=_U(1,0,0,0)
+headBtn.AutomaticSize=Enum.AutomaticSize.Y
+headBtn.BackgroundTransparency=1
+headBtn.RichText=true
+headBtn.TextWrapped=true
+headBtn.TextXAlignment=_XL
+headBtn.TextYAlignment=Enum.TextYAlignment.Top
+headBtn.TextColor3=_C(220,220,240)
+headBtn.Font=_FN
+headBtn.TextSize=13
+local detail=_I("TextLabel",historyRow)
+detail.LayoutOrder=2
+detail.Size=_U(1,0,0,0)
+detail.AutomaticSize=Enum.AutomaticSize.Y
+detail.BackgroundTransparency=1
+detail.Visible=false
+detail.Text=entry[3]
+detail.TextColor3=_C(190,190,215)
+detail.Font=_FN
+detail.TextSize=12
+detail.TextWrapped=true
+detail.TextXAlignment=_XL
+detail.TextYAlignment=Enum.TextYAlignment.Top
+local function refreshHead()
+headBtn.Text="<b>" .. entry[1] .. "</b>  " .. entry[2] .. (detail.Visible and "  [-]" or "  [+]")
+end
+refreshHead()
+headBtn.MouseButton1Click:Connect(function()
+detail.Visible=not detail.Visible
+refreshHead()
+end)
+end
+WhatsNewClose.MouseButton1Click:Connect(function()
+WhatsNew.Visible=false
+end)
+local function showWhatsNew()
+if ScreenGui:GetAttribute("LoadDone") == true then
+WhatsNew.Visible=true
+end
+end
+showWhatsNew()
+ScreenGui:GetAttributeChangedSignal("LoadDone"):Connect(showWhatsNew)
+end
+SearchAudio("phonk","Phonk")
