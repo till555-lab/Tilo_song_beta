@@ -30,6 +30,20 @@ local selectedMaxDuration=60
 local currentQuery="phonk"
 local currentDisplayTitle="Phonk"
 local SearchAudio
+local ThemeExtra={bg={},stroke={},last={}}
+ThemeExtra.add=function(kind,instance,property)
+local list=ThemeExtra.stroke
+local key="window_outline"
+if kind == "bg" then
+list=ThemeExtra.bg
+key="window_bg"
+end
+table.insert(list,{instance=instance,prop=property,original=instance[property]})
+local last=ThemeExtra.last[key]
+if last then
+instance[property]=last
+end
+end
 local ScreenGui=_I("ScreenGui")
 ScreenGui.Name="TiloSongGui"
 ScreenGui.ResetOnSpawn=false
@@ -81,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.4"
+CardTitle.Text="🎵 TILO SONG v2.7.5"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -150,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.4"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.5"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -190,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.4"
+Title.Text="🎵 TILO SONG v2.7.5"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -458,7 +472,7 @@ local CloseCatBtn=_I("TextButton",CategoryFrame)
 CloseCatBtn.Size=_U(0,20,0,20)
 CloseCatBtn.Position=_U(1,-25,0,8)
 CloseCatBtn.BackgroundTransparency=1
-CloseCatBtn.Text="✕"
+CloseCatBtn.Text="X"
 CloseCatBtn.TextColor3=_C(255,80,80)
 CloseCatBtn.Font=_FB
 CloseCatBtn.TextSize=14
@@ -1823,7 +1837,7 @@ local settingsClose=_I("TextButton",settingsFrame)
 settingsClose.Size=_U(0,22,0,22)
 settingsClose.Position=_U(1,-28,0,9)
 settingsClose.BackgroundTransparency=1
-settingsClose.Text="✕"
+settingsClose.Text="X"
 settingsClose.TextColor3=_C(255,80,80)
 settingsClose.Font=_FB
 settingsClose.TextSize=14
@@ -1915,7 +1929,7 @@ local paletteClose=_I("TextButton",palettePopup)
 paletteClose.Size=_U(0,22,0,22)
 paletteClose.Position=_U(1,-28,0,5)
 paletteClose.BackgroundTransparency=1
-paletteClose.Text="✕"
+paletteClose.Text="X"
 paletteClose.TextColor3=_C(255,80,80)
 paletteClose.Font=_FB
 paletteClose.TextSize=14
@@ -2124,6 +2138,20 @@ _C(255,100,180)
 },
 makeTargets("Color",{MainStroke,CatStroke,PlayerPanelStroke,settingsStroke,ToggleStroke,SearchFrameStroke,IdFrameStroke,ClockStroke,ToastStroke})
 )
+for _,setting in ipairs(allSettings) do
+local baseApply=setting.apply
+setting.apply=function(color)
+baseApply(color)
+local list=ThemeExtra.stroke
+if setting.key == "window_bg" then
+list=ThemeExtra.bg
+end
+for _,entry in ipairs(list) do
+entry.instance[entry.prop]=color or entry.original
+end
+ThemeExtra.last[setting.key]=color or false
+end
+end
 local CLOCK_KEY="clock_seconds"
 local clockRow=_I("Frame",pageScript)
 clockRow.Size=_U(1,-10,0,40)
@@ -2478,7 +2506,7 @@ local skyPopupClose=_I("TextButton",skyPopup)
 skyPopupClose.Size=_U(0,22,0,22)
 skyPopupClose.Position=_U(1,-28,0,5)
 skyPopupClose.BackgroundTransparency=1
-skyPopupClose.Text="✕"
+skyPopupClose.Text="X"
 skyPopupClose.TextColor3=_C(255,80,80)
 skyPopupClose.Font=_FB
 skyPopupClose.TextSize=14
@@ -2813,6 +2841,8 @@ gfxDialog.Active=true
 gfxDialog.Visible=false
 _Cr(gfxDialog,12)
 local gfxDialogStroke=_St(gfxDialog,_PU,2)
+ThemeExtra.add("bg",gfxDialog,"BackgroundColor3")
+ThemeExtra.add("stroke",gfxDialogStroke,"Color")
 local gfxDialogText=_I("TextLabel",gfxDialog)
 gfxDialogText.Size=_U(1,-24,0,100)
 gfxDialogText.Position=_U(0,12,0,12)
@@ -2928,8 +2958,12 @@ settingsClose.MouseButton1Click:Connect(function()
 settingsFrame.Visible=false
 palettePopup.Visible=false
 end)
-Title.Position=_U(0,76,0,4)
-Title.Size=_U(0,168,0,30)
+Title.Position=_U(0,126,0,4)
+Title.Size=_U(0,118,0,30)
+Title.TextScaled=true
+local titleLimit=_I("UITextSizeConstraint",Title)
+titleLimit.MaxTextSize=14
+titleLimit.MinTextSize=8
 local gearBtn=_I("TextButton",MainFrame)
 gearBtn.Name="SettingsGear"
 gearBtn.Size=_U(0,28,0,28)
@@ -2942,13 +2976,13 @@ gearBtn.TextSize=16
 _Cr(gearBtn,6)
 local avatarBtn=_I("TextButton",MainFrame)
 avatarBtn.Name="AvatarEditorBtn"
-avatarBtn.Size=_U(0,28,0,28)
+avatarBtn.Size=_U(0,78,0,28)
 avatarBtn.Position=_U(0,42,0,4)
 avatarBtn.BackgroundColor3=_C(35,30,48)
-avatarBtn.Text="🎨"
+avatarBtn.Text="Редактор"
 avatarBtn.TextColor3=_W
 avatarBtn.Font=_FB
-avatarBtn.TextSize=16
+avatarBtn.TextSize=12
 _Cr(avatarBtn,6)
 avatarBtn.MouseButton1Click:Connect(function()
 ScreenGui:SetAttribute("EditorOpen",true)
@@ -3023,22 +3057,25 @@ end
 do
 local RunService=game:GetService("RunService")
 local StarterGui=game:GetService("StarterGui")
+local ContextActionService=game:GetService("ContextActionService")
 local Root=_I("Frame",ScreenGui)
 Root.Name="TiloEditor"
 Root.Size=_U(1,0,1,0)
 Root.BackgroundTransparency=1
 Root.Visible=false
-local function makePanel(anchorX,posX,width,height,title)
+local function makePanel(anchorX,posX,width,heightScale,title)
 local panel=_I("Frame",Root)
 panel.AnchorPoint=Vector2.new(anchorX,0)
 panel.Position=_U(anchorX,posX,0,58)
-panel.Size=_U(0,width,0,height)
+panel.Size=_U(0,width,heightScale,0)
 panel.BackgroundColor3=_C(18,15,22)
 panel.BackgroundTransparency=0.08
 panel.BorderSizePixel=0
 panel.Active=true
 _Cr(panel,10)
 local panelStroke=_St(panel,_PU,1.5)
+ThemeExtra.add("bg",panel,"BackgroundColor3")
+ThemeExtra.add("stroke",panelStroke,"Color")
 local panelTitle=_I("TextLabel",panel)
 panelTitle.Size=_U(1,-16,0,26)
 panelTitle.Position=_U(0,8,0,4)
@@ -3054,13 +3091,13 @@ local CloseBtn=_I("TextButton",Root)
 CloseBtn.Size=_U(0,38,0,38)
 CloseBtn.Position=_U(0,10,0,10)
 CloseBtn.BackgroundColor3=_C(200,50,60)
-CloseBtn.Text="✕"
+CloseBtn.Text="X"
 CloseBtn.TextColor3=_W
 CloseBtn.Font=_FB
 CloseBtn.TextSize=20
 _Cr(CloseBtn,10)
-local LeftPanel=makePanel(0,10,170,130,"Категории")
-local RightPanel=makePanel(1,-10,210,220,"Настройки")
+local LeftPanel=makePanel(0,10,190,0.6,"Категории")
+local RightPanel=makePanel(1,-10,250,0.8,"Настройки")
 local RightScroll=_I("ScrollingFrame",RightPanel)
 RightScroll.Size=_U(1,-16,1,-40)
 RightScroll.Position=_U(0,8,0,34)
@@ -3114,14 +3151,14 @@ end
 end
 for index,cat in ipairs({{"head","👼 Нимб"},{"aura","✨ Аура"}}) do
 local catBtn=_I("TextButton",LeftPanel)
-catBtn.Size=_U(1,-20,0,34)
-catBtn.Position=_U(0,10,0,34 + (index - 1) * 42)
+catBtn.Size=_U(1,-20,0,40)
+catBtn.Position=_U(0,10,0,36 + (index - 1) * 48)
 catBtn.BackgroundColor3=_C(35,30,48)
 catBtn.AutoButtonColor=false
 catBtn.Text=cat[2]
 catBtn.TextColor3=_W
 catBtn.Font=_FB
-catBtn.TextSize=14
+catBtn.TextSize=16
 _Cr(catBtn,8)
 categoryButtons[cat[1]]=catBtn
 catBtn.MouseButton1Click:Connect(function()
@@ -3157,9 +3194,6 @@ focusKey="full"
 selectCategory(nil)
 local character=LocalPlayer.Character
 local rootPart=character and character:FindFirstChild("HumanoidRootPart")
-if rootPart then
-rootPart.Anchored=saved.rootAnchored == true
-end
 local camera=workspace.CurrentCamera
 if camera then
 camera.CameraType=saved.camType or Enum.CameraType.Custom
@@ -3175,6 +3209,9 @@ pcall(function()
 controlsModule:Enable()
 end)
 end
+pcall(function()
+ContextActionService:UnbindAction("TiloEditorSink")
+end)
 for coreType,state in pairs(saved.core or {}) do
 pcall(function()
 StarterGui:SetCoreGuiEnabled(coreType,state)
@@ -3208,7 +3245,6 @@ saved.camType=camera.CameraType
 saved.camCF=camera.CFrame
 saved.camFov=camera.FieldOfView
 saved.camSubject=camera.CameraSubject
-saved.rootAnchored=rootPart.Anchored
 saved.hidden={}
 for _,child in ipairs(ScreenGui:GetChildren()) do
 if child:IsA("GuiObject") and child ~= Root then
@@ -3238,7 +3274,11 @@ pcall(function()
 controlsModule:Disable()
 end)
 end
-rootPart.Anchored=true
+pcall(function()
+ContextActionService:BindActionAtPriority("TiloEditorSink",function()
+return Enum.ContextActionResult.Sink
+end,false,Enum.ContextActionPriority.High.Value + 100,Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.KeyCode.Up,Enum.KeyCode.Down,Enum.KeyCode.Left,Enum.KeyCode.Right,Enum.KeyCode.Space,Enum.KeyCode.LeftShift,Enum.KeyCode.RightShift,Enum.KeyCode.ButtonA,Enum.KeyCode.Thumbstick1)
+end)
 local humanoid=character:FindFirstChildOfClass("Humanoid")
 if humanoid then
 saved.diedConn=humanoid.Died:Connect(function()
@@ -3259,7 +3299,6 @@ end
 if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
 UserInputService.MouseBehavior=Enum.MouseBehavior.Default
 end
-root.Anchored=true
 local goal=goals[focusKey]
 local headPart=char:FindFirstChild("Head")
 local basePos=root.Position
@@ -3287,6 +3326,7 @@ end)
 end
 do
 local entries={
+{"v2.7.5","Исправления редактора: камера, цвета окон, кнопка «Редактор»","• Персонаж больше не зависает в воздухе\n• Цвета фона и обводки применяются к редактору и окнам\n• Кнопка «Редактор» с подписью, крестик заменён на букву X\n• Панели редактора стали больше"},
 {"v2.7.4","Редактор образа: камера вокруг персонажа и панели. В графике только «Картошка»","• Кнопка 🎨 в главном меню открывает редактор образа\n• Камера крутится вокруг персонажа, управление и интерфейс игры скрыты\n• Слева категории, справа настройки, крестик возвращает всё назад\n• Из графики оставлен только режим «Картошка»"},
 {"v2.7.3","Режимы графики: Картошка, Лёгкий, Нормальный, Сложный","• Выбор графики в «Общих» настройках\n• Картошка убирает текстуры для FPS (с предупреждением)\n• Лёгкий, Нормальный, Сложный: блики, свет и цвет\n• После Картошки другие режимы блокируются"},
 {"v2.7.2","Цвета без обводки, «Стандартный», густой туман скрывает небо","• Цвета без обводки, сброс называется «Стандартный»\n• Убрана настройка «Скрывать нерабочие песни»\n• Густой туман теперь скрывает и небо\n• Мелкие исправления"},
@@ -3326,11 +3366,13 @@ _Cr(WhatsNew,12)
 local WhatsNewLimit=_I("UISizeConstraint",WhatsNew)
 WhatsNewLimit.MaxSize=Vector2.new(340,460)
 local WhatsNewStroke=_St(WhatsNew,_PU,2)
+ThemeExtra.add("bg",WhatsNew,"BackgroundColor3")
+ThemeExtra.add("stroke",WhatsNewStroke,"Color")
 local WhatsNewClose=_I("TextButton",WhatsNew)
 WhatsNewClose.Size=_U(0,28,0,28)
 WhatsNewClose.Position=_U(1,-34,0,6)
 WhatsNewClose.BackgroundTransparency=1
-WhatsNewClose.Text="✕"
+WhatsNewClose.Text="X"
 WhatsNewClose.TextColor3=_C(255,80,80)
 WhatsNewClose.Font=_FB
 WhatsNewClose.TextSize=18
@@ -3345,7 +3387,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.4"
+HeadTitle.Text="🎉 Новое в v2.7.5"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
