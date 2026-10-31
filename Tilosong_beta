@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.7"
+CardTitle.Text="🎵 TILO SONG v2.7.8"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.7"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.8"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.7"
+Title.Text="🎵 TILO SONG v2.7.8"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3116,66 +3116,61 @@ local haloColorNames={"Золотой","Белый","Голубой","Синий
 local kindNames={"Обычный","Двойной","Тройной","Наклонённый","Тонкий","Полупрозрачный","С рогами","Корона","Вращающийся"}
 local glowNames={"Обычный","Неон","Переливается"}
 local animNames={"Нет","Лёгкое покачивание","Сильное покачивание","Вращение","Раскачивание","Пульсация"}
-local function ringDef(r,th,rx,rz)
-return {r=r,th=th,rx=rx or 0,rz=rz or 0}
+local function ringDef(r,th,rx,rz,ry,y)
+return {r=r,th=th,rx=rx or 0,rz=rz or 0,ry=ry or 0,y=y or 0}
 end
 local function kindDef(kind)
 local rings={}
 local extras={}
 local spinning=false
-local alpha=0
-local overlap=1.08
+local glass=false
 if kind == 1 then
 rings={ringDef(0.9,0.14)}
 elseif kind == 2 then
-rings={ringDef(0.92,0.1),ringDef(0.86,0.1,90)}
+rings={ringDef(0.92,0.1,90,0,0,0.95),ringDef(0.88,0.1,90,0,40,0.95)}
 elseif kind == 3 then
-rings={ringDef(0.96,0.09),ringDef(0.88,0.09,90),ringDef(0.8,0.09,0,90)}
+rings={ringDef(0.94,0.09,90,0,0,0.95),ringDef(0.9,0.09,90,0,60,0.95),ringDef(0.86,0.09,90,0,120,0.95)}
 elseif kind == 4 then
 rings={ringDef(0.9,0.14,0,22)}
 elseif kind == 5 then
 rings={ringDef(0.9,0.06)}
 elseif kind == 6 then
 rings={ringDef(0.9,0.2)}
-alpha=0.5
-overlap=1
+glass=true
 elseif kind == 7 then
 rings={ringDef(0.9,0.14)}
 for _,side in ipairs({-1,1}) do
-for i=0,8 do
-local t=i / 8
-extras[#extras + 1]={pos=Vector3.new(side * (0.92 + 0.5 * t),1.0 * t ^ 1.6,0),d=0.2 * (1 - t) + 0.06 * t}
+for i=0,23 do
+local t=i / 23
+extras[#extras + 1]={pos=Vector3.new(side * (0.9 + 0.3 * math.sin(t * math.pi / 2)),1.0 * t,0),d=0.18 * (1 - t) + 0.04 * t}
 end
 end
 elseif kind == 8 then
 rings={ringDef(0.9,0.14)}
-for i=1,7 do
-local a=(i - 1) * 2 * math.pi / 7
-local h=0.65
-if i % 2 == 1 then
-h=1
-end
-for j=0,7 do
-local t=j / 7
-extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.07 + h * t ^ 0.95,math.sin(a) * 0.9),d=0.17 * (1 - t) + 0.05 * t}
-end
+for i=1,3 do
+local a=(i - 1) * 2 * math.pi / 3
+extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.35,math.sin(a) * 0.9),size=Vector3.new(0.34,0.56,0.34),rotY=-(a + math.pi / 2),block=true}
 end
 elseif kind == 9 then
 rings={ringDef(0.9,0.14,0,35)}
 spinning=true
 end
-return rings,extras,spinning,alpha,overlap
+return rings,extras,spinning,glass
 end
 local haloParts={}
+local haloModel=nil
+local haloHighlight=nil
 local builtKind=0
 local haloSpinning=false
-local haloOverlap=1.08
+local haloGlass=false
 local SEGMENTS=36
 local lastScale=nil
 local function clearHalo()
-for _,info in ipairs(haloParts) do
-info.part:Destroy()
+if haloModel then
+haloModel:Destroy()
 end
+haloModel=nil
+haloHighlight=nil
 haloParts={}
 builtKind=0
 end
@@ -3188,21 +3183,35 @@ part.CanQuery=false
 part.CanTouch=false
 part.CastShadow=false
 part.Size=size
-part.Parent=workspace.CurrentCamera
+part.Parent=haloModel
 return part
 end
 local function buildHalo(kind)
 clearHalo()
-local rings,extras,spinning,alpha,overlap=kindDef(kind)
+local rings,extras,spinning,glass=kindDef(kind)
 haloSpinning=spinning
-haloOverlap=overlap
+haloGlass=glass
+haloModel=_I("Model")
+haloModel.Name="TiloHalo"
+haloModel.Parent=workspace.CurrentCamera
+if glass then
+haloHighlight=_I("Highlight")
+haloHighlight.Adornee=haloModel
+haloHighlight.FillTransparency=0.5
+haloHighlight.OutlineTransparency=1
+haloHighlight.Parent=haloModel
+end
 for _,ring in ipairs(rings) do
 for i=1,SEGMENTS do
-table.insert(haloParts,{part=makePart(Vector3.new(0.2,0.1,0.1),Enum.PartType.Cylinder),ring=ring,angle=(i - 1) * 2 * math.pi / SEGMENTS,alpha=alpha})
+table.insert(haloParts,{part=makePart(Vector3.new(0.2,0.1,0.1),Enum.PartType.Cylinder),ring=ring,angle=(i - 1) * 2 * math.pi / SEGMENTS})
 end
 end
 for _,extra in ipairs(extras) do
-table.insert(haloParts,{part=makePart(Vector3.new(extra.d,extra.d,extra.d),Enum.PartType.Ball),extra=extra,alpha=alpha})
+if extra.block then
+table.insert(haloParts,{part=makePart(extra.size,Enum.PartType.Block),extra=extra})
+else
+table.insert(haloParts,{part=makePart(Vector3.new(extra.d,extra.d,extra.d),Enum.PartType.Ball),extra=extra})
+end
 end
 builtKind=kind
 lastScale=nil
@@ -3219,7 +3228,7 @@ local headPart=character and character:FindFirstChild("Head")
 if not headPart then
 return
 end
-if builtKind ~= cfg.kind or (haloParts[1] and not haloParts[1].part.Parent) then
+if builtKind ~= cfg.kind or not haloModel or not haloModel.Parent then
 buildHalo(cfg.kind)
 end
 local t=os.clock()
@@ -3249,24 +3258,36 @@ local material=Enum.Material.SmoothPlastic
 if cfg.glow ~= 1 then
 material=Enum.Material.Neon
 end
+local partAlpha=0
+if haloGlass then
+partAlpha=1
+haloHighlight.FillColor=color
+end
 local parts,cframes={},{}
 for index,info in ipairs(haloParts) do
 local part=info.part
 if info.ring then
 local ring=info.ring
-local ringCF=base * CFrame.Angles(math.rad(ring.rx),0,math.rad(ring.rz))
+local ringCF=base * CFrame.new(0,ring.y * scale,0) * CFrame.Angles(0,math.rad(ring.ry),0) * CFrame.Angles(math.rad(ring.rx),0,math.rad(ring.rz))
 local radius=ring.r * scale
 local a=info.angle
 cframes[index]=ringCF * CFrame.new(math.cos(a) * radius,0,math.sin(a) * radius) * CFrame.Angles(0,-(a + math.pi / 2),0)
 if lastScale ~= scale then
-part.Size=Vector3.new(2 * math.pi * radius / SEGMENTS * haloOverlap,ring.th * scale,ring.th * scale)
+part.Size=Vector3.new(2 * math.pi * radius / SEGMENTS * 1.08,ring.th * scale,ring.th * scale)
 end
 else
 local extra=info.extra
+if extra.block then
+cframes[index]=base * CFrame.new(extra.pos * scale) * CFrame.Angles(0,extra.rotY,0)
+if lastScale ~= scale then
+part.Size=extra.size * scale
+end
+else
 cframes[index]=base * CFrame.new(extra.pos * scale)
 if lastScale ~= scale then
 local diameter=extra.d * scale
 part.Size=Vector3.new(diameter,diameter,diameter)
+end
 end
 end
 parts[index]=part
@@ -3276,8 +3297,8 @@ end
 if part.Material ~= material then
 part.Material=material
 end
-if part.Transparency ~= info.alpha then
-part.Transparency=info.alpha
+if part.Transparency ~= partAlpha then
+part.Transparency=partAlpha
 end
 end
 lastScale=scale
@@ -3405,6 +3426,77 @@ _Cr(btn,6)
 btn.MouseButton1Click:Connect(onClick)
 return btn
 end
+local function makeEditorSlider(title,minV,maxV,startV,fmt,onChange)
+local row=_I("Frame",HaloPage)
+row.LayoutOrder=nextOrder()
+row.Size=_U(1,0,0,52)
+row.BackgroundTransparency=1
+local label=_I("TextLabel",row)
+label.Size=_U(1,0,0,20)
+label.BackgroundTransparency=1
+label.TextColor3=_C(220,220,240)
+label.Font=_FB
+label.TextSize=12
+label.TextXAlignment=_XL
+local hit=_I("Frame",row)
+hit.Size=_U(1,-10,0,26)
+hit.Position=_U(0,5,0,22)
+hit.BackgroundTransparency=1
+hit.Active=true
+local track=_I("Frame",hit)
+track.Size=_U(1,0,0,6)
+track.Position=_U(0,0,0.5,-3)
+track.BackgroundColor3=_C(40,35,55)
+track.BorderSizePixel=0
+_Cr(track,3)
+local fill=_I("Frame",track)
+fill.BackgroundColor3=COLOR_PURPLE
+fill.BorderSizePixel=0
+_Cr(fill,3)
+local knob=_I("Frame",track)
+knob.AnchorPoint=Vector2.new(0.5,0.5)
+knob.Size=_U(0,16,0,16)
+knob.BackgroundColor3=COLOR_WHITE
+knob.BorderSizePixel=0
+_Cr(knob).CornerRadius=_V(1,0)
+local sliding=false
+local function setValue(v,silent)
+v=math.clamp(math.floor(v + 0.5),minV,maxV)
+local ratio=(v - minV) / (maxV - minV)
+fill.Size=_U(ratio,0,1,0)
+knob.Position=_U(ratio,0,0.5,0)
+label.Text=title .. ": " .. fmt(v)
+if not silent then
+onChange(v)
+end
+end
+local function fromInput(input)
+local w=track.AbsoluteSize.X
+if w <= 0 then
+return
+end
+setValue(minV + math.clamp((input.Position.X - track.AbsolutePosition.X) / w,0,1) * (maxV - minV))
+end
+hit.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+sliding=true
+fromInput(input)
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if sliding and (input.UserInputType == _MM or input.UserInputType == _TT) then
+fromInput(input)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if sliding and (input.UserInputType == _M1 or input.UserInputType == _TT) then
+sliding=false
+end
+end)
+setValue(startV,true)
+return setValue
+end
+local setters={}
 local kindButtons={}
 local kindStrokes={}
 local kindIcons={}
@@ -3428,6 +3520,15 @@ local ring=btn:FindFirstChildOfClass("UIStroke")
 if ring then
 ring.Thickness=(key == cfg.color) and 3 or 0
 end
+end
+if setters.height then
+setters.height(cfg.height,true)
+setters.forward(cfg.forward,true)
+setters.side(cfg.side,true)
+setters.size(cfg.size,true)
+setters.tiltX(cfg.tiltX,true)
+setters.tiltZ(cfg.tiltZ,true)
+setters.spin(cfg.spin,true)
 end
 end
 local function addOval(icon,y,w,h,thick,transparency,rotation)
@@ -3551,6 +3652,70 @@ swatchRing.Color=_W
 swatchRing.Thickness=0
 colorButtons[index]=swatchBtn
 end
+sectionLabel("Положение")
+setters.height=makeEditorSlider("Высота",-10,60,cfg.height,function(v)
+return string.format("%.1f",v / 10)
+end,function(v)
+cfg.height=v
+persist()
+end)
+setters.forward=makeEditorSlider("Вперёд / назад",-30,30,cfg.forward,function(v)
+return string.format("%.1f",v / 10)
+end,function(v)
+cfg.forward=v
+persist()
+end)
+setters.side=makeEditorSlider("Влево / вправо",-30,30,cfg.side,function(v)
+return string.format("%.1f",v / 10)
+end,function(v)
+cfg.side=v
+persist()
+end)
+setters.size=makeEditorSlider("Размер",40,300,cfg.size,function(v)
+return v .. "%"
+end,function(v)
+cfg.size=v
+persist()
+end)
+sectionLabel("Поворот")
+setters.tiltX=makeEditorSlider("Наклон вперёд / назад",-180,180,cfg.tiltX,function(v)
+return v .. "°"
+end,function(v)
+cfg.tiltX=v
+persist()
+end)
+setters.tiltZ=makeEditorSlider("Наклон влево / вправо",-180,180,cfg.tiltZ,function(v)
+return v .. "°"
+end,function(v)
+cfg.tiltZ=v
+persist()
+end)
+setters.spin=makeEditorSlider("Поворот вокруг",0,360,cfg.spin,function(v)
+return v .. "°"
+end,function(v)
+cfg.spin=v
+persist()
+end)
+sectionLabel("Сброс")
+local resetGrid=makeGrid(228,34)
+makeOption(resetGrid,1,"Сбросить положение",function()
+local defaults=defaultCfg()
+cfg.height,cfg.forward,cfg.side,cfg.size=defaults.height,defaults.forward,defaults.side,defaults.size
+refreshUi()
+persist()
+end)
+makeOption(resetGrid,2,"Сбросить поворот",function()
+cfg.tiltX,cfg.tiltZ,cfg.spin=0,0,0
+refreshUi()
+persist()
+end)
+makeOption(resetGrid,3,"Сбросить всё (кроме вида)",function()
+local keepKind=cfg.kind
+cfg=defaultCfg()
+cfg.kind=keepKind
+refreshUi()
+persist()
+end)
 local PresetPopup=_I("Frame",Root)
 PresetPopup.AnchorPoint=Vector2.new(0.5,0.5)
 PresetPopup.Position=_U(0.5,0,0.5,0)
@@ -3937,6 +4102,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.8","Нимбы без швов и новые формы, ползунки положения и поворота","• Двойной и тройной нимбы стоят над головой «крышей»\n• Прозрачный нимб без швов, рога и корона «Доминус» переделаны\n• Ползунки высоты, смещения, размера и поворота на 360°\n• Кнопки сброса положения, поворота и всего"},
 {"v2.7.7","Нимбы стали круглыми и гладкими, новые рога и корона «Доминус»","• Кольцо нимба гладкое и идеально круглое\n• Двойной и тройной нимбы из вложенных колец\n• Рога стоят по бокам, корона в стиле «Доминус»\n• Прозрачный нимб с ровной прозрачностью"},
 {"v2.7.6","Нимб: 9 видов с иконками, 10 цветов и пресеты","• Нимб в редакторе: 9 видов с картинками\n• 10 цветов, иконки перекрашиваются\n• Пресеты: до 10 сохранений, загрузка и удаление\n• Редактор вынесен в отдельный блок (стабильнее)"},
 {"v2.7.5","Исправления редактора: камера, цвета окон, кнопка «Редактор»","• Персонаж больше не зависает в воздухе\n• Цвета фона и обводки применяются к редактору и окнам\n• Кнопка «Редактор» с подписью, крестик заменён на букву X\n• Панели редактора стали больше"},
@@ -4000,7 +4166,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.7"
+HeadTitle.Text="🎉 Новое в v2.7.8"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
