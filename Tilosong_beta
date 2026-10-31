@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.6"
+CardTitle.Text="🎵 TILO SONG v2.7.7"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.6"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.7"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.6"
+Title.Text="🎵 TILO SONG v2.7.7"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3116,46 +3116,61 @@ local haloColorNames={"Золотой","Белый","Голубой","Синий
 local kindNames={"Обычный","Двойной","Тройной","Наклонённый","Тонкий","Полупрозрачный","С рогами","Корона","Вращающийся"}
 local glowNames={"Обычный","Неон","Переливается"}
 local animNames={"Нет","Лёгкое покачивание","Сильное покачивание","Вращение","Раскачивание","Пульсация"}
+local function ringDef(r,th,rx,rz)
+return {r=r,th=th,rx=rx or 0,rz=rz or 0}
+end
 local function kindDef(kind)
 local rings={}
 local extras={}
 local spinning=false
 local alpha=0
+local overlap=1.08
 if kind == 1 then
-rings={{r=0.9,th=0.14,y=0,tilt=0}}
+rings={ringDef(0.9,0.14)}
 elseif kind == 2 then
-rings={{r=0.9,th=0.14,y=0,tilt=0},{r=0.9,th=0.14,y=0.28,tilt=0}}
+rings={ringDef(0.92,0.1),ringDef(0.86,0.1,90)}
 elseif kind == 3 then
-rings={{r=0.9,th=0.14,y=0,tilt=0},{r=0.9,th=0.14,y=0.24,tilt=0},{r=0.9,th=0.14,y=0.48,tilt=0}}
+rings={ringDef(0.96,0.09),ringDef(0.88,0.09,90),ringDef(0.8,0.09,0,90)}
 elseif kind == 4 then
-rings={{r=0.9,th=0.14,y=0,tilt=22}}
+rings={ringDef(0.9,0.14,0,22)}
 elseif kind == 5 then
-rings={{r=1,th=0.06,y=0,tilt=0}}
+rings={ringDef(0.9,0.06)}
 elseif kind == 6 then
-rings={{r=0.95,th=0.3,y=0,tilt=0}}
+rings={ringDef(0.9,0.2)}
 alpha=0.5
+overlap=1
 elseif kind == 7 then
-rings={{r=0.9,th=0.14,y=0,tilt=0}}
-extras={
-{pos=Vector3.new(0.55,0.4,0),rot=Vector3.new(0,0,-25),size=Vector3.new(0.16,0.8,0.16)},
-{pos=Vector3.new(-0.55,0.4,0),rot=Vector3.new(0,0,25),size=Vector3.new(0.16,0.8,0.16)}
-}
+rings={ringDef(0.9,0.14)}
+for _,side in ipairs({-1,1}) do
+for i=0,8 do
+local t=i / 8
+extras[#extras + 1]={pos=Vector3.new(side * (0.92 + 0.5 * t),1.0 * t ^ 1.6,0),d=0.2 * (1 - t) + 0.06 * t}
+end
+end
 elseif kind == 8 then
-rings={{r=0.9,th=0.14,y=0,tilt=0}}
-for i=1,8 do
-local a=(i - 1) * math.pi / 4
-extras[i]={pos=Vector3.new(math.cos(a) * 0.9,0.3,math.sin(a) * 0.9),rot=Vector3.new(0,0,0),size=Vector3.new(0.12,0.5,0.12)}
+rings={ringDef(0.9,0.14)}
+for i=1,7 do
+local a=(i - 1) * 2 * math.pi / 7
+local h=0.65
+if i % 2 == 1 then
+h=1
+end
+for j=0,7 do
+local t=j / 7
+extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.07 + h * t ^ 0.95,math.sin(a) * 0.9),d=0.17 * (1 - t) + 0.05 * t}
+end
 end
 elseif kind == 9 then
-rings={{r=0.9,th=0.14,y=0,tilt=35}}
+rings={ringDef(0.9,0.14,0,35)}
 spinning=true
 end
-return rings,extras,spinning,alpha
+return rings,extras,spinning,alpha,overlap
 end
 local haloParts={}
 local builtKind=0
 local haloSpinning=false
-local SEGMENTS=20
+local haloOverlap=1.08
+local SEGMENTS=36
 local lastScale=nil
 local function clearHalo()
 for _,info in ipairs(haloParts) do
@@ -3164,8 +3179,9 @@ end
 haloParts={}
 builtKind=0
 end
-local function makePart(size)
+local function makePart(size,shape)
 local part=_I("Part")
+part.Shape=shape
 part.Anchored=true
 part.CanCollide=false
 part.CanQuery=false
@@ -3177,15 +3193,16 @@ return part
 end
 local function buildHalo(kind)
 clearHalo()
-local rings,extras,spinning,alpha=kindDef(kind)
+local rings,extras,spinning,alpha,overlap=kindDef(kind)
 haloSpinning=spinning
+haloOverlap=overlap
 for _,ring in ipairs(rings) do
 for i=1,SEGMENTS do
-table.insert(haloParts,{part=makePart(Vector3.new(0.1,0.1,0.1)),ring=ring,angle=(i - 1) * 2 * math.pi / SEGMENTS,alpha=alpha})
+table.insert(haloParts,{part=makePart(Vector3.new(0.2,0.1,0.1),Enum.PartType.Cylinder),ring=ring,angle=(i - 1) * 2 * math.pi / SEGMENTS,alpha=alpha})
 end
 end
 for _,extra in ipairs(extras) do
-table.insert(haloParts,{part=makePart(extra.size),extra=extra,alpha=alpha})
+table.insert(haloParts,{part=makePart(Vector3.new(extra.d,extra.d,extra.d),Enum.PartType.Ball),extra=extra,alpha=alpha})
 end
 builtKind=kind
 lastScale=nil
@@ -3237,18 +3254,19 @@ for index,info in ipairs(haloParts) do
 local part=info.part
 if info.ring then
 local ring=info.ring
-local ringCF=base * CFrame.new(0,ring.y * scale,0) * CFrame.Angles(0,0,math.rad(ring.tilt))
+local ringCF=base * CFrame.Angles(math.rad(ring.rx),0,math.rad(ring.rz))
 local radius=ring.r * scale
 local a=info.angle
-cframes[index]=ringCF * CFrame.new(math.cos(a) * radius,0,math.sin(a) * radius) * CFrame.Angles(0,-a,0)
+cframes[index]=ringCF * CFrame.new(math.cos(a) * radius,0,math.sin(a) * radius) * CFrame.Angles(0,-(a + math.pi / 2),0)
 if lastScale ~= scale then
-part.Size=Vector3.new(ring.th * scale,ring.th * scale,2 * math.pi * radius / SEGMENTS * 1.15)
+part.Size=Vector3.new(2 * math.pi * radius / SEGMENTS * haloOverlap,ring.th * scale,ring.th * scale)
 end
 else
 local extra=info.extra
-cframes[index]=base * CFrame.new(extra.pos * scale) * CFrame.Angles(math.rad(extra.rot.X),math.rad(extra.rot.Y),math.rad(extra.rot.Z))
+cframes[index]=base * CFrame.new(extra.pos * scale)
 if lastScale ~= scale then
-part.Size=extra.size * scale
+local diameter=extra.d * scale
+part.Size=Vector3.new(diameter,diameter,diameter)
 end
 end
 parts[index]=part
@@ -3919,6 +3937,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.7","Нимбы стали круглыми и гладкими, новые рога и корона «Доминус»","• Кольцо нимба гладкое и идеально круглое\n• Двойной и тройной нимбы из вложенных колец\n• Рога стоят по бокам, корона в стиле «Доминус»\n• Прозрачный нимб с ровной прозрачностью"},
 {"v2.7.6","Нимб: 9 видов с иконками, 10 цветов и пресеты","• Нимб в редакторе: 9 видов с картинками\n• 10 цветов, иконки перекрашиваются\n• Пресеты: до 10 сохранений, загрузка и удаление\n• Редактор вынесен в отдельный блок (стабильнее)"},
 {"v2.7.5","Исправления редактора: камера, цвета окон, кнопка «Редактор»","• Персонаж больше не зависает в воздухе\n• Цвета фона и обводки применяются к редактору и окнам\n• Кнопка «Редактор» с подписью, крестик заменён на букву X\n• Панели редактора стали больше"},
 {"v2.7.4","Редактор образа: камера вокруг персонажа и панели. В графике только «Картошка»","• Кнопка 🎨 в главном меню открывает редактор образа\n• Камера крутится вокруг персонажа, управление и интерфейс игры скрыты\n• Слева категории, справа настройки, крестик возвращает всё назад\n• Из графики оставлен только режим «Картошка»"},
@@ -3981,7 +4000,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.6"
+HeadTitle.Text="🎉 Новое в v2.7.7"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
