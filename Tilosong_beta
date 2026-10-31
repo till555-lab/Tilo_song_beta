@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.8"
+CardTitle.Text="🎵 TILO SONG v2.7.9"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.8"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.9"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.8"
+Title.Text="🎵 TILO SONG v2.7.9"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3115,7 +3115,7 @@ _C(255,100,190),_C(235,50,60),_C(255,140,30),_C(60,220,100),_C(0,230,230)
 local haloColorNames={"Золотой","Белый","Голубой","Синий","Фиолет.","Розовый","Красный","Оранж.","Зелёный","Бирюзовый"}
 local kindNames={"Обычный","Двойной","Тройной","Наклонённый","Тонкий","Полупрозрачный","С рогами","Корона","Вращающийся"}
 local glowNames={"Обычный","Неон","Переливается"}
-local animNames={"Нет","Лёгкое покачивание","Сильное покачивание","Вращение","Раскачивание","Пульсация"}
+local animNames={"Нет","Лёгкое покачивание","Сильное покачивание","Вращение","Раскачивание","Пульсация","Вращение колец"}
 local function ringDef(r,th,rx,rz,ry,y)
 return {r=r,th=th,rx=rx or 0,rz=rz or 0,ry=ry or 0,y=y or 0}
 end
@@ -3127,9 +3127,9 @@ local glass=false
 if kind == 1 then
 rings={ringDef(0.9,0.14)}
 elseif kind == 2 then
-rings={ringDef(0.92,0.1,90,0,0,0.95),ringDef(0.88,0.1,90,0,40,0.95)}
+rings={ringDef(0.9,0.1,0,35,0,0.55),ringDef(0.9,0.1,0,-35,0,0.55)}
 elseif kind == 3 then
-rings={ringDef(0.94,0.09,90,0,0,0.95),ringDef(0.9,0.09,90,0,60,0.95),ringDef(0.86,0.09,90,0,120,0.95)}
+rings={ringDef(0.94,0.09,0,0,0,0.3),ringDef(0.9,0.09,0,20,0,0.3),ringDef(0.86,0.09,20,0,0,0.3)}
 elseif kind == 4 then
 rings={ringDef(0.9,0.14,0,22)}
 elseif kind == 5 then
@@ -3149,7 +3149,7 @@ elseif kind == 8 then
 rings={ringDef(0.9,0.14)}
 for i=1,3 do
 local a=(i - 1) * 2 * math.pi / 3
-extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.35,math.sin(a) * 0.9),size=Vector3.new(0.34,0.56,0.34),rotY=-(a + math.pi / 2),block=true}
+extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.15,math.sin(a) * 0.9),size=Vector3.new(0.22,0.4,0.22),rotY=-(a + math.pi / 2),block=true}
 end
 elseif kind == 9 then
 rings={ringDef(0.9,0.14,0,35)}
@@ -3159,7 +3159,6 @@ return rings,extras,spinning,glass
 end
 local haloParts={}
 local haloModel=nil
-local haloHighlight=nil
 local builtKind=0
 local haloSpinning=false
 local haloGlass=false
@@ -3170,7 +3169,6 @@ if haloModel then
 haloModel:Destroy()
 end
 haloModel=nil
-haloHighlight=nil
 haloParts={}
 builtKind=0
 end
@@ -3194,16 +3192,13 @@ haloGlass=glass
 haloModel=_I("Model")
 haloModel.Name="TiloHalo"
 haloModel.Parent=workspace.CurrentCamera
-if glass then
-haloHighlight=_I("Highlight")
-haloHighlight.Adornee=haloModel
-haloHighlight.FillTransparency=0.5
-haloHighlight.OutlineTransparency=1
-haloHighlight.Parent=haloModel
+for ringIndex,ring in ipairs(rings) do
+local dir=1
+if ringIndex % 2 == 0 then
+dir=-1
 end
-for _,ring in ipairs(rings) do
 for i=1,SEGMENTS do
-table.insert(haloParts,{part=makePart(Vector3.new(0.2,0.1,0.1),Enum.PartType.Cylinder),ring=ring,angle=(i - 1) * 2 * math.pi / SEGMENTS})
+table.insert(haloParts,{part=makePart(Vector3.new(0.2,0.1,0.1),Enum.PartType.Cylinder),ring=ring,dir=dir,angle=(i - 1) * 2 * math.pi / SEGMENTS})
 end
 end
 for _,extra in ipairs(extras) do
@@ -3232,7 +3227,7 @@ if builtKind ~= cfg.kind or not haloModel or not haloModel.Parent then
 buildHalo(cfg.kind)
 end
 local t=os.clock()
-local bob,extraSpin,sway,pulse=0,0,0,1
+local bob,extraSpin,sway,pulse,ringSpin=0,0,0,1,0
 local anim=cfg.anim
 if anim == 2 then
 bob=0.25 * math.sin(t * 2)
@@ -3244,6 +3239,8 @@ elseif anim == 5 then
 sway=12 * math.sin(t * 2)
 elseif anim == 6 then
 pulse=1 + 0.12 * math.sin(t * 4)
+elseif anim == 7 then
+ringSpin=(t * 60) % 360
 end
 if haloSpinning then
 extraSpin=extraSpin + (t * 120) % 360
@@ -3260,15 +3257,14 @@ material=Enum.Material.Neon
 end
 local partAlpha=0
 if haloGlass then
-partAlpha=1
-haloHighlight.FillColor=color
+partAlpha=0.5
 end
 local parts,cframes={},{}
 for index,info in ipairs(haloParts) do
 local part=info.part
 if info.ring then
 local ring=info.ring
-local ringCF=base * CFrame.new(0,ring.y * scale,0) * CFrame.Angles(0,math.rad(ring.ry),0) * CFrame.Angles(math.rad(ring.rx),0,math.rad(ring.rz))
+local ringCF=base * CFrame.new(0,ring.y * scale,0) * CFrame.Angles(0,math.rad(ring.ry + ringSpin * info.dir),0) * CFrame.Angles(math.rad(ring.rx),0,math.rad(ring.rz))
 local radius=ring.r * scale
 local a=info.angle
 cframes[index]=ringCF * CFrame.new(math.cos(a) * radius,0,math.sin(a) * radius) * CFrame.Angles(0,-(a + math.pi / 2),0)
@@ -3497,6 +3493,9 @@ setValue(startV,true)
 return setValue
 end
 local setters={}
+local glowButtons={}
+local animButtons={}
+local PURPLE_SEL=_PU
 local kindButtons={}
 local kindStrokes={}
 local kindIcons={}
@@ -3505,6 +3504,12 @@ local shortKindNames={"Обычный","Двойной","Тройной","Нак
 local DARK_BTN=_C(35,30,48)
 local function refreshUi()
 local tint=haloColors[cfg.color] or haloColors[1]
+for key,btn in pairs(glowButtons) do
+btn.BackgroundColor3=(key == cfg.glow) and PURPLE_SEL or DARK_BTN
+end
+for key,btn in pairs(animButtons) do
+btn.BackgroundColor3=(key == cfg.anim) and PURPLE_SEL or DARK_BTN
+end
 for key,strokeObj in pairs(kindStrokes) do
 strokeObj.Thickness=(key == cfg.kind) and 2 or 0
 end
@@ -3634,6 +3639,15 @@ noneMark.TextSize=26
 for index,name in ipairs(shortKindNames) do
 buildKindIcon(makeKindButton(index,name),index)
 end
+sectionLabel("Свечение")
+local glowGrid=makeGrid(72,32)
+for index,name in ipairs(glowNames) do
+glowButtons[index]=makeOption(glowGrid,index,name,function()
+cfg.glow=index
+refreshUi()
+persist()
+end)
+end
 sectionLabel("Цвет")
 local colorGrid=makeGrid(40,40)
 for index,name in ipairs(haloColorNames) do
@@ -3696,6 +3710,15 @@ end,function(v)
 cfg.spin=v
 persist()
 end)
+sectionLabel("Анимация")
+local animGrid=makeGrid(111,32)
+for index,name in ipairs(animNames) do
+animButtons[index]=makeOption(animGrid,index,name,function()
+cfg.anim=index
+refreshUi()
+persist()
+end)
+end
 sectionLabel("Сброс")
 local resetGrid=makeGrid(228,34)
 makeOption(resetGrid,1,"Сбросить положение",function()
@@ -3949,11 +3972,105 @@ end)
 local editorOpen=false
 local saved={}
 local angle=0
+local pitchAng=0.2
+local manualCam=false
+local camDragging=false
+local fadedParts={}
+local CamBtn=_I("TextButton",Root)
+CamBtn.AnchorPoint=Vector2.new(1,0)
+CamBtn.Position=_U(1,-10,0,10)
+CamBtn.Size=_U(0,170,0,38)
+CamBtn.BackgroundColor3=_C(35,30,48)
+CamBtn.Text="Камера: авто"
+CamBtn.TextColor3=_W
+CamBtn.Font=_FB
+CamBtn.TextSize=15
+_Cr(CamBtn,10)
+local function setManualCam(on)
+manualCam=on
+if on then
+local goal=goals[focusKey]
+pitchAng=math.atan2(goal.height,goal.dist)
+CamBtn.Text="Камера: вручную"
+CamBtn.BackgroundColor3=_PU
+else
+CamBtn.Text="Камера: авто"
+CamBtn.BackgroundColor3=_C(35,30,48)
+end
+end
+CamBtn.MouseButton1Click:Connect(function()
+setManualCam(not manualCam)
+end)
+UserInputService.InputBegan:Connect(function(input,processed)
+if processed or not manualCam or not editorOpen then
+return
+end
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+camDragging=true
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if camDragging and manualCam and editorOpen and (input.UserInputType == _MM or input.UserInputType == _TT) then
+angle=angle - input.Delta.X * 0.01
+pitchAng=math.clamp(pitchAng + input.Delta.Y * 0.01,-0.35,1.45)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+camDragging=false
+end
+end)
+local function restoreFaded()
+for part,original in pairs(fadedParts) do
+if part.Parent then
+part.LocalTransparencyModifier=original
+end
+end
+fadedParts={}
+end
+local function updateWallFade(cam,char,targetPos)
+local origin=cam.CFrame.Position
+local direction=targetPos - origin
+if direction.Magnitude < 1 then
+return
+end
+local excludeList={char,cam}
+local params=RaycastParams.new()
+params.FilterType=Enum.RaycastFilterType.Exclude
+local current={}
+for _=1,8 do
+params.FilterDescendantsInstances=excludeList
+local result=workspace:Raycast(origin,direction,params)
+if not result then
+break
+end
+local hitPart=result.Instance
+table.insert(excludeList,hitPart)
+if hitPart:IsA("BasePart") and not hitPart:IsA("Terrain") and hitPart.Transparency < 0.9 then
+if fadedParts[hitPart] == nil then
+fadedParts[hitPart]=hitPart.LocalTransparencyModifier
+end
+hitPart.LocalTransparencyModifier=0.9
+current[hitPart]=true
+end
+end
+for part,original in pairs(fadedParts) do
+if not current[part] then
+if part.Parent then
+part.LocalTransparencyModifier=original
+end
+fadedParts[part]=nil
+end
+end
+end
 local function closeEditor()
 if not editorOpen then
 return
 end
 editorOpen=false
+camDragging=false
+setManualCam(false)
+restoreFaded()
 pcall(function()
 RunService:UnbindFromRenderStep("TiloEditorCamera")
 end)
@@ -4079,11 +4196,17 @@ if goal.part == "head" and headPart then
 basePos=headPart.Position
 end
 local targetPos=basePos + goal.offset
+local camPos
+if manualCam then
+camPos=targetPos + goal.dist * Vector3.new(math.sin(angle) * math.cos(pitchAng),math.sin(pitchAng),math.cos(angle) * math.cos(pitchAng))
+else
 angle=angle + dt * 0.6
-local camPos=targetPos + Vector3.new(math.sin(angle) * goal.dist,goal.height,math.cos(angle) * goal.dist)
+camPos=targetPos + Vector3.new(math.sin(angle) * goal.dist,goal.height,math.cos(angle) * goal.dist)
+end
 local desired=CFrame.lookAt(camPos,targetPos)
 cam.CameraType=Enum.CameraType.Scriptable
 cam.CFrame=cam.CFrame:Lerp(desired,1 - math.exp(-6 * dt))
+updateWallFade(cam,char,targetPos)
 end)
 end
 CloseBtn.MouseButton1Click:Connect(function()
@@ -4102,6 +4225,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.9","Неон, переливание, анимации нимба, ручная камера и прозрачные стены","• Свечение нимба: обычное, неон, переливается\n• 7 анимаций: покачивания, вращение, раскачивание, пульсация, вращение колец\n• Кнопка камеры: авто или вручную, стены перед камерой становятся прозрачными\n• Исправлены двойной, тройной, прозрачный нимбы и корона «Доминус»"},
 {"v2.7.8","Нимбы без швов и новые формы, ползунки положения и поворота","• Двойной и тройной нимбы стоят над головой «крышей»\n• Прозрачный нимб без швов, рога и корона «Доминус» переделаны\n• Ползунки высоты, смещения, размера и поворота на 360°\n• Кнопки сброса положения, поворота и всего"},
 {"v2.7.7","Нимбы стали круглыми и гладкими, новые рога и корона «Доминус»","• Кольцо нимба гладкое и идеально круглое\n• Двойной и тройной нимбы из вложенных колец\n• Рога стоят по бокам, корона в стиле «Доминус»\n• Прозрачный нимб с ровной прозрачностью"},
 {"v2.7.6","Нимб: 9 видов с иконками, 10 цветов и пресеты","• Нимб в редакторе: 9 видов с картинками\n• 10 цветов, иконки перекрашиваются\n• Пресеты: до 10 сохранений, загрузка и удаление\n• Редактор вынесен в отдельный блок (стабильнее)"},
@@ -4166,7 +4290,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.8"
+HeadTitle.Text="🎉 Новое в v2.7.9"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
