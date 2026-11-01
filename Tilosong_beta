@@ -64,7 +64,7 @@ Dim.Size=_U(1,0,1,0)
 Dim.BackgroundColor3=_C(8,4,16)
 Dim.BackgroundTransparency=0.2
 Dim.BorderSizePixel=0
-Dim.Active=true
+Dim.Active=false
 local DimGradient=_I("UIGradient",Dim)
 DimGradient.Color=ColorSequence.new(_C(40,12,70),_C(5,2,12))
 DimGradient.Rotation=90
@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.10"
+CardTitle.Text="🎵 TILO SONG v2.7.11"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.10"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.11"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.10"
+Title.Text="🎵 TILO SONG v2.7.11"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3064,6 +3064,7 @@ local function defaultCfg()
 return {kind=0,glow=1,color=1,height=12,forward=0,side=0,size=100,tiltX=0,tiltZ=0,spin=0,anim=1}
 end
 local cfg=defaultCfg()
+local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100}
 local presets={}
 local function copyCfg(source)
 local copy={}
@@ -3083,6 +3084,13 @@ local data=HttpService:JSONDecode(readfile(PRESET_FILE))
 if type(data) == "table" then
 if type(data.halo) == "table" then
 cfg=copyCfg(data.halo)
+end
+if type(data.aura) == "table" then
+for key,value in pairs(acfg) do
+if type(data.aura[key]) == "number" then
+acfg[key]=data.aura[key]
+end
+end
 end
 if type(data.presets) == "table" then
 for _,item in ipairs(data.presets) do
@@ -3104,7 +3112,7 @@ saveQueued=true
 task.delay(1,function()
 saveQueued=false
 pcall(function()
-writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,presets=presets}))
+writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,aura=acfg,presets=presets}))
 end)
 end)
 end
@@ -3147,9 +3155,9 @@ end
 end
 elseif kind == 8 then
 rings={ringDef(0.9,0.14)}
-for i=1,3 do
-local a=(i - 1) * 2 * math.pi / 3
-extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.2,math.sin(a) * 0.9),size=Vector3.new(0.24,0.46,0.14),rotY=-(a + math.pi / 2),block=true}
+for i=1,6 do
+local a=(i - 1) * 2 * math.pi / 6
+extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.24,math.sin(a) * 0.9),size=Vector3.new(0.26,0.54,0.15),rotY=-(a + math.pi / 2),block=true}
 end
 elseif kind == 9 then
 rings={ringDef(0.9,0.14,0,35)}
@@ -3307,6 +3315,131 @@ part.CFrame=cframes[index]
 end
 end
 end)
+local auraParts={}
+local auraModel=nil
+local auraBuilt=0
+local AURA_RING_SEG=20
+local function clearAura()
+if auraModel then
+auraModel:Destroy()
+end
+auraModel=nil
+auraParts={}
+auraBuilt=0
+end
+local function makeAuraPart(size,shape)
+local part=_I("Part")
+part.Shape=shape
+part.Anchored=true
+part.CanCollide=false
+part.CanQuery=false
+part.CanTouch=false
+part.CastShadow=false
+part.Size=size
+part.Parent=auraModel
+return part
+end
+local function buildAura(kind)
+clearAura()
+auraModel=_I("Model")
+auraModel.Name="TiloAura"
+auraModel.Parent=workspace.CurrentCamera
+if kind == 1 then
+for i=1,12 do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(1.8,0.07,0.07),Enum.PartType.Cylinder),angle=i * 2 * math.pi / 12,radius=1.6 + (i % 3) * 0.35,offset=(i * 0.37) % 1,mode="line"})
+end
+elseif kind == 2 then
+for ringNumber=1,4 do
+for i=1,AURA_RING_SEG do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.3,0.08,0.08),Enum.PartType.Cylinder),angle=(i - 1) * 2 * math.pi / AURA_RING_SEG,offset=(ringNumber - 1) / 4,mode="ring"})
+end
+end
+elseif kind == 3 then
+for strand=0,1 do
+for i=1,36 do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.22,0.22,0.22),Enum.PartType.Ball),index=i,strand=strand,mode="spiral"})
+end
+end
+elseif kind == 4 then
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(7,4.4,4.4),Enum.PartType.Cylinder),mode="column"})
+end
+auraBuilt=kind
+end
+RunService.RenderStepped:Connect(function()
+if acfg.kind == 0 then
+if auraBuilt ~= 0 then
+clearAura()
+end
+return
+end
+local character=LocalPlayer.Character
+local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+if not rootPart then
+return
+end
+if auraBuilt ~= acfg.kind or not auraModel or not auraModel.Parent then
+buildAura(acfg.kind)
+end
+local t=os.clock()
+local speed=acfg.speed / 100
+local scale=acfg.size / 100
+local origin=rootPart.Position + Vector3.new(0,acfg.height / 10,0)
+local color=haloColors[acfg.color] or haloColors[1]
+if acfg.glow == 3 then
+color=Color3.fromHSV((t * 0.25) % 1,0.75,1)
+end
+local material=Enum.Material.SmoothPlastic
+if acfg.glow ~= 1 then
+material=Enum.Material.Neon
+end
+local parts,cframes={},{}
+for index,info in ipairs(auraParts) do
+local part=info.part
+local alpha=0.2
+if info.mode == "line" then
+local phase=(t * 0.4 * speed + info.offset) % 1
+local radius=info.radius * scale
+cframes[index]=CFrame.new(origin + Vector3.new(math.cos(info.angle) * radius,-3 + 6 * phase,math.sin(info.angle) * radius)) * CFrame.Angles(0,0,math.pi / 2)
+part.Size=Vector3.new(1.8 * scale,0.07,0.07)
+alpha=0.15 + 0.85 * phase
+elseif info.mode == "ring" then
+local phase=(t * 0.3 * speed + info.offset) % 1
+local radius=(1.5 + 0.7 * phase) * scale
+local a=info.angle
+cframes[index]=CFrame.new(origin + Vector3.new(math.cos(a) * radius,-3 + 6 * phase,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
+part.Size=Vector3.new(2 * math.pi * radius / AURA_RING_SEG * 1.1,0.08,0.08)
+alpha=0.15 + 0.85 * phase
+elseif info.mode == "spiral" then
+local fraction=info.index / 36
+local theta=t * 1.5 * speed + info.index * 0.45 + info.strand * math.pi
+local radius=(1.5 + 0.2 * math.sin(fraction * 6)) * scale
+cframes[index]=CFrame.new(origin + Vector3.new(math.cos(theta) * radius,-3 + 6 * fraction,math.sin(theta) * radius))
+local ballSize=0.22 * scale
+part.Size=Vector3.new(ballSize,ballSize,ballSize)
+alpha=0.15 + 0.8 * fraction
+else
+cframes[index]=CFrame.new(origin) * CFrame.Angles(0,0,math.pi / 2)
+part.Size=Vector3.new(7,4.4 * scale,4.4 * scale)
+alpha=0.7 + 0.1 * math.sin(t * 3 * speed)
+end
+parts[index]=part
+if part.Color ~= color then
+part.Color=color
+end
+if part.Material ~= material then
+part.Material=material
+end
+part.Transparency=alpha
+end
+local moved=pcall(function()
+workspace:BulkMoveTo(parts,cframes,Enum.BulkMoveMode.FireCFrameChanged)
+end)
+if not moved then
+for index,part in ipairs(parts) do
+part.CFrame=cframes[index]
+end
+end
+end)
 local Root=_I("Frame",ScreenGui)
 Root.Name="TiloEditor"
 Root.Size=_U(1,0,1,0)
@@ -3379,12 +3512,13 @@ local PageLayout=_I("UIListLayout",HaloPage)
 PageLayout.SortOrder=Enum.SortOrder.LayoutOrder
 PageLayout.Padding=_V(0,6)
 local pageOrder=0
+local currentPage=HaloPage
 local function nextOrder()
 pageOrder=pageOrder + 1
 return pageOrder
 end
 local function sectionLabel(text)
-local label=_I("TextLabel",HaloPage)
+local label=_I("TextLabel",currentPage)
 label.LayoutOrder=nextOrder()
 label.Size=_U(1,0,0,20)
 label.BackgroundTransparency=1
@@ -3395,7 +3529,7 @@ label.TextSize=14
 label.TextXAlignment=_XL
 end
 local function makeGrid(cellW,cellH)
-local grid=_I("Frame",HaloPage)
+local grid=_I("Frame",currentPage)
 grid.LayoutOrder=nextOrder()
 grid.Size=_U(1,0,0,0)
 grid.AutomaticSize=Enum.AutomaticSize.Y
@@ -3423,7 +3557,7 @@ btn.MouseButton1Click:Connect(onClick)
 return btn
 end
 local function makeEditorSlider(title,minV,maxV,startV,fmt,onChange)
-local row=_I("Frame",HaloPage)
+local row=_I("Frame",currentPage)
 row.LayoutOrder=nextOrder()
 row.Size=_U(1,0,0,52)
 row.BackgroundTransparency=1
@@ -3645,7 +3779,7 @@ noneMark.TextSize=26
 for index,name in ipairs(shortKindNames) do
 buildKindIcon(makeKindButton(index,name),index)
 end
-sectionLabel("Освещение")
+sectionLabel("Свечение")
 local glowGrid=makeGrid(72,32)
 for index,name in ipairs(glowNames) do
 glowButtons[index]=makeOption(glowGrid,index,name,function()
@@ -3753,6 +3887,104 @@ cfg.kind=keepKind
 refreshUi()
 persist()
 end)
+local AuraPage=_I("Frame",RightScroll)
+AuraPage.LayoutOrder=3
+AuraPage.Size=_U(1,-6,0,0)
+AuraPage.AutomaticSize=Enum.AutomaticSize.Y
+AuraPage.BackgroundTransparency=1
+AuraPage.Visible=false
+local AuraLayout=_I("UIListLayout",AuraPage)
+AuraLayout.SortOrder=Enum.SortOrder.LayoutOrder
+AuraLayout.Padding=_V(0,6)
+currentPage=AuraPage
+pageOrder=0
+local auraKindButtons={}
+local auraGlowButtons={}
+local auraColorButtons={}
+local auraSetters={}
+local auraKindNames={"Нет","Линии","Кольца","Спираль","Столб света"}
+local function refreshAuraUi()
+for key,btn in pairs(auraKindButtons) do
+btn.BackgroundColor3=(key == acfg.kind) and PURPLE_SEL or DARK_BTN
+end
+for key,btn in pairs(auraGlowButtons) do
+btn.BackgroundColor3=(key == acfg.glow) and PURPLE_SEL or DARK_BTN
+end
+for key,btn in pairs(auraColorButtons) do
+local ring=btn:FindFirstChildOfClass("UIStroke")
+if ring then
+ring.Thickness=(key == acfg.color) and 3 or 0
+end
+end
+if auraSetters.size then
+auraSetters.size(acfg.size,true)
+auraSetters.height(acfg.height,true)
+auraSetters.speed(acfg.speed,true)
+end
+end
+sectionLabel("Вид ауры")
+local auraKindGrid=makeGrid(111,32)
+for index,name in ipairs(auraKindNames) do
+auraKindButtons[index - 1]=makeOption(auraKindGrid,index,name,function()
+acfg.kind=index - 1
+refreshAuraUi()
+persist()
+end)
+end
+sectionLabel("Свечение")
+local auraGlowGrid=makeGrid(72,32)
+for index,name in ipairs(glowNames) do
+auraGlowButtons[index]=makeOption(auraGlowGrid,index,name,function()
+acfg.glow=index
+refreshAuraUi()
+persist()
+end)
+end
+sectionLabel("Цвет")
+local auraColorGrid=makeGrid(40,40)
+for index,name in ipairs(haloColorNames) do
+local auraSwatch=makeOption(auraColorGrid,index,name,function()
+acfg.color=index
+refreshAuraUi()
+persist()
+end)
+local auraSwatchColor=haloColors[index]
+auraSwatch.BackgroundColor3=auraSwatchColor
+local auraBrightness=auraSwatchColor.R * 0.3 + auraSwatchColor.G * 0.59 + auraSwatchColor.B * 0.11
+auraSwatch.TextColor3=(auraBrightness > 0.55) and _C(10,10,12) or _W
+local auraRing=_I("UIStroke",auraSwatch)
+auraRing.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+auraRing.Color=_W
+auraRing.Thickness=0
+auraColorButtons[index]=auraSwatch
+end
+sectionLabel("Настройки")
+auraSetters.size=makeEditorSlider("Размер",40,300,acfg.size,function(v)
+return v .. "%"
+end,function(v)
+acfg.size=v
+persist()
+end)
+auraSetters.height=makeEditorSlider("Высота",-30,30,acfg.height,function(v)
+return string.format("%.1f",v / 10)
+end,function(v)
+acfg.height=v
+persist()
+end)
+auraSetters.speed=makeEditorSlider("Скорость",20,300,acfg.speed,function(v)
+return v .. "%"
+end,function(v)
+acfg.speed=v
+persist()
+end)
+sectionLabel("Сброс")
+local auraResetGrid=makeGrid(228,34)
+makeOption(auraResetGrid,1,"Сбросить настройки ауры",function()
+acfg.glow,acfg.color,acfg.size,acfg.height,acfg.speed=1,1,100,0,100
+refreshAuraUi()
+persist()
+end)
+currentPage=HaloPage
 local PresetPopup=_I("Frame",Root)
 PresetPopup.AnchorPoint=Vector2.new(0.5,0.5)
 PresetPopup.Position=_U(0.5,0,0.5,0)
@@ -3928,7 +4160,7 @@ aura={part="root",offset=Vector3.new(0,0.5,0),dist=15,height=2}
 local hints={
 full="Выбери категорию слева. Настройки категории появятся здесь.",
 head="",
-aura="Аура: настройки появятся в следующих версиях."
+aura=""
 }
 local focusKey="full"
 local categoryButtons={}
@@ -3939,8 +4171,9 @@ else
 focusKey=key
 end
 HintLabel.Text=hints[focusKey]
-HintLabel.Visible=(focusKey ~= "head")
+HintLabel.Visible=(focusKey ~= "head" and focusKey ~= "aura")
 HaloPage.Visible=(focusKey == "head")
+AuraPage.Visible=(focusKey == "aura")
 for catKey,btn in pairs(categoryButtons) do
 btn.BackgroundColor3=(catKey == focusKey) and _PU or _C(35,30,48)
 end
@@ -3975,6 +4208,7 @@ PresetPopup.Visible=not PresetPopup.Visible
 end)
 selectCategory(nil)
 refreshUi()
+refreshAuraUi()
 local controlsModule=nil
 pcall(function()
 local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
@@ -4239,6 +4473,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.11","Аура (первый шаг), корона с 6 выступами, загрузка не блокирует управление","• Новая категория «Аура»: линии, кольца, спираль, столб света\n• Свечение, 10 цветов, размер, высота и скорость ауры\n• Корона «Доминус» с 6 выступами\n• Экран загрузки больше не блокирует управление"},
 {"v2.7.10","Камера снизу, тонкая корона, «Освещение», пресетов до 20","• Камера вручную: можно смотреть снизу вверх, пол становится прозрачным\n• Корона «Доминус»: тонкие выступы растут прямо из кольца\n• «Освещение»: нет, неон, переливается\n• Вращение колец только для двойного и тройного, пресетов до 20"},
 {"v2.7.9","Неон, переливание, анимации нимба, ручная камера и прозрачные стены","• Свечение нимба: обычное, неон, переливается\n• 7 анимаций: покачивания, вращение, раскачивание, пульсация, вращение колец\n• Кнопка камеры: авто или вручную, стены перед камерой становятся прозрачными\n• Исправлены двойной, тройной, прозрачный нимбы и корона «Доминус»"},
 {"v2.7.8","Нимбы без швов и новые формы, ползунки положения и поворота","• Двойной и тройной нимбы стоят над головой «крышей»\n• Прозрачный нимб без швов, рога и корона «Доминус» переделаны\n• Ползунки высоты, смещения, размера и поворота на 360°\n• Кнопки сброса положения, поворота и всего"},
@@ -4305,7 +4540,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.10"
+HeadTitle.Text="🎉 Новое в v2.7.11"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
