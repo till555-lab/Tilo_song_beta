@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.9"
+CardTitle.Text="🎵 TILO SONG v2.7.10"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.9"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.10"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.9"
+Title.Text="🎵 TILO SONG v2.7.10"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3086,7 +3086,7 @@ cfg=copyCfg(data.halo)
 end
 if type(data.presets) == "table" then
 for _,item in ipairs(data.presets) do
-if type(item) == "table" and type(item.name) == "string" and type(item.cfg) == "table" and #presets < 10 then
+if type(item) == "table" and type(item.name) == "string" and type(item.cfg) == "table" and #presets < 20 then
 table.insert(presets,{name=item.name,cfg=copyCfg(item.cfg)})
 end
 end
@@ -3114,7 +3114,7 @@ _C(255,100,190),_C(235,50,60),_C(255,140,30),_C(60,220,100),_C(0,230,230)
 }
 local haloColorNames={"Золотой","Белый","Голубой","Синий","Фиолет.","Розовый","Красный","Оранж.","Зелёный","Бирюзовый"}
 local kindNames={"Обычный","Двойной","Тройной","Наклонённый","Тонкий","Полупрозрачный","С рогами","Корона","Вращающийся"}
-local glowNames={"Обычный","Неон","Переливается"}
+local glowNames={"Нет","Неон","Переливается"}
 local animNames={"Нет","Лёгкое покачивание","Сильное покачивание","Вращение","Раскачивание","Пульсация","Вращение колец"}
 local function ringDef(r,th,rx,rz,ry,y)
 return {r=r,th=th,rx=rx or 0,rz=rz or 0,ry=ry or 0,y=y or 0}
@@ -3149,7 +3149,7 @@ elseif kind == 8 then
 rings={ringDef(0.9,0.14)}
 for i=1,3 do
 local a=(i - 1) * 2 * math.pi / 3
-extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.15,math.sin(a) * 0.9),size=Vector3.new(0.22,0.4,0.22),rotY=-(a + math.pi / 2),block=true}
+extras[#extras + 1]={pos=Vector3.new(math.cos(a) * 0.9,0.2,math.sin(a) * 0.9),size=Vector3.new(0.24,0.46,0.14),rotY=-(a + math.pi / 2),block=true}
 end
 elseif kind == 9 then
 rings={ringDef(0.9,0.14,0,35)}
@@ -3504,11 +3504,17 @@ local shortKindNames={"Обычный","Двойной","Тройной","Нак
 local DARK_BTN=_C(35,30,48)
 local function refreshUi()
 local tint=haloColors[cfg.color] or haloColors[1]
+local multiRing=(cfg.kind == 2 or cfg.kind == 3)
+if cfg.anim == 7 and not multiRing then
+cfg.anim=1
+persist()
+end
 for key,btn in pairs(glowButtons) do
 btn.BackgroundColor3=(key == cfg.glow) and PURPLE_SEL or DARK_BTN
 end
 for key,btn in pairs(animButtons) do
 btn.BackgroundColor3=(key == cfg.anim) and PURPLE_SEL or DARK_BTN
+btn.TextTransparency=(key == 7 and not multiRing) and 0.55 or 0
 end
 for key,strokeObj in pairs(kindStrokes) do
 strokeObj.Thickness=(key == cfg.kind) and 2 or 0
@@ -3639,7 +3645,7 @@ noneMark.TextSize=26
 for index,name in ipairs(shortKindNames) do
 buildKindIcon(makeKindButton(index,name),index)
 end
-sectionLabel("Свечение")
+sectionLabel("Освещение")
 local glowGrid=makeGrid(72,32)
 for index,name in ipairs(glowNames) do
 glowButtons[index]=makeOption(glowGrid,index,name,function()
@@ -3714,6 +3720,14 @@ sectionLabel("Анимация")
 local animGrid=makeGrid(111,32)
 for index,name in ipairs(animNames) do
 animButtons[index]=makeOption(animGrid,index,name,function()
+if index == 7 and cfg.kind ~= 2 and cfg.kind ~= 3 then
+local lockedBtn=animButtons[7]
+lockedBtn.Text="Нужен двойной или тройной"
+task.delay(2,function()
+lockedBtn.Text=animNames[7]
+end)
+return
+end
 cfg.anim=index
 refreshUi()
 persist()
@@ -3755,7 +3769,7 @@ local PresetTitle=_I("TextLabel",PresetPopup)
 PresetTitle.Size=_U(1,-50,0,30)
 PresetTitle.Position=_U(0,12,0,6)
 PresetTitle.BackgroundTransparency=1
-PresetTitle.Text="Пресеты (до 10)"
+PresetTitle.Text="Пресеты (до 20)"
 PresetTitle.TextColor3=_W
 PresetTitle.Font=_FB
 PresetTitle.TextSize=16
@@ -3885,8 +3899,8 @@ PresetStatus.Text="Обновлено: " .. name
 return
 end
 end
-if #presets >= 10 then
-PresetStatus.Text="Максимум 10 пресетов. Удали ненужный."
+if #presets >= 20 then
+PresetStatus.Text="Максимум 20 пресетов. Удали ненужный."
 return
 end
 table.insert(presets,{name=name,cfg=copyCfg(cfg)})
@@ -4012,7 +4026,7 @@ end)
 UserInputService.InputChanged:Connect(function(input)
 if camDragging and manualCam and editorOpen and (input.UserInputType == _MM or input.UserInputType == _TT) then
 angle=angle - input.Delta.X * 0.01
-pitchAng=math.clamp(pitchAng + input.Delta.Y * 0.01,-0.35,1.45)
+pitchAng=math.clamp(pitchAng + input.Delta.Y * 0.01,-1.45,1.45)
 end
 end)
 UserInputService.InputEnded:Connect(function(input)
@@ -4225,6 +4239,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.10","Камера снизу, тонкая корона, «Освещение», пресетов до 20","• Камера вручную: можно смотреть снизу вверх, пол становится прозрачным\n• Корона «Доминус»: тонкие выступы растут прямо из кольца\n• «Освещение»: нет, неон, переливается\n• Вращение колец только для двойного и тройного, пресетов до 20"},
 {"v2.7.9","Неон, переливание, анимации нимба, ручная камера и прозрачные стены","• Свечение нимба: обычное, неон, переливается\n• 7 анимаций: покачивания, вращение, раскачивание, пульсация, вращение колец\n• Кнопка камеры: авто или вручную, стены перед камерой становятся прозрачными\n• Исправлены двойной, тройной, прозрачный нимбы и корона «Доминус»"},
 {"v2.7.8","Нимбы без швов и новые формы, ползунки положения и поворота","• Двойной и тройной нимбы стоят над головой «крышей»\n• Прозрачный нимб без швов, рога и корона «Доминус» переделаны\n• Ползунки высоты, смещения, размера и поворота на 360°\n• Кнопки сброса положения, поворота и всего"},
 {"v2.7.7","Нимбы стали круглыми и гладкими, новые рога и корона «Доминус»","• Кольцо нимба гладкое и идеально круглое\n• Двойной и тройной нимбы из вложенных колец\n• Рога стоят по бокам, корона в стиле «Доминус»\n• Прозрачный нимб с ровной прозрачностью"},
@@ -4290,7 +4305,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.9"
+HeadTitle.Text="🎉 Новое в v2.7.10"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
