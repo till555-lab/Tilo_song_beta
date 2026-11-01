@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.12"
+CardTitle.Text="🎵 TILO SONG v2.7.13"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.12"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.13"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.12"
+Title.Text="🎵 TILO SONG v2.7.13"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3064,11 +3064,12 @@ local function defaultCfg()
 return {kind=0,glow=1,color=1,height=12,forward=0,side=0,size=100,tiltX=0,tiltZ=0,spin=0,anim=1}
 end
 local cfg=defaultCfg()
-local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100}
+local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8}
+local manualCam=false
 local presets={}
 local function copyAura(source)
 local copy={}
-for key,value in pairs({kind=0,glow=1,color=1,size=100,height=0,speed=100}) do
+for key,value in pairs({kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8}) do
 if type(source[key]) == "number" then
 copy[key]=source[key]
 else
@@ -3103,6 +3104,9 @@ acfg[key]=data.aura[key]
 end
 end
 end
+if data.manual == true then
+manualCam=true
+end
 if type(data.presets) == "table" then
 for _,item in ipairs(data.presets) do
 if type(item) == "table" and type(item.name) == "string" and type(item.cfg) == "table" and #presets < 20 then
@@ -3127,7 +3131,7 @@ saveQueued=true
 task.delay(1,function()
 saveQueued=false
 pcall(function()
-writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,aura=acfg,presets=presets}))
+writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,aura=acfg,manual=manualCam,presets=presets}))
 end)
 end)
 end
@@ -3331,9 +3335,10 @@ end
 end
 end)
 local auraParts={}
-local auraVel=Vector3.new(0,0,0)
+local auraRibbons={}
 local auraModel=nil
 local auraBuilt=0
+local auraBuiltRibbons=0
 local AURA_RING_SEG=20
 local function clearAura()
 if auraModel then
@@ -3341,6 +3346,7 @@ auraModel:Destroy()
 end
 auraModel=nil
 auraParts={}
+auraRibbons={}
 auraBuilt=0
 end
 local function makeAuraPart(size,shape)
@@ -3373,19 +3379,32 @@ end
 elseif kind == 3 then
 for strand=0,1 do
 for i=1,36 do
-table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.22,0.22,0.22),Enum.PartType.Ball),index=i,strand=strand,mode="spiral"})
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.22,0.22,0.22),Enum.PartType.Ball),offset=i / 36,strand=strand,mode="spiral"})
 end
 end
 elseif kind == 4 then
-for layer=0,4 do
-for i=1,16 do
-table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.5,1.25,0.06),Enum.PartType.Block),angle=(i - 1) * 2 * math.pi / 16,layer=layer,mode="column"})
-end
+local base=makeAuraPart(Vector3.new(0.2,0.2,0.2),Enum.PartType.Block)
+table.insert(auraParts,{part=base,mode="column"})
+for i=1,acfg.ribbons do
+local a0=_I("Attachment",base)
+local a1=_I("Attachment",base)
+local beam=_I("Beam")
+beam.Attachment0=a0
+beam.Attachment1=a1
+beam.FaceCamera=true
+beam.Segments=1
+beam.Width0=1.1
+beam.Width1=1.1
+beam.LightInfluence=0
+beam.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(1,1)})
+beam.Parent=base
+table.insert(auraRibbons,{a0=a0,a1=a1,beam=beam,angle=(i - 1) * 2 * math.pi / acfg.ribbons})
 end
 end
 auraBuilt=kind
+auraBuiltRibbons=acfg.ribbons
 end
-RunService.RenderStepped:Connect(function(dt)
+RunService.RenderStepped:Connect(function()
 if acfg.kind == 0 then
 if auraBuilt ~= 0 then
 clearAura()
@@ -3397,19 +3416,13 @@ local rootPart=character and character:FindFirstChild("HumanoidRootPart")
 if not rootPart then
 return
 end
-if auraBuilt ~= acfg.kind or not auraModel or not auraModel.Parent then
+if auraBuilt ~= acfg.kind or (acfg.kind == 4 and auraBuiltRibbons ~= acfg.ribbons) or not auraModel or not auraModel.Parent then
 buildAura(acfg.kind)
 end
 local t=os.clock()
 local speed=acfg.speed / 100
 local scale=acfg.size / 100
 local origin=rootPart.Position + Vector3.new(0,acfg.height / 10,0)
-local rootVel=rootPart.AssemblyLinearVelocity
-auraVel=auraVel:Lerp(Vector3.new(rootVel.X,0,rootVel.Z),1 - math.exp(-8 * dt))
-local lag=auraVel * 0.12
-if lag.Magnitude > 3 then
-lag=lag.Unit * 3
-end
 local color=haloColors[acfg.color] or haloColors[1]
 if acfg.glow == 3 then
 color=Color3.fromHSV((t * 0.25) % 1,0.75,1)
@@ -3423,33 +3436,63 @@ for index,info in ipairs(auraParts) do
 local part=info.part
 local alpha=0.2
 if info.mode == "line" then
-local phase=(t * 0.4 * speed + info.offset) % 1
+local rate=t * 0.4 * speed + info.offset
+local phase=rate % 1
+local cycle=math.floor(rate)
+if info.cycle ~= cycle then
+info.cycle=cycle
+info.spawn=origin
+end
 local radius=info.radius * scale
-cframes[index]=CFrame.new(origin - lag * phase + Vector3.new(math.cos(info.angle) * radius,-3 + 6 * phase,math.sin(info.angle) * radius)) * CFrame.Angles(0,0,math.pi / 2)
+cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(info.angle) * radius,-3 + 6 * phase,math.sin(info.angle) * radius)) * CFrame.Angles(0,0,math.pi / 2)
 part.Size=Vector3.new(1.8 * scale,0.07,0.07)
 alpha=0.15 + 0.85 * phase
 elseif info.mode == "ring" then
-local phase=(t * 0.3 * speed + info.offset) % 1
+local rate=t * 0.3 * speed + info.offset
+local phase=rate % 1
+local cycle=math.floor(rate)
+if info.cycle ~= cycle then
+info.cycle=cycle
+info.spawn=origin
+end
 local radius=(1.5 + 0.7 * phase) * scale
 local a=info.angle
-cframes[index]=CFrame.new(origin - lag * phase + Vector3.new(math.cos(a) * radius,-3 + 6 * phase,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
+cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(a) * radius,-3 + 6 * phase,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
 part.Size=Vector3.new(2 * math.pi * radius / AURA_RING_SEG * 1.1,0.08,0.08)
 alpha=0.15 + 0.85 * phase
 elseif info.mode == "spiral" then
-local fraction=info.index / 36
-local theta=t * 1.5 * speed + info.index * 0.45 + info.strand * math.pi
-local radius=(1.5 + 0.2 * math.sin(fraction * 6)) * scale
-cframes[index]=CFrame.new(origin - lag * fraction + Vector3.new(math.cos(theta) * radius,-3 + 6 * fraction,math.sin(theta) * radius))
+local rate=t * 0.3 * speed + info.offset + info.strand * 0.5
+local phase=rate % 1
+local cycle=math.floor(rate)
+if info.cycle ~= cycle then
+info.cycle=cycle
+info.spawn=origin
+end
+local theta=t * 2 * speed + phase * 8 + info.strand * math.pi
+local radius=1.6 * scale
+cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(theta) * radius,-3 + 6 * phase,math.sin(theta) * radius))
 local ballSize=0.22 * scale
 part.Size=Vector3.new(ballSize,ballSize,ballSize)
-alpha=0.15 + 0.8 * fraction
+alpha=0.15 + 0.8 * phase
 else
-local fraction=(info.layer + 0.5) / 5
+cframes[index]=CFrame.new(origin)
+alpha=1
 local radius=2.2 * scale
-local a=info.angle
-cframes[index]=CFrame.new(origin - lag * fraction + Vector3.new(math.cos(a) * radius,-3 + 6 * fraction,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
-part.Size=Vector3.new(2 * math.pi * radius / 16 * 1.06,1.25,0.06)
-alpha=0.3 + 0.7 * (info.layer / 4) ^ 0.8
+local emission=0
+if acfg.glow ~= 1 then
+emission=1
+end
+for _,ribbon in ipairs(auraRibbons) do
+local cosA=math.cos(ribbon.angle) * radius
+local sinA=math.sin(ribbon.angle) * radius
+ribbon.a0.Position=Vector3.new(cosA,-3,sinA)
+ribbon.a1.Position=Vector3.new(cosA,2.5,sinA)
+if ribbon.colorKey ~= color then
+ribbon.colorKey=color
+ribbon.beam.Color=ColorSequence.new(color)
+end
+ribbon.beam.LightEmission=emission
+end
 end
 parts[index]=part
 if part.Color ~= color then
@@ -3949,6 +3992,7 @@ if auraSetters.size then
 auraSetters.size(acfg.size,true)
 auraSetters.height(acfg.height,true)
 auraSetters.speed(acfg.speed,true)
+auraSetters.ribbons(acfg.ribbons,true)
 end
 end
 sectionLabel("Вид ауры")
@@ -4006,10 +4050,16 @@ end,function(v)
 acfg.speed=v
 persist()
 end)
+auraSetters.ribbons=makeEditorSlider("Количество лент (столб)",3,24,acfg.ribbons,function(v)
+return tostring(v)
+end,function(v)
+acfg.ribbons=v
+persist()
+end)
 sectionLabel("Сброс")
 local auraResetGrid=makeGrid(228,34)
 makeOption(auraResetGrid,1,"Сбросить настройки ауры",function()
-acfg.glow,acfg.color,acfg.size,acfg.height,acfg.speed=1,1,100,0,100
+acfg.glow,acfg.color,acfg.size,acfg.height,acfg.speed,acfg.ribbons=1,1,100,0,100,8
 refreshAuraUi()
 persist()
 end)
@@ -4230,21 +4280,69 @@ catBtn.MouseButton1Click:Connect(function()
 selectCategory(cat[1])
 end)
 end
-local ClearBtn=_I("TextButton",LeftPanel)
-ClearBtn.Size=_U(1,-20,0,34)
-ClearBtn.Position=_U(0,10,0,134)
+local ClearBtn=_I("TextButton",Root)
+ClearBtn.Size=_U(0,118,0,38)
+ClearBtn.Position=_U(0,56,0,10)
 ClearBtn.BackgroundColor3=_C(150,40,50)
 ClearBtn.Text="Убрать всё"
 ClearBtn.TextColor3=_W
 ClearBtn.Font=_FB
 ClearBtn.TextSize=15
-_Cr(ClearBtn,8)
+_Cr(ClearBtn,10)
+local ConfirmFrame=_I("Frame",Root)
+ConfirmFrame.AnchorPoint=Vector2.new(0.5,0.5)
+ConfirmFrame.Position=_U(0.5,0,0.5,0)
+ConfirmFrame.Size=_U(0,300,0,150)
+ConfirmFrame.BackgroundColor3=_C(18,15,22)
+ConfirmFrame.BorderSizePixel=0
+ConfirmFrame.Active=true
+ConfirmFrame.Visible=false
+_Cr(ConfirmFrame,12)
+local ConfirmStroke=_St(ConfirmFrame,_PU,2)
+ThemeExtra.add("bg",ConfirmFrame,"BackgroundColor3")
+ThemeExtra.add("stroke",ConfirmStroke,"Color")
+local ConfirmText=_I("TextLabel",ConfirmFrame)
+ConfirmText.Size=_U(1,-24,0,80)
+ConfirmText.Position=_U(0,12,0,12)
+ConfirmText.BackgroundTransparency=1
+ConfirmText.Text="Убрать все визуальные вещи с персонажа (нимб и ауру)?"
+ConfirmText.TextColor3=_W
+ConfirmText.Font=_FN
+ConfirmText.TextSize=15
+ConfirmText.TextWrapped=true
+ConfirmText.TextXAlignment=_XL
+ConfirmText.TextYAlignment=Enum.TextYAlignment.Top
+local ConfirmYes=_I("TextButton",ConfirmFrame)
+ConfirmYes.Size=_U(0,110,0,36)
+ConfirmYes.Position=_U(0.5,-120,1,-48)
+ConfirmYes.BackgroundColor3=COLOR_GREEN
+ConfirmYes.Text="Да"
+ConfirmYes.TextColor3=COLOR_WHITE
+ConfirmYes.Font=_FB
+ConfirmYes.TextSize=15
+_Cr(ConfirmYes,8)
+local ConfirmNo=_I("TextButton",ConfirmFrame)
+ConfirmNo.Size=_U(0,110,0,36)
+ConfirmNo.Position=_U(0.5,10,1,-48)
+ConfirmNo.BackgroundColor3=COLOR_RED
+ConfirmNo.Text="Нет"
+ConfirmNo.TextColor3=COLOR_WHITE
+ConfirmNo.Font=_FB
+ConfirmNo.TextSize=15
+_Cr(ConfirmNo,8)
 ClearBtn.MouseButton1Click:Connect(function()
+ConfirmFrame.Visible=true
+end)
+ConfirmYes.MouseButton1Click:Connect(function()
 cfg.kind=0
 acfg.kind=0
 refreshUi()
 refreshAuraUi()
 persist()
+ConfirmFrame.Visible=false
+end)
+ConfirmNo.MouseButton1Click:Connect(function()
+ConfirmFrame.Visible=false
 end)
 local PresetsBtn=_I("TextButton",LeftPanel)
 PresetsBtn.Size=_U(1,-20,0,42)
@@ -4273,7 +4371,6 @@ local editorOpen=false
 local saved={}
 local angle=0
 local pitchAng=0.2
-local manualCam=false
 local camDragging=false
 local fadedParts={}
 local CamBtn=_I("TextButton",Root)
@@ -4300,7 +4397,9 @@ end
 end
 CamBtn.MouseButton1Click:Connect(function()
 setManualCam(not manualCam)
+persist()
 end)
+setManualCam(manualCam)
 UserInputService.InputBegan:Connect(function(input,processed)
 if processed or not manualCam or not editorOpen then
 return
@@ -4369,7 +4468,6 @@ return
 end
 editorOpen=false
 camDragging=false
-setManualCam(false)
 restoreFaded()
 pcall(function()
 RunService:UnbindFromRenderStep("TiloEditorCamera")
@@ -4380,6 +4478,7 @@ saved.diedConn=nil
 end
 Root.Visible=false
 PresetPopup.Visible=false
+ConfirmFrame.Visible=false
 focusKey="full"
 selectCategory(nil)
 local character=LocalPlayer.Character
@@ -4525,6 +4624,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.13","Ленточный столб света, аура не привязана к игроку, «Убрать всё» с вопросом","• Аура возникает у ног и остаётся на месте, пока не растает\n• Столб света из светящихся лент (3-24), не лагает\n• «Убрать всё» теперь вверху рядом с крестиком, с вопросом\n• Камера вручную запоминается"},
 {"v2.7.12","Аура отстаёт при беге, новый столб света, «Убрать всё», пресеты с аурой","• Любая аура чуть отстаёт назад, когда ты бежишь\n• Столб света виден и от первого лица, прозрачнее к голове\n• Кнопка «Убрать всё» в редакторе\n• Пресеты запоминают и нимб, и ауру"},
 {"v2.7.11","Аура (первый шаг), корона с 6 выступами, загрузка не блокирует управление","• Новая категория «Аура»: линии, кольца, спираль, столб света\n• Свечение, 10 цветов, размер, высота и скорость ауры\n• Корона «Доминус» с 6 выступами\n• Экран загрузки больше не блокирует управление"},
 {"v2.7.10","Камера снизу, тонкая корона, «Освещение», пресетов до 20","• Камера вручную: можно смотреть снизу вверх, пол становится прозрачным\n• Корона «Доминус»: тонкие выступы растут прямо из кольца\n• «Освещение»: нет, неон, переливается\n• Вращение колец только для двойного и тройного, пресетов до 20"},
@@ -4593,7 +4693,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.12"
+HeadTitle.Text="🎉 Новое в v2.7.13"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
