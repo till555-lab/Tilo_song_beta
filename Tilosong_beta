@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.16"
+CardTitle.Text="🎵 TILO SONG v2.7.17"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.16"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.17"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.16"
+Title.Text="🎵 TILO SONG v2.7.17"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -4869,7 +4869,7 @@ zp.TextColor3=_W
 zp.Font=_FB
 zp.TextSize=24
 _Cr(zp,10)
-local zl=_I("TextLabel",zrow)
+local zl=_I("TextBox",zrow)
 zl.Position=_U(0,42,0,0)
 zl.Size=_U(0,130,1,0)
 zl.BackgroundColor3=_C(18,15,22)
@@ -4881,6 +4881,14 @@ zl.Text=""
 _Cr(zl,10)
 qs.zrow=zrow
 qs.zlab=zl
+zl.ClearTextOnFocus=true
+zl.FocusLost:Connect(function()
+local n=tonumber(string.match(zl.Text,"%d+%.?%d*"))
+if n then
+qs.zd=math.clamp(n,1,30)
+end
+qs.zv=nil
+end)
 zm.MouseButton1Click:Connect(function()
 local goal=goals[focusKey]
 qs.zd=math.clamp((qs.zd or goal.dist) - 1,1,30)
@@ -5112,7 +5120,9 @@ local useDist=qs.zd or goal.dist
 local zv=math.floor(useDist + 0.5)
 if qs.zv ~= zv then
 qs.zv=zv
+if not qs.zlab:IsFocused() then
 qs.zlab.Text=zv .. " стад от игрока"
+end
 end
 camPos=targetPos + useDist * Vector3.new(math.sin(angle) * math.cos(pitchAng),math.sin(pitchAng),math.cos(angle) * math.cos(pitchAng))
 else
@@ -5140,7 +5150,880 @@ if not editorOk then
 warn("Tilo editor: " .. tostring(editorErr))
 end
 do
+local petsOk,petsErr=pcall(function()
+local RunService=game:GetService("RunService")
+local MAXPETS=20
+local PET_FILE="TiloSong_Pets.json"
+local filesOk=writefile ~= nil and readfile ~= nil and isfile ~= nil
+local SCALE=0.85
+local pets={}
+local active=nil
+local selectedId=nil
+local idCounter=0
+local cutscene=false
+local mainWasVisible=false
+local popup
+local refreshList
+local refreshDetail
+local function mk(class,parent,props)
+local obj=_I(class)
+for key,value in pairs(props) do
+obj[key]=value
+end
+obj.Parent=parent
+return obj
+end
+local function mkBtn(parent,text,color,size,pos)
+local b=mk("TextButton",parent,{Size=size,Position=pos,BackgroundColor3=color,Text=text,TextColor3=_W,Font=_FB,TextSize=13,AutoButtonColor=false,TextWrapped=true})
+_Cr(b,8)
+return b
+end
+local function levelOf(p)
+return math.floor(p.play / 600)
+end
+local function newId()
+idCounter=idCounter + 1
+return tostring(os.time()) .. tostring(idCounter) .. tostring(math.random(100,999))
+end
+local function cleanPet(p)
+if type(p) ~= "table" then
+return nil
+end
+local name=tostring(p.name or "Собака")
+name=(name:gsub("%c",""))
+local len=utf8.len(name)
+if not len or len < 1 then
+name="Собака"
+elseif len > 16 then
+name=name:sub(1,utf8.offset(name,17) - 1)
+end
+local play=math.clamp(tonumber(p.play) or 0,0,10000000)
+local born=tonumber(p.born) or os.time()
+return {id=newId(),name=name,kind="dog",play=play,born=born}
+end
+local function packPet(p)
+return {name=p.name,kind=p.kind,play=p.play,born=p.born}
+end
+local function saveAll()
+if not filesOk then
+return
+end
+pcall(function()
+local list={}
+for _,p in ipairs(pets) do
+list[#list + 1]=packPet(p)
+end
+writefile(PET_FILE,HttpService:JSONEncode({v=1,pets=list}))
+end)
+end
+pcall(function()
+if filesOk and isfile(PET_FILE) then
+local data=HttpService:JSONDecode(readfile(PET_FILE))
+if type(data) == "table" and type(data.pets) == "table" then
+for _,p in ipairs(data.pets) do
+local clean=cleanPet(p)
+if clean and #pets < MAXPETS then
+table.insert(pets,clean)
+end
+end
+end
+end
+end)
+local function getPet(id)
+for index,p in ipairs(pets) do
+if p.id == id then
+return p,index
+end
+end
+return nil
+end
+local function applyCF(parts,cfs)
+local ok=pcall(function()
+workspace:BulkMoveTo(parts,cfs,Enum.BulkMoveMode.FireCFrameChanged)
+end)
+if not ok then
+for index,part in ipairs(parts) do
+part.CFrame=cfs[index]
+end
+end
+end
+local function mkPart(parent,name,size,color)
+return mk("Part",parent,{Name=name,Size=size * SCALE,Color=color,Material=Enum.Material.SmoothPlastic,Anchored=true,CanCollide=false,CanQuery=false,CanTouch=false,CastShadow=false})
+end
+local function makeDog(parent)
+local d={model=_I("Model"),p={}}
+d.model.Parent=parent
+local m=d.model
+local P=d.p
+local tan=_C(205,150,90)
+local dark=_C(140,95,55)
+local lt=_C(185,130,75)
+P.body=mkPart(m,"body",Vector3.new(1.2,1,2),tan)
+P.fl=mkPart(m,"fl",Vector3.new(0.4,0.9,0.4),lt)
+P.fr=mkPart(m,"fr",Vector3.new(0.4,0.9,0.4),lt)
+P.bl=mkPart(m,"bl",Vector3.new(0.4,0.9,0.4),lt)
+P.br=mkPart(m,"br",Vector3.new(0.4,0.9,0.4),lt)
+P.head=mkPart(m,"head",Vector3.new(0.95,0.95,0.95),tan)
+P.snout=mkPart(m,"snout",Vector3.new(0.5,0.4,0.5),_C(235,210,170))
+P.nose=mkPart(m,"nose",Vector3.new(0.24,0.18,0.1),_C(30,25,25))
+P.eyeL=mkPart(m,"eyeL",Vector3.new(0.22,0.22,0.06),_C(250,250,250))
+P.eyeR=mkPart(m,"eyeR",Vector3.new(0.22,0.22,0.06),_C(250,250,250))
+P.pupL=mkPart(m,"pupL",Vector3.new(0.11,0.14,0.04),_C(20,20,20))
+P.pupR=mkPart(m,"pupR",Vector3.new(0.11,0.14,0.04),_C(20,20,20))
+P.earL=mkPart(m,"earL",Vector3.new(0.25,0.45,0.2),dark)
+P.earR=mkPart(m,"earR",Vector3.new(0.25,0.45,0.2),dark)
+P.tail=mkPart(m,"tail",Vector3.new(0.25,0.25,0.7),lt)
+return d
+end
+local STAND={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,wag=0,eyes=true}
+local function poseDog(d,root,pose)
+local S=SCALE
+local P=d.p
+local parts,cfs={},{}
+local function put(part,cf)
+parts[#parts + 1]=part
+cfs[#cfs + 1]=cf
+end
+put(P.body,root)
+local hipY=-0.4 * S
+local legHalf=-0.45 * S
+put(P.fl,root * CFrame.new(-0.4 * S,hipY,-0.7 * S) * CFrame.Angles(pose.fl,0,0) * CFrame.new(0,legHalf,0))
+put(P.fr,root * CFrame.new(0.4 * S,hipY,-0.7 * S) * CFrame.Angles(pose.fr,0,0) * CFrame.new(0,legHalf,0))
+put(P.bl,root * CFrame.new(-0.4 * S,hipY,0.7 * S) * CFrame.Angles(pose.bl,0,0) * CFrame.new(0,legHalf,0))
+put(P.br,root * CFrame.new(0.4 * S,hipY,0.7 * S) * CFrame.Angles(pose.br,0,0) * CFrame.new(0,legHalf,0))
+local hc=root * CFrame.new(0,0.35 * S,-1 * S) * CFrame.Angles(pose.head,0,0) * CFrame.new(0,0.2 * S,-0.5 * S)
+put(P.head,hc)
+put(P.snout,hc * CFrame.new(0,-0.15 * S,-0.725 * S))
+put(P.nose,hc * CFrame.new(0,-0.05 * S,-0.99 * S))
+put(P.eyeL,hc * CFrame.new(-0.25 * S,0.15 * S,-0.46 * S))
+put(P.eyeR,hc * CFrame.new(0.25 * S,0.15 * S,-0.46 * S))
+put(P.pupL,hc * CFrame.new(-0.25 * S,0.14 * S,-0.5 * S))
+put(P.pupR,hc * CFrame.new(0.25 * S,0.14 * S,-0.5 * S))
+put(P.earL,hc * CFrame.new(-0.42 * S,0.45 * S,0.05 * S) * CFrame.Angles(0,0,0.2))
+put(P.earR,hc * CFrame.new(0.42 * S,0.45 * S,0.05 * S) * CFrame.Angles(0,0,-0.2))
+put(P.tail,root * CFrame.new(0,0.3 * S,1 * S) * CFrame.Angles(pose.tail,pose.wag,0) * CFrame.new(0,0.2 * S,0.3 * S))
+if d.eo ~= pose.eyes then
+d.eo=pose.eyes
+local h=pose.eyes and 0.22 or 0.05
+P.eyeL.Size=Vector3.new(0.22,h,0.06) * S
+P.eyeR.Size=Vector3.new(0.22,h,0.06) * S
+P.pupL.Transparency=pose.eyes and 0 or 1
+P.pupR.Transparency=pose.eyes and 0 or 1
+end
+applyCF(parts,cfs)
+end
+local function angDiff(a,b)
+return (b - a + math.pi) % (2 * math.pi) - math.pi
+end
+local function stepPet(dt)
+local a=active
+if not a then
+return
+end
+local char=LocalPlayer.Character
+local root=char and char:FindFirstChild("HumanoidRootPart")
+local hum=char and char:FindFirstChildOfClass("Humanoid")
+if not root or not hum then
+return
+end
+if a.char ~= char then
+a.char=char
+a.params.FilterDescendantsInstances={char,a.dog.model,workspace.CurrentCamera}
+end
+local S=SCALE
+local now=os.clock()
+a.pet.play=a.pet.play + dt
+local rcf=root.CFrame
+local vel=root.AssemblyLinearVelocity
+local pSpeed=Vector3.new(vel.X,0,vel.Z).Magnitude
+local swimming=hum:GetState() == Enum.HumanoidStateType.Swimming
+local goal=root.Position + rcf:VectorToWorldSpace(Vector3.new(2.4,0,2.6))
+local flat=Vector3.new(goal.X - a.pos.X,0,goal.Z - a.pos.Z)
+local dist=flat.Magnitude
+if dist > 80 then
+a.pos=Vector3.new(goal.X,a.pos.Y,goal.Z)
+flat=Vector3.new(0,0,0)
+dist=0
+a.moving=false
+end
+local onD=pSpeed > 1 and 1.4 or 3.2
+local offD=pSpeed > 1 and 0.7 or 1.4
+if dist > onD then
+a.moving=true
+elseif dist < offD then
+a.moving=false
+end
+local v=0
+if a.moving and dist > 0.05 then
+v=math.min(dist * 4 + 3,28)
+a.pos=a.pos + flat.Unit * math.min(v * dt,dist)
+local want=math.atan2(-flat.X,-flat.Z)
+a.yaw=a.yaw + angDiff(a.yaw,want) * math.min(1,dt * 10)
+else
+local toP=Vector3.new(root.Position.X - a.pos.X,0,root.Position.Z - a.pos.Z)
+if toP.Magnitude > 0.5 then
+local want=math.atan2(-toP.X,-toP.Z)
+a.yaw=a.yaw + angDiff(a.yaw,want) * math.min(1,dt * 4)
+end
+end
+local resting=(not a.moving) and pSpeed < 1 and not swimming
+if resting then
+a.idleT=a.idleT + dt
+else
+a.idleT=0
+end
+a.phase=a.phase + v * dt * 2.4
+local state="stand"
+if swimming then
+state="swim"
+elseif v > 0.3 then
+state=(v > 14) and "run" or "walk"
+elseif a.idleT > 120 then
+state="sleep"
+elseif a.idleT > 60 then
+state="lie"
+elseif a.idleT > 10 then
+state="sit"
+end
+if a.state ~= state then
+a.state=state
+a.look=0
+a.wake=math.random(10,60)
+end
+if state == "sleep" then
+a.wake=a.wake - dt
+if a.look > 0 then
+a.look=a.look - dt
+elseif a.wake <= 0 then
+a.look=3
+a.wake=math.random(10,60)
+end
+end
+local tgt={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,bodyY=1.3 * S,pitch=0}
+local wag=0
+local eyes=true
+local hop=0
+if state == "walk" or state == "run" then
+local amp=(state == "run") and 0.95 or 0.7
+local sw=math.sin(a.phase) * amp
+tgt.fl=sw
+tgt.fr=-sw
+tgt.bl=-sw
+tgt.br=sw
+tgt.head=math.sin(a.phase * 2) * 0.05
+wag=math.sin(now * 8) * 0.4
+if state == "run" then
+hop=math.abs(math.sin(a.phase)) * 0.22 * S
+tgt.pitch=-0.08
+end
+elseif state == "swim" then
+tgt.fl=math.sin(now * 9) * 0.9
+tgt.fr=math.sin(now * 9 + 2) * 0.9
+tgt.bl=math.sin(now * 9 + 1) * 0.9
+tgt.br=math.sin(now * 9 + 3) * 0.9
+tgt.head=0.3
+tgt.bodyY=0.4 * S
+wag=math.sin(now * 3) * 0.3
+elseif state == "sit" then
+tgt.pitch=0.6
+tgt.bodyY=1.0 * S
+tgt.fl=-0.6
+tgt.fr=-0.6
+tgt.bl=1.4
+tgt.br=1.4
+tgt.head=-0.5
+wag=math.sin(now * 3) * 0.3
+elseif state == "lie" or state == "sleep" then
+tgt.bodyY=0.55 * S
+tgt.fl=1.4
+tgt.fr=1.4
+tgt.bl=1.4
+tgt.br=1.4
+tgt.head=-0.15
+tgt.tail=-0.2
+wag=math.sin(now * 2) * 0.2
+if state == "sleep" then
+tgt.head=-0.4
+if a.look > 0 then
+tgt.head=0.1
+else
+eyes=false
+end
+end
+else
+wag=math.sin(now * 3) * 0.35
+tgt.bodyY=1.3 * S + math.sin(now * 2) * 0.015 * S
+end
+if a.sT and now - a.sT < 1.2 then
+local p=(now - a.sT) / 1.2
+hop=hop + math.sin(p * math.pi) * 1 * S
+wag=math.sin(now * 14) * 0.6
+tgt.head=0.25
+a.idleT=0
+end
+local f=math.min(1,dt * 9)
+for key,value in pairs(tgt) do
+a.cur[key]=a.cur[key] + (value - a.cur[key]) * f
+end
+local gy=a.gy
+if state == "swim" then
+gy=root.Position.Y - 1.25
+else
+local hit=workspace:Raycast(a.pos + Vector3.new(0,5,0),Vector3.new(0,-16,0),a.params)
+if hit then
+gy=hit.Position.Y
+end
+end
+a.gy=a.gy + (gy - a.gy) * math.min(1,dt * 14)
+local c=a.cur
+local pz=a.pz
+pz.fl=c.fl
+pz.fr=c.fr
+pz.bl=c.bl
+pz.br=c.br
+pz.head=c.head
+pz.tail=c.tail
+pz.wag=wag
+pz.eyes=eyes
+local rootCF=CFrame.new(a.pos.X,a.gy + c.bodyY + hop,a.pos.Z) * CFrame.Angles(0,a.yaw,0) * CFrame.Angles(c.pitch,0,0)
+poseDog(a.dog,rootCF,pz)
+local sleeping=(state == "sleep" and a.look <= 0)
+a.zbb.Enabled=sleeping
+if sleeping then
+a.zbb.StudsOffset=Vector3.new(0.2,1.2 + (now % 2) * 0.35,0)
+a.zlab.TextTransparency=(now % 2) / 2
+end
+end
+RunService.RenderStepped:Connect(stepPet)
+local function unsummon()
+if active then
+active.dog.model:Destroy()
+active=nil
+saveAll()
+end
+end
+local function spawnPet(pet,pos,char)
+local dog=makeDog(workspace.CurrentCamera)
+local bb=mk("BillboardGui",dog.p.head,{Size=_U(0,140,0,24),StudsOffset=Vector3.new(0,1.4,0),AlwaysOnTop=false,MaxDistance=70})
+mk("TextLabel",bb,{Size=_U(1,0,1,0),BackgroundTransparency=1,Text=pet.name,TextColor3=_W,Font=_FB,TextSize=16,TextStrokeTransparency=0.3})
+local zbb=mk("BillboardGui",dog.p.head,{Size=_U(0,30,0,30),StudsOffset=Vector3.new(0.2,1.2,0),AlwaysOnTop=false,MaxDistance=60,Enabled=false})
+local zlab=mk("TextLabel",zbb,{Size=_U(1,0,1,0),BackgroundTransparency=1,Text="Z",TextColor3=_C(200,220,255),Font=_FB,TextSize=24,TextStrokeTransparency=0.4})
+local params=RaycastParams.new()
+params.FilterType=Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances={char,dog.model,workspace.CurrentCamera}
+local root=char:FindFirstChild("HumanoidRootPart")
+local toP=root.Position - pos
+local yaw=math.atan2(-toP.X,-toP.Z)
+active={pet=pet,dog=dog,pos=pos,gy=pos.Y,yaw=yaw,moving=false,idleT=0,phase=0,state="stand",look=0,wake=20,sT=os.clock(),char=char,params=params,zbb=zbb,zlab=zlab,pz={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,wag=0,eyes=true},cur={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,bodyY=1.3 * SCALE,pitch=0}}
+end
+local Hint=mk("TextLabel",ScreenGui,{Name="TiloPetHint",AnchorPoint=Vector2.new(0.5,0),Position=_U(0.5,0,0,14),Size=_U(0,380,0,28),BackgroundColor3=_C(18,15,22),BackgroundTransparency=0.2,Text="Чтобы пропустить, подвигайтесь или нажмите на экран",TextColor3=_W,Font=_FB,TextSize=13,Visible=false,ZIndex=40})
+_Cr(Hint,8)
+local closePets
+local function summon(pet)
+if cutscene then
+return
+end
+closePets()
+local char=LocalPlayer.Character
+local root=char and char:FindFirstChild("HumanoidRootPart")
+local hum=char and char:FindFirstChildOfClass("Humanoid")
+local cam=workspace.CurrentCamera
+if not root or not hum or not cam then
+showToast("Персонаж не найден, питомца призвать нельзя",3,true)
+return
+end
+unsummon()
+cutscene=true
+local mainWas=MainFrame.Visible
+MainFrame.Visible=false
+Hint.Visible=true
+local skipped=false
+local conn=UserInputService.InputBegan:Connect(function(input)
+local kind=input.UserInputType
+if kind == _TT or kind == _M1 or kind == Enum.UserInputType.Keyboard then
+skipped=true
+end
+end)
+task.spawn(function()
+local camType=cam.CameraType
+local camCF=cam.CFrame
+local camFov=cam.FieldOfView
+local spot=root.Position + root.CFrame:VectorToWorldSpace(Vector3.new(2.4,0,2.6))
+local rp=RaycastParams.new()
+rp.FilterType=Enum.RaycastFilterType.Exclude
+rp.FilterDescendantsInstances={char,cam}
+local hit=workspace:Raycast(spot + Vector3.new(0,6,0),Vector3.new(0,-16,0),rp)
+local ground=hit and hit.Position or (spot - Vector3.new(0,3,0))
+local back=camCF.Position - ground
+if back.Magnitude < 1 then
+back=Vector3.new(0,0,1)
+end
+local endCF=CFrame.lookAt(ground + back.Unit * 7.5 + Vector3.new(0,2.5,0),ground + Vector3.new(0,0.8,0))
+cam.CameraType=Enum.CameraType.Scriptable
+local smokePart=mk("Part",cam,{Anchored=true,CanCollide=false,CanQuery=false,CanTouch=false,Transparency=1,Size=Vector3.new(1,1,1),Position=ground + Vector3.new(0,0.6,0)})
+local smoke=mk("ParticleEmitter",smokePart,{Texture="rbxasset://textures/particles/smoke_main.dds",Rate=0,Lifetime=NumberRange.new(0.9,1.4),Speed=NumberRange.new(3,8),SpreadAngle=Vector2.new(180,180),Rotation=NumberRange.new(0,360),RotSpeed=NumberRange.new(-60,60),Color=ColorSequence.new(_C(235,235,240)),Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2),NumberSequenceKeypoint.new(1,1)}),Size=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,3.5)}),Drag=3})
+local t0=os.clock()
+local e1=false
+local e2=false
+local burst=false
+local startCF=cam.CFrame
+while true do
+local el=os.clock() - t0
+if skipped or el > 2.4 or hum.MoveDirection.Magnitude > 0.2 then
+break
+end
+local al=math.clamp(el / 0.9,0,1)
+al=al * al * (3 - 2 * al)
+cam.CFrame=startCF:Lerp(endCF,al)
+if el > 0.9 and not e1 then
+e1=true
+smoke:Emit(6)
+end
+if el > 1.2 and not e2 then
+e2=true
+smoke:Emit(8)
+end
+if el > 1.5 and not burst then
+burst=true
+smoke:Emit(40)
+local flash=mk("Part",cam,{Shape=Enum.PartType.Ball,Anchored=true,CanCollide=false,CanQuery=false,CanTouch=false,Material=Enum.Material.Neon,Color=_C(255,240,200),Transparency=0.2,Size=Vector3.new(0.5,0.5,0.5),Position=ground + Vector3.new(0,0.8,0)})
+TweenService:Create(flash,TweenInfo.new(0.35,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=Vector3.new(6,6,6),Transparency=1}):Play()
+game:GetService("Debris"):AddItem(flash,0.5)
+pcall(spawnPet,pet,ground,char)
+end
+RunService.RenderStepped:Wait()
+end
+if not burst then
+smoke:Emit(20)
+pcall(spawnPet,pet,ground,char)
+end
+conn:Disconnect()
+cam.CameraType=(camType == Enum.CameraType.Scriptable) and Enum.CameraType.Custom or camType
+cam.CameraSubject=hum
+cam.FieldOfView=camFov
+cam.CFrame=camCF
+Hint.Visible=false
+MainFrame.Visible=mainWas
+cutscene=false
+game:GetService("Debris"):AddItem(smokePart,2.5)
+end)
+end
+local PetsRoot=mk("Frame",ScreenGui,{Name="TiloPets",Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.4,BorderSizePixel=0,Active=true,Visible=false,ZIndex=5})
+local Panel=mk("Frame",PetsRoot,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0.92,0,0.88,0),BackgroundColor3=_C(18,15,22),BorderSizePixel=0,Active=true,ZIndex=6})
+_Cr(Panel,12)
+_St(Panel,_PU,2)
+mk("UISizeConstraint",Panel,{MaxSize=Vector2.new(700,410)})
+mk("TextLabel",Panel,{Size=_U(0,200,0,30),Position=_U(0,12,0,6),BackgroundTransparency=1,Text="🐾 Питомцы",TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL})
+local PXBtn=mkBtn(Panel,"X",_C(200,50,60),_U(0,34,0,30),_U(1,-44,0,6))
+local PImportBtn=mkBtn(Panel,"Импорт",_C(35,30,48),_U(0,76,0,30),_U(1,-126,0,6))
+local PExportAllBtn=mkBtn(Panel,"Экспорт всех",_C(35,30,48),_U(0,100,0,30),_U(1,-232,0,6))
+local ListScroll=mk("ScrollingFrame",Panel,{Position=_U(0,10,0,44),Size=_U(0,200,1,-128),BackgroundColor3=_C(26,22,36),BorderSizePixel=0,ScrollBarThickness=10,CanvasSize=_U(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
+_Cr(ListScroll,8)
+mk("UIListLayout",ListScroll,{Padding=_V(0,4),SortOrder=Enum.SortOrder.LayoutOrder})
+mk("UIPadding",ListScroll,{PaddingTop=_V(0,4),PaddingLeft=_V(0,4),PaddingRight=_V(0,4)})
+local CountLabel=mk("TextLabel",Panel,{Size=_U(0,200,0,16),Position=_U(0,10,1,-80),BackgroundTransparency=1,TextColor3=_C(200,160,255),Font=_FB,TextSize=12,TextXAlignment=_XL,Text=""})
+local GetBtn=mkBtn(Panel,"➕ Получить питомца / яйцо",_C(0,150,80),_U(0,200,0,34),_U(0,10,1,-62))
+mk("TextLabel",Panel,{Size=_U(1,-20,0,18),Position=_U(0,10,1,-24),BackgroundTransparency=1,TextColor3=_C(255,200,50),Font=_FN,TextSize=11,TextXAlignment=_XL,Text="⚠ Очень ранняя бета питомцев: функций мало, багов может быть много"})
+local Detail=mk("Frame",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-128),BackgroundTransparency=1,Visible=false})
+local Preview=mk("ViewportFrame",Detail,{Size=_U(0,170,0,150),BackgroundColor3=_C(28,25,38),BorderSizePixel=0,Ambient=_C(190,190,190),LightColor=_C(255,255,255)})
+_Cr(Preview,8)
+local pvCam=mk("Camera",Preview,{FieldOfView=45})
+Preview.CurrentCamera=pvCam
+local pvDog=makeDog(Preview)
+pvCam.CFrame=CFrame.lookAt(Vector3.new(3.2,2.4,3.8),Vector3.new(0,1.1,0))
+local NameLbl=mk("TextLabel",Detail,{Position=_U(0,180,0,0),Size=_U(1,-180,0,26),BackgroundTransparency=1,TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL,TextTruncate=Enum.TextTruncate.AtEnd,Text=""})
+local InfoLbl=mk("TextLabel",Detail,{Position=_U(0,180,0,28),Size=_U(1,-180,0,40),BackgroundTransparency=1,TextColor3=_C(200,200,220),Font=_FN,TextSize=13,TextWrapped=true,TextXAlignment=_XL,TextYAlignment=Enum.TextYAlignment.Top,Text=""})
+local BtnGrid=mk("Frame",Detail,{Position=_U(0,180,0,72),Size=_U(1,-180,0,76),BackgroundTransparency=1})
+mk("UIGridLayout",BtnGrid,{CellSize=_U(0.5,-3,0,36),CellPadding=_U(0,6,0,4),SortOrder=Enum.SortOrder.LayoutOrder})
+local SummonBtn=mkBtn(BtnGrid,"Призвать",_C(120,20,200),_U(0,10,0,10),nil)
+SummonBtn.LayoutOrder=1
+local CodeBtn=mkBtn(BtnGrid,"Копировать код",_C(35,30,48),_U(0,10,0,10),nil)
+CodeBtn.LayoutOrder=2
+local FileBtn=mkBtn(BtnGrid,"Экспорт файлом",_C(35,30,48),_U(0,10,0,10),nil)
+FileBtn.LayoutOrder=3
+local FreeBtn=mkBtn(BtnGrid,"Отпустить навсегда",_C(190,40,50),_U(0,10,0,10),nil)
+FreeBtn.LayoutOrder=4
+local EmptyLbl=mk("TextLabel",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-128),BackgroundTransparency=1,TextColor3=_C(160,160,180),Font=_FN,TextSize=14,TextWrapped=true,Text="Выберите питомца слева",Visible=true})
+local DlgDim=mk("Frame",PetsRoot,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.35,BorderSizePixel=0,Active=true,Visible=false,ZIndex=20})
+local Dlg=mk("Frame",DlgDim,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0,380,0,230),BackgroundColor3=_C(24,20,32),BorderSizePixel=0})
+_Cr(Dlg,12)
+_St(Dlg,_PU,2)
+local DlgTitle=mk("TextLabel",Dlg,{Size=_U(1,-20,0,26),Position=_U(0,10,0,8),BackgroundTransparency=1,TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL,Text=""})
+local DlgText=mk("TextLabel",Dlg,{Size=_U(1,-20,0,80),Position=_U(0,10,0,38),BackgroundTransparency=1,TextColor3=_C(220,220,235),Font=_FN,TextSize=14,TextWrapped=true,TextXAlignment=_XL,TextYAlignment=Enum.TextYAlignment.Top,Text=""})
+local DlgBox=mk("TextBox",Dlg,{Size=_U(1,-20,0,34),Position=_U(0,10,0,122),BackgroundColor3=_C(40,35,55),TextColor3=_W,PlaceholderColor3=_C(140,140,160),Font=_FN,TextSize=14,ClearTextOnFocus=false,Text="",ClipsDescendants=true,TextXAlignment=_XL,Visible=false})
+_Cr(DlgBox,6)
+local DlgRow=mk("Frame",Dlg,{Size=_U(1,-20,0,36),Position=_U(0,10,1,-46),BackgroundTransparency=1})
+mk("UIListLayout",DlgRow,{FillDirection=Enum.FillDirection.Horizontal,Padding=_V(0,8),HorizontalAlignment=Enum.HorizontalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder})
+local dlgToken=0
+local function closeDialog()
+dlgToken=dlgToken + 1
+DlgDim.Visible=false
+end
+local function openDialog(cfg)
+dlgToken=dlgToken + 1
+local my=dlgToken
+for _,child in ipairs(DlgRow:GetChildren()) do
+if child:IsA("TextButton") then
+child:Destroy()
+end
+end
+DlgTitle.Text=cfg.title or ""
+DlgText.Text=cfg.text or ""
+DlgBox.Visible=cfg.input ~= nil
+Dlg.Size=_U(0,380,0,cfg.input ~= nil and 230 or 190)
+if cfg.input ~= nil then
+DlgBox.Text=cfg.input
+DlgBox.PlaceholderText=cfg.hint or ""
+end
+local count=#cfg.buttons
+for index,def in ipairs(cfg.buttons) do
+local b=mkBtn(DlgRow,def.text,def.color or _C(60,50,90),_U(0,math.floor((340 - (count - 1) * 8) / count),1,0),nil)
+b.LayoutOrder=index
+local locked=def.lock ~= nil
+b.MouseButton1Click:Connect(function()
+if locked then
+return
+end
+closeDialog()
+if def.fn then
+def.fn(DlgBox.Text)
+end
+end)
+if locked then
+b.TextTransparency=0.5
+task.spawn(function()
+for left=def.lock,1,-1 do
+if dlgToken ~= my then
+return
+end
+b.Text=def.text .. " (" .. left .. ")"
+task.wait(1)
+end
+if dlgToken ~= my then
+return
+end
+locked=false
+b.Text=def.text
+b.TextTransparency=0
+end)
+end
+end
+DlgDim.Visible=true
+end
+local Pop=mk("TextLabel",PetsRoot,{AnchorPoint=Vector2.new(0.5,0),Size=_U(0,340,0,40),Position=_U(0.5,0,1,10),BackgroundColor3=_C(18,15,22),TextColor3=_W,Font=_FB,TextSize=14,TextWrapped=true,ZIndex=30,Text=""})
+_Cr(Pop,10)
+_St(Pop,_PU,2)
+local popToken=0
+popup=function(text)
+popToken=popToken + 1
+local my=popToken
+Pop.Text=text
+TweenService:Create(Pop,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Position=_U(0.5,0,1,-60)}):Play()
+task.delay(2.6,function()
+if popToken == my then
+TweenService:Create(Pop,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=_U(0.5,0,1,10)}):Play()
+end
+end)
+end
+refreshDetail=function()
+local p=selectedId and getPet(selectedId)
+Detail.Visible=p ~= nil
+EmptyLbl.Visible=p == nil
+CountLabel.Text="Питомцев: " .. #pets .. " из " .. MAXPETS
+if p then
+NameLbl.Text=p.name
+InfoLbl.Text="Уровень " .. levelOf(p) .. "\nВ игре: " .. math.floor(p.play / 60) .. " мин"
+SummonBtn.Text=(active and active.pet == p) and "Убрать питомца" or "Призвать"
+end
+end
+refreshList=function()
+for _,child in ipairs(ListScroll:GetChildren()) do
+if child:IsA("TextButton") then
+child:Destroy()
+end
+end
+for index,p in ipairs(pets) do
+local isSel=p.id == selectedId
+local b=mkBtn(ListScroll,p.name .. "  (ур. " .. levelOf(p) .. ")" .. ((active and active.pet == p) and "  ★" or ""),isSel and _PU or _C(40,35,55),_U(1,-8,0,38),nil)
+b.LayoutOrder=index
+b.MouseButton1Click:Connect(function()
+selectedId=p.id
+refreshList()
+refreshDetail()
+end)
+end
+refreshDetail()
+end
+closePets=function()
+PetsRoot.Visible=false
+DlgDim.Visible=false
+saveAll()
+if mainWasVisible then
+MainFrame.Visible=true
+mainWasVisible=false
+end
+end
+local function createPet(name)
+local clean=cleanPet({name=name,play=0})
+if not clean then
+return
+end
+table.insert(pets,clean)
+selectedId=clean.id
+saveAll()
+refreshList()
+popup("Питомец создан: " .. clean.name)
+end
+local function askCreate()
+openDialog({title="Новый питомец",text="Пока в этой версии доступна только собака. Введите имя питомца:",input="Собака",hint="Имя (до 16 символов)",buttons={{text="Создать питомца",color=_C(0,150,80),fn=function(text)
+createPet(text)
+end},{text="Закрыть"}}})
+end
+local function askNew()
+if #pets >= MAXPETS then
+popup("Достигнут максимум питомцев: " .. MAXPETS)
+return
+end
+openDialog({title="Что хотите получить?",text="Яйцо или готового питомца?",buttons={{text="🥚 Яйцо",fn=function()
+popup("В этой версии ещё нет яиц. Добавится в скорых версиях")
+end},{text="🐶 Питомца",fn=function()
+openDialog({title="Ранняя версия",text="Это очень ранняя версия питомцев, поэтому сейчас можно выбрать только одного питомца: собаку.",buttons={{text="ОК",color=_C(0,150,80),fn=askCreate},{text="Отмена"}}})
+end},{text="Отмена"}}})
+end
+local function askEmpty()
+openDialog({title="Питомцы",text="У вас пока нет питомцев. Хотите получить питомца?",buttons={{text="Да",color=_C(0,150,80),fn=askNew},{text="Нет",fn=function()
+closePets()
+end}}})
+end
+local function doDelete(p)
+local _,index=getPet(p.id)
+if not index then
+return
+end
+if active and active.pet == p then
+unsummon()
+end
+table.remove(pets,index)
+if selectedId == p.id then
+selectedId=pets[1] and pets[1].id or nil
+end
+saveAll()
+refreshList()
+openDialog({title="Питомец удалён",text="Питомец удалён, очень грустно 😢",buttons={{text="ОК"}}})
+end
+local function askDelete(p)
+openDialog({title="Отпустить питомца?",text="Вы точно хотите отпустить «" .. p.name .. "»? Вернуть питомца назад будет нельзя: по сути вы удаляете его навсегда.",buttons={{text="ОК",color=_C(190,40,50),lock=5,fn=function()
+if levelOf(p) > 5 then
+openDialog({title="Вы точно-точно уверены?",text="У питомца «" .. p.name .. "» уже больше 5 уровней, значит вы играли с ним достаточно долго. Удалить его навсегда?",buttons={{text="Да, удалить",color=_C(190,40,50),lock=10,fn=function()
+doDelete(p)
+end},{text="Отмена"}}})
+else
+doDelete(p)
+end
+end},{text="Отмена"}}})
+end
+local function exportJson(list,single)
+if single then
+return HttpService:JSONEncode({format="TiloPet",v=1,pet=packPet(list[1])})
+end
+local packed={}
+for _,p in ipairs(list) do
+packed[#packed + 1]=packPet(p)
+end
+return HttpService:JSONEncode({format="TiloPets",v=1,pets=packed})
+end
+local function importText(text)
+local raw=((text or ""):gsub("^%s+",""))
+raw=(raw:gsub("%s+$",""))
+if raw == "" then
+popup("Ничего не введено")
+return
+end
+if raw:sub(1,1) ~= "{" then
+if not filesOk then
+popup("Файлы недоступны в этом executor, вставьте код питомца")
+return
+end
+local name=raw
+local okF,exists=pcall(isfile,name)
+if not (okF and exists) then
+name=raw .. ".txt"
+end
+local ok,content=pcall(readfile,name)
+if not ok or type(content) ~= "string" then
+popup("Файл не найден в папке workspace")
+return
+end
+raw=content
+end
+local ok,data=pcall(function()
+return HttpService:JSONDecode(raw)
+end)
+if not ok or type(data) ~= "table" then
+popup("Не удалось прочитать данные питомца")
+return
+end
+local list={}
+if type(data.pets) == "table" then
+list=data.pets
+elseif type(data.pet) == "table" then
+list={data.pet}
+elseif data.name then
+list={data}
+end
+local added=0
+for _,p in ipairs(list) do
+if #pets >= MAXPETS then
+break
+end
+local clean=cleanPet(p)
+if clean then
+table.insert(pets,clean)
+added=added + 1
+selectedId=clean.id
+end
+end
+saveAll()
+refreshList()
+if added > 0 then
+popup("Импортировано питомцев: " .. added)
+else
+popup("Питомцы не найдены в этих данных")
+end
+end
+local function askImport()
+local found=""
+if listfiles then
+pcall(function()
+local names={}
+for _,path in ipairs(listfiles("")) do
+local short=tostring(path):match("([^/\\]+)$")
+if short and short:find("TiloPet") and #names < 4 then
+names[#names + 1]=short
+end
+end
+if #names > 0 then
+found="\nНайдено: " .. table.concat(names,", ")
+end
+end)
+end
+openDialog({title="Импорт питомца",text="Вставьте код питомца или впишите имя файла из папки workspace вашего executor'а." .. found,input="",hint="Код или имя файла",buttons={{text="Импорт",color=_C(0,150,80),fn=importText},{text="Отмена"}}})
+end
+PetsRoot:GetPropertyChangedSignal("Visible"):Connect(function()
+if PetsRoot.Visible then
+refreshList()
+end
+end)
+SummonBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if not p then
+return
+end
+if active and active.pet == p then
+unsummon()
+refreshList()
+else
+summon(p)
+end
+end)
+CodeBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if not p then
+return
+end
+local code=exportJson({p},true)
+local copied=false
+if setclipboard then
+copied=pcall(setclipboard,code)
+end
+if copied then
+popup("Код питомца скопирован в буфер обмена")
+else
+openDialog({title="Код питомца",text="Скопируйте этот код вручную (удерживайте поле):",input=code,buttons={{text="Закрыть"}}})
+end
+end)
+FileBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if not p then
+return
+end
+if not filesOk then
+popup("Файлы недоступны в этом executor, используйте код")
+return
+end
+local safe=p.name:gsub("[^%w]","")
+if safe == "" then
+safe="pet"
+end
+local fname="TiloPet_" .. safe .. "_" .. tostring(p.id):sub(-4) .. ".txt"
+local ok=pcall(writefile,fname,exportJson({p},true))
+popup(ok and ("Файл сохранён: " .. fname) or "Не удалось сохранить файл")
+end)
+PExportAllBtn.MouseButton1Click:Connect(function()
+if #pets == 0 then
+popup("Нет питомцев для экспорта")
+return
+end
+if not filesOk then
+popup("Файлы недоступны в этом executor")
+return
+end
+local ok=pcall(writefile,"TiloPets_All.txt",exportJson(pets,false))
+popup(ok and "Файл сохранён: TiloPets_All.txt" or "Не удалось сохранить файл")
+end)
+FreeBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if p then
+askDelete(p)
+end
+end)
+PImportBtn.MouseButton1Click:Connect(askImport)
+GetBtn.MouseButton1Click:Connect(askNew)
+PXBtn.MouseButton1Click:Connect(function()
+closePets()
+end)
+local function openPets()
+if PetsRoot.Visible or cutscene then
+return
+end
+mainWasVisible=MainFrame.Visible
+MainFrame.Visible=false
+PetsRoot.Visible=true
+if not (selectedId and getPet(selectedId)) then
+selectedId=pets[1] and pets[1].id or nil
+end
+refreshList()
+if #pets == 0 then
+askEmpty()
+end
+end
+local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,0,40),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
+_Cr(Dock,10)
+_St(Dock,_PU,2)
+local DockBtn=mkBtn(Dock,"🐾 Питомцы",_C(35,30,48),_U(1,-12,1,-12),_U(0,6,0,6))
+DockBtn.TextSize=14
+DockBtn.MouseButton1Click:Connect(openPets)
+RunService.RenderStepped:Connect(function()
+if PetsRoot.Visible and Detail.Visible then
+poseDog(pvDog,CFrame.new(0,1.3 * SCALE,0) * CFrame.Angles(0,os.clock() * 0.9,0),STAND)
+end
+end)
+task.spawn(function()
+while true do
+task.wait(30)
+if active then
+saveAll()
+end
+end
+end)
+end)
+if not petsOk then
+warn("Tilo pets: " .. tostring(petsErr))
+end
+end
+do
 local entries={
+{"v2.7.17","Питомцы (ранняя бета): окно, собака, призыв, сохранение, импорт и экспорт","• Рядом с главным окном кнопка «Питомцы», открывает окно питомцев (до 20)\n• Пока доступна одна собака: имя, уровень по времени игры, призыв с дымом и камерой\n• Собака ходит и бежит за тобой, плывёт, садится, ложится и спит\n• Сохранение в файл, импорт и экспорт питомцев файлом или кодом\n• Отпустить питомца можно с предупреждениями\n• Яйца, конструктор и анимации прыжка добавятся позже\n• Камера вручную: число стадов теперь можно вписать"},
 {"v2.7.16","Шире панели, список категорий, плавный столб до 100 слоёв, зум камеры, сворачивание панелей","• Панели редактора шире, нимбы снова по три в ряд, вернулся «Переливающийся» у ауры\n• Слева категории одним списком с большой прокруткой: Нимб, Аура, Одежда (кофты, штаны, перчатки), Питомцы, Аксессуары\n• Панели можно сворачивать стрелками\n• Столб света: плавность до 100 слоёв (градиент на лентах на 3 уровне)\n• Камера вручную: кнопки + и −, от 1 до 30 стадов\n• Кольца и кружки не лагают на 1 уровне"},
 {"v2.7.15","Три уровня детализации, плавный столб света, большая полоса прокрутки, заготовки категорий","• Уровни детализации 1 (мега), 2 (средняя), 3 (обычная) работают, 4 и 5 пока серые\n• Неон на 1 уровне, меньше шариков на рогах на 1 уровне\n• Столб света: ползунок «Плавность» (слои прозрачности, от 2), без ступенек при большом числе слоёв\n• Справа большая полоса прокрутки, её можно тянуть пальцем\n• В ауре кнопки сброса для каждой настройки\n• Категории «Одежда», «Питомцы», «Аксессуары» (скоро)"},
 {"v2.7.14","Уровни детализации, столб света лицом к игроку, новая спираль, оптимизация","• Слева в редакторе: уровни детализации («Мега-оптимизация» и «Обычная») и режим «Авто» по FPS\n• Столб света: ленты широкой стороной к игроку, без щелей, выше и ниже, ползунок «Масштаб по высоте» для всех аур\n• Больше линий, кольца быстрее, новая спираль, неоновые кольца светятся\n• Ползунки в редакторе с большей зоной нажатия\n• «Картошка» не ставит минимальное качество, скрывает только далёкие мелкие предметы"},
@@ -5213,7 +6096,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.16"
+HeadTitle.Text="🎉 Новое в v2.7.17"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
