@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.17"
+CardTitle.Text="🎵 TILO SONG v2.7.18"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.17"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.18"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.17"
+Title.Text="🎵 TILO SONG v2.7.18"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -5170,6 +5170,9 @@ local obj=_I(class)
 for key,value in pairs(props) do
 obj[key]=value
 end
+if props.ZIndex == nil and parent:IsA("GuiObject") and obj:IsA("GuiObject") then
+obj.ZIndex=parent.ZIndex + 1
+end
 obj.Parent=parent
 return obj
 end
@@ -5609,9 +5612,10 @@ game:GetService("Debris"):AddItem(smokePart,2.5)
 end)
 end
 local PetsRoot=mk("Frame",ScreenGui,{Name="TiloPets",Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.4,BorderSizePixel=0,Active=true,Visible=false,ZIndex=5})
-local Panel=mk("Frame",PetsRoot,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0.92,0,0.88,0),BackgroundColor3=_C(18,15,22),BorderSizePixel=0,Active=true,ZIndex=6})
+local Panel=mk("Frame",PetsRoot,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0.92,0,0.88,0),BackgroundColor3=_C(18,15,22),BorderSizePixel=0,Active=true})
 _Cr(Panel,12)
-_St(Panel,_PU,2)
+ThemeExtra.add("bg",Panel,"BackgroundColor3")
+ThemeExtra.add("stroke",_St(Panel,_PU,2),"Color")
 mk("UISizeConstraint",Panel,{MaxSize=Vector2.new(700,410)})
 mk("TextLabel",Panel,{Size=_U(0,200,0,30),Position=_U(0,12,0,6),BackgroundTransparency=1,Text="🐾 Питомцы",TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL})
 local PXBtn=mkBtn(Panel,"X",_C(200,50,60),_U(0,34,0,30),_U(1,-44,0,6))
@@ -5647,7 +5651,8 @@ local EmptyLbl=mk("TextLabel",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-1
 local DlgDim=mk("Frame",PetsRoot,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.35,BorderSizePixel=0,Active=true,Visible=false,ZIndex=20})
 local Dlg=mk("Frame",DlgDim,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0,380,0,230),BackgroundColor3=_C(24,20,32),BorderSizePixel=0})
 _Cr(Dlg,12)
-_St(Dlg,_PU,2)
+ThemeExtra.add("bg",Dlg,"BackgroundColor3")
+ThemeExtra.add("stroke",_St(Dlg,_PU,2),"Color")
 local DlgTitle=mk("TextLabel",Dlg,{Size=_U(1,-20,0,26),Position=_U(0,10,0,8),BackgroundTransparency=1,TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL,Text=""})
 local DlgText=mk("TextLabel",Dlg,{Size=_U(1,-20,0,80),Position=_U(0,10,0,38),BackgroundTransparency=1,TextColor3=_C(220,220,235),Font=_FN,TextSize=14,TextWrapped=true,TextXAlignment=_XL,TextYAlignment=Enum.TextYAlignment.Top,Text=""})
 local DlgBox=mk("TextBox",Dlg,{Size=_U(1,-20,0,34),Position=_U(0,10,0,122),BackgroundColor3=_C(40,35,55),TextColor3=_W,PlaceholderColor3=_C(140,140,160),Font=_FN,TextSize=14,ClearTextOnFocus=false,Text="",ClipsDescendants=true,TextXAlignment=_XL,Visible=false})
@@ -5997,9 +6002,10 @@ if #pets == 0 then
 askEmpty()
 end
 end
-local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,0,40),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
+local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,1,-52),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
 _Cr(Dock,10)
-_St(Dock,_PU,2)
+ThemeExtra.add("bg",Dock,"BackgroundColor3")
+ThemeExtra.add("stroke",_St(Dock,_PU,2),"Color")
 local DockBtn=mkBtn(Dock,"🐾 Питомцы",_C(35,30,48),_U(1,-12,1,-12),_U(0,6,0,6))
 DockBtn.TextSize=14
 DockBtn.MouseButton1Click:Connect(openPets)
@@ -6023,6 +6029,7 @@ end
 end
 do
 local entries={
+{"v2.7.18","Исправлено окно питомцев, кнопка справа снизу, цвета из настроек","• Окно питомцев теперь открывается и закрывается (был серый экран)\n• Кнопка «Питомцы» перенесена в правый нижний угол главного окна\n• Окно и кнопка питомцев красятся в цвета фона и обводки из настроек"},
 {"v2.7.17","Питомцы (ранняя бета): окно, собака, призыв, сохранение, импорт и экспорт","• Рядом с главным окном кнопка «Питомцы», открывает окно питомцев (до 20)\n• Пока доступна одна собака: имя, уровень по времени игры, призыв с дымом и камерой\n• Собака ходит и бежит за тобой, плывёт, садится, ложится и спит\n• Сохранение в файл, импорт и экспорт питомцев файлом или кодом\n• Отпустить питомца можно с предупреждениями\n• Яйца, конструктор и анимации прыжка добавятся позже\n• Камера вручную: число стадов теперь можно вписать"},
 {"v2.7.16","Шире панели, список категорий, плавный столб до 100 слоёв, зум камеры, сворачивание панелей","• Панели редактора шире, нимбы снова по три в ряд, вернулся «Переливающийся» у ауры\n• Слева категории одним списком с большой прокруткой: Нимб, Аура, Одежда (кофты, штаны, перчатки), Питомцы, Аксессуары\n• Панели можно сворачивать стрелками\n• Столб света: плавность до 100 слоёв (градиент на лентах на 3 уровне)\n• Камера вручную: кнопки + и −, от 1 до 30 стадов\n• Кольца и кружки не лагают на 1 уровне"},
 {"v2.7.15","Три уровня детализации, плавный столб света, большая полоса прокрутки, заготовки категорий","• Уровни детализации 1 (мега), 2 (средняя), 3 (обычная) работают, 4 и 5 пока серые\n• Неон на 1 уровне, меньше шариков на рогах на 1 уровне\n• Столб света: ползунок «Плавность» (слои прозрачности, от 2), без ступенек при большом числе слоёв\n• Справа большая полоса прокрутки, её можно тянуть пальцем\n• В ауре кнопки сброса для каждой настройки\n• Категории «Одежда», «Питомцы», «Аксессуары» (скоро)"},
@@ -6096,7 +6103,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.17"
+HeadTitle.Text="🎉 Новое в v2.7.18"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
