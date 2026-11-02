@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.13"
+CardTitle.Text="🎵 TILO SONG v2.7.14"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.13"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.14"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.13"
+Title.Text="🎵 TILO SONG v2.7.14"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -2383,7 +2383,7 @@ local skyById={}
 for _,preset in ipairs(skyPresets) do
 skyById[preset.id]=preset
 end
-local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil,cycle=false,chosen="normal"}
+local skyState={preset="normal",frozen=false,frozenTime=12,lock=nil,orig=nil,stash={},atmo=nil,cc=nil,cycle=false,chosen="normal",pList={},pHide=setmetatable({},{__mode="k"}),pIdx=1}
 local setSkyCycle
 local function updateSkyLock()
 local preset=skyById[skyState.preset]
@@ -2794,6 +2794,24 @@ return
 elseif item:IsA("BasePart") then
 item.Material=Enum.Material.SmoothPlastic
 item.Reflectance=0
+if item.Size.Magnitude < 6 then
+local cur=item.Parent
+local mine=false
+for _=1,4 do
+if not cur or cur == workspace then
+break
+end
+if cur:FindFirstChildOfClass("Humanoid") then
+mine=true
+break
+end
+cur=cur.Parent
+end
+if not mine then
+local list=skyState.pList
+list[#list + 1]=item
+end
+end
 if item:IsA("MeshPart") then
 pcall(function()
 item.TextureID=""
@@ -2804,9 +2822,6 @@ end
 local function startPotato()
 potatoOn=true
 Lighting.GlobalShadows=false
-pcall(function()
-settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
-end)
 for _,child in ipairs(Lighting:GetChildren()) do
 if child:IsA("PostEffect") and child ~= skyState.cc then
 child.Enabled=false
@@ -2822,6 +2837,40 @@ pcall(potatoItem,item)
 count=count + 1
 if count % 300 == 0 then
 task.wait()
+end
+end
+end)
+task.spawn(function()
+while potatoOn do
+task.wait(0.3)
+local cam=workspace.CurrentCamera
+local list=skyState.pList
+local total=#list
+if cam and total > 0 then
+local camPos=cam.CFrame.Position
+local index=skyState.pIdx
+for _=1,math.min(250,total) do
+if index > total then
+index=1
+end
+local item=list[index]
+if item and item.Parent then
+local far=(item.Position - camPos).Magnitude > 140
+if far ~= (skyState.pHide[item] == true) then
+skyState.pHide[item]=far
+item.LocalTransparencyModifier=far and 1 or 0
+end
+index=index + 1
+else
+list[index]=list[total]
+list[total]=nil
+total=total - 1
+if total < 1 then
+break
+end
+end
+end
+skyState.pIdx=index
 end
 end
 end)
@@ -2911,7 +2960,7 @@ skyPopup.Visible=false
 if potatoOn then
 showGfxDialog("Режим «Картошка» уже включён. Чтобы вернуть текстуры, перезайдите в игру.","Понятно",nil,nil)
 else
-showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты. Вернуть их можно будет только если перезайти в игру. Продолжить?","ОК","Закрыть",function()
+showGfxDialog("Режим «Картошка» уберёт текстуры и эффекты и скроет далёкие мелкие предметы. Вернуть их можно будет только если перезайти в игру. Продолжить?","ОК","Закрыть",function()
 startPotato()
 gfxRow.Text="Режим «Картошка»: включён"
 end)
@@ -3064,12 +3113,17 @@ local function defaultCfg()
 return {kind=0,glow=1,color=1,height=12,forward=0,side=0,size=100,tiltX=0,tiltZ=0,spin=0,anim=1}
 end
 local cfg=defaultCfg()
-local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8}
+local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8,hs=100}
 local manualCam=false
+local qcfg={level=3,auto=false}
+local qs={acc=0,n=0,low=0,note="",T={[1]={hseg=6,rseg=8,lines=8,rings=2,spir=10,ribMax=4,ribK=2,skip=2,glow=false},[3]={hseg=36,rseg=20,lines=28,rings=4,spir=26,ribMax=24,ribK=4,skip=1,glow=true}}}
+qs.get=function()
+return qs.T[qcfg.level] or qs.T[3]
+end
 local presets={}
 local function copyAura(source)
 local copy={}
-for key,value in pairs({kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8}) do
+for key,value in pairs({kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8,hs=100}) do
 if type(source[key]) == "number" then
 copy[key]=source[key]
 else
@@ -3107,6 +3161,14 @@ end
 if data.manual == true then
 manualCam=true
 end
+if type(data.q) == "table" then
+if data.q.level == 1 or data.q.level == 3 then
+qcfg.level=data.q.level
+end
+if data.q.auto == true then
+qcfg.auto=true
+end
+end
 if type(data.presets) == "table" then
 for _,item in ipairs(data.presets) do
 if type(item) == "table" and type(item.name) == "string" and type(item.cfg) == "table" and #presets < 20 then
@@ -3131,7 +3193,7 @@ saveQueued=true
 task.delay(1,function()
 saveQueued=false
 pcall(function()
-writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,aura=acfg,manual=manualCam,presets=presets}))
+writefile(PRESET_FILE,HttpService:JSONEncode({halo=cfg,aura=acfg,manual=manualCam,presets=presets,q=qcfg}))
 end)
 end)
 end
@@ -3213,6 +3275,8 @@ return part
 end
 local function buildHalo(kind)
 clearHalo()
+SEGMENTS=qs.get().hseg
+qs.hb=SEGMENTS
 local rings,extras,spinning,glass=kindDef(kind)
 haloSpinning=spinning
 haloGlass=glass
@@ -3250,7 +3314,7 @@ local headPart=character and character:FindFirstChild("Head")
 if not headPart then
 return
 end
-if builtKind ~= cfg.kind or not haloModel or not haloModel.Parent then
+if builtKind ~= cfg.kind or qs.hb ~= qs.get().hseg or not haloModel or not haloModel.Parent then
 buildHalo(cfg.kind)
 end
 local t=os.clock()
@@ -3279,7 +3343,7 @@ if cfg.glow == 3 then
 color=Color3.fromHSV((t * 0.25) % 1,0.75,1)
 end
 local material=Enum.Material.SmoothPlastic
-if cfg.glow ~= 1 then
+if cfg.glow ~= 1 and qs.get().glow then
 material=Enum.Material.Neon
 end
 local partAlpha=0
@@ -3334,19 +3398,42 @@ part.CFrame=cframes[index]
 end
 end
 end)
+RunService.RenderStepped:Connect(function(dt)
+if not qcfg.auto or qcfg.level <= 1 or (cfg.kind == 0 and acfg.kind == 0) then
+qs.low=0
+return
+end
+qs.acc=qs.acc + dt
+qs.n=qs.n + 1
+if qs.acc >= 1 then
+local fps=qs.n / qs.acc
+qs.acc=0
+qs.n=0
+if fps < 28 then
+qs.low=qs.low + 1
+else
+qs.low=0
+end
+if qs.low >= 3 then
+qs.low=0
+qcfg.level=1
+qs.note=" (авто)"
+if qs.refresh then
+qs.refresh()
+end
+persist()
+end
+end
+end)
 local auraParts={}
-local auraRibbons={}
 local auraModel=nil
 local auraBuilt=0
-local auraBuiltRibbons=0
-local AURA_RING_SEG=20
 local function clearAura()
 if auraModel then
 auraModel:Destroy()
 end
 auraModel=nil
 auraParts={}
-auraRibbons={}
 auraBuilt=0
 end
 local function makeAuraPart(size,shape)
@@ -3363,48 +3450,44 @@ return part
 end
 local function buildAura(kind)
 clearAura()
+local qt=qs.get()
 auraModel=_I("Model")
 auraModel.Name="TiloAura"
 auraModel.Parent=workspace.CurrentCamera
+local ribbonCount=math.min(acfg.ribbons,qt.ribMax)
 if kind == 1 then
-for i=1,12 do
-table.insert(auraParts,{part=makeAuraPart(Vector3.new(1.8,0.07,0.07),Enum.PartType.Cylinder),angle=i * 2 * math.pi / 12,radius=1.6 + (i % 3) * 0.35,offset=(i * 0.37) % 1,mode="line"})
+for i=1,qt.lines do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(1.4,0.08,0.08),Enum.PartType.Cylinder),angle=i * 2.39996,radius=1.2 + (i % 4) * 0.3,offset=(i * 0.618) % 1,len=1.2 + (i % 3) * 0.5,mode="line"})
 end
 elseif kind == 2 then
-for ringNumber=1,4 do
-for i=1,AURA_RING_SEG do
-table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.3,0.08,0.08),Enum.PartType.Cylinder),angle=(i - 1) * 2 * math.pi / AURA_RING_SEG,offset=(ringNumber - 1) / 4,mode="ring"})
+for ringNumber=1,qt.rings do
+for i=1,qt.rseg do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.3,0.12,0.12),Enum.PartType.Cylinder),angle=(i - 1) * 2 * math.pi / qt.rseg,offset=(ringNumber - 1) / qt.rings,mode="ring"})
 end
 end
 elseif kind == 3 then
 for strand=0,1 do
-for i=1,36 do
-table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.22,0.22,0.22),Enum.PartType.Ball),offset=i / 36,strand=strand,mode="spiral"})
+for i=1,qt.spir do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(0.24,0.24,0.24),Enum.PartType.Ball),u=(i - 1) / qt.spir,strand=strand,mode="spiral"})
 end
 end
 elseif kind == 4 then
-local base=makeAuraPart(Vector3.new(0.2,0.2,0.2),Enum.PartType.Block)
-table.insert(auraParts,{part=base,mode="column"})
-for i=1,acfg.ribbons do
-local a0=_I("Attachment",base)
-local a1=_I("Attachment",base)
-local beam=_I("Beam")
-beam.Attachment0=a0
-beam.Attachment1=a1
-beam.FaceCamera=true
-beam.Segments=1
-beam.Width0=1.1
-beam.Width1=1.1
-beam.LightInfluence=0
-beam.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(1,1)})
-beam.Parent=base
-table.insert(auraRibbons,{a0=a0,a1=a1,beam=beam,angle=(i - 1) * 2 * math.pi / acfg.ribbons})
+for i=1,ribbonCount do
+local a=(i - 1) * 2 * math.pi / ribbonCount
+local rot=CFrame.lookAt(Vector3.zero,Vector3.new(-math.cos(a),0,-math.sin(a)))
+for j=1,qt.ribK do
+table.insert(auraParts,{part=makeAuraPart(Vector3.new(1,1,0.06),Enum.PartType.Block),a=a,j=j,rot=rot,mode="col"})
+end
 end
 end
 auraBuilt=kind
-auraBuiltRibbons=acfg.ribbons
+qs.ab=qcfg.level
+qs.ar=ribbonCount
+qs.fo=nil
+qs.cs=nil
+qs.lc=nil
 end
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
 if acfg.kind == 0 then
 if auraBuilt ~= 0 then
 clearAura()
@@ -3416,92 +3499,121 @@ local rootPart=character and character:FindFirstChild("HumanoidRootPart")
 if not rootPart then
 return
 end
-if auraBuilt ~= acfg.kind or (acfg.kind == 4 and auraBuiltRibbons ~= acfg.ribbons) or not auraModel or not auraModel.Parent then
-buildAura(acfg.kind)
+local qt=qs.get()
+local kind=acfg.kind
+if auraBuilt ~= kind or qs.ab ~= qcfg.level or (kind == 4 and qs.ar ~= math.min(acfg.ribbons,qt.ribMax)) or not auraModel or not auraModel.Parent then
+buildAura(kind)
 end
 local t=os.clock()
 local speed=acfg.speed / 100
 local scale=acfg.size / 100
+local hs=acfg.hs / 100
 local origin=rootPart.Position + Vector3.new(0,acfg.height / 10,0)
+if not qs.fo then
+qs.fo=origin
+else
+qs.fo=qs.fo:Lerp(origin,1 - math.exp(-dt * 9))
+end
+local fo=qs.fo
+if kind ~= 4 and qt.skip > 1 then
+qs.af=(qs.af or 0) + 1
+if qs.af % qt.skip ~= 0 then
+return
+end
+end
 local color=haloColors[acfg.color] or haloColors[1]
 if acfg.glow == 3 then
 color=Color3.fromHSV((t * 0.25) % 1,0.75,1)
 end
 local material=Enum.Material.SmoothPlastic
-if acfg.glow ~= 1 then
+if acfg.glow ~= 1 and qt.glow then
 material=Enum.Material.Neon
+color=color:Lerp(_W,0.3)
 end
+if kind == 4 then
+local sig=scale * 7 + hs * 13 + qs.ar * 17 + acfg.color * 19 + acfg.glow * 23
+if acfg.glow ~= 3 and qs.cs == sig and qs.cf and (qs.cf - fo).Magnitude < 0.002 then
+return
+end
+qs.cs=sig
+qs.cf=fo
+end
+local apply=(qs.lc ~= color or qs.lm ~= material)
+qs.lc=color
+qs.lm=material
 local parts,cframes={},{}
+local ringSeg=qt.rseg
+local segCount=qt.ribK
+local radiusCol=2.2 * scale
 for index,info in ipairs(auraParts) do
 local part=info.part
 local alpha=0.2
-if info.mode == "line" then
+local mode=info.mode
+if mode == "line" then
 local rate=t * 0.4 * speed + info.offset
 local phase=rate % 1
 local cycle=math.floor(rate)
 if info.cycle ~= cycle then
 info.cycle=cycle
-info.spawn=origin
+info.spawn=fo
 end
 local radius=info.radius * scale
-cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(info.angle) * radius,-3 + 6 * phase,math.sin(info.angle) * radius)) * CFrame.Angles(0,0,math.pi / 2)
-part.Size=Vector3.new(1.8 * scale,0.07,0.07)
+cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(info.angle) * radius,-3 + 6 * hs * phase,math.sin(info.angle) * radius)) * CFrame.Angles(0,0,math.pi / 2)
+local len=info.len * (0.5 + 0.5 * hs)
+if info.sl ~= len then
+info.sl=len
+part.Size=Vector3.new(len,0.08,0.08)
+end
 alpha=0.15 + 0.85 * phase
-elseif info.mode == "ring" then
-local rate=t * 0.3 * speed + info.offset
+elseif mode == "ring" then
+local rate=t * 0.65 * speed + info.offset
 local phase=rate % 1
 local cycle=math.floor(rate)
 if info.cycle ~= cycle then
 info.cycle=cycle
-info.spawn=origin
+info.spawn=fo
 end
 local radius=(1.5 + 0.7 * phase) * scale
 local a=info.angle
-cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(a) * radius,-3 + 6 * phase,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
-part.Size=Vector3.new(2 * math.pi * radius / AURA_RING_SEG * 1.1,0.08,0.08)
+cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(a) * radius,-3 + 6 * hs * phase,math.sin(a) * radius)) * CFrame.Angles(0,-(a + math.pi / 2),0)
+local len=2 * math.pi * radius / ringSeg * 1.12
+if not info.sl or math.abs(len - info.sl) > 0.03 then
+info.sl=len
+part.Size=Vector3.new(len,0.12,0.12)
+end
 alpha=0.15 + 0.85 * phase
-elseif info.mode == "spiral" then
-local rate=t * 0.3 * speed + info.offset + info.strand * 0.5
-local phase=rate % 1
-local cycle=math.floor(rate)
-if info.cycle ~= cycle then
-info.cycle=cycle
-info.spawn=origin
-end
-local theta=t * 2 * speed + phase * 8 + info.strand * math.pi
-local radius=1.6 * scale
-cframes[index]=CFrame.new(info.spawn + Vector3.new(math.cos(theta) * radius,-3 + 6 * phase,math.sin(theta) * radius))
-local ballSize=0.22 * scale
+elseif mode == "spiral" then
+local u=(info.u + t * 0.12 * speed) % 1
+local theta=t * 2 * speed + u * 9 + info.strand * math.pi
+local radius=(1.1 + 0.6 * math.sin(u * math.pi)) * scale
+cframes[index]=CFrame.new(fo + Vector3.new(math.cos(theta) * radius,-3 + 6 * hs * u,math.sin(theta) * radius))
+if info.sk ~= scale then
+info.sk=scale
+local ballSize=0.24 * scale
 part.Size=Vector3.new(ballSize,ballSize,ballSize)
-alpha=0.15 + 0.8 * phase
+end
+local edge=math.abs(u - 0.5) * 2
+alpha=0.1 + 0.9 * edge * edge
 else
-cframes[index]=CFrame.new(origin)
-alpha=1
-local radius=2.2 * scale
-local emission=0
-if acfg.glow ~= 1 then
-emission=1
+local segH=10 * hs / segCount
+local y=-4.5 + (info.j - 0.5) * segH
+cframes[index]=CFrame.new(fo + Vector3.new(math.cos(info.a) * radiusCol,y,math.sin(info.a) * radiusCol)) * info.rot
+local sizeKey=scale * 100 + hs * 31 + qs.ar
+if info.sk ~= sizeKey then
+info.sk=sizeKey
+part.Size=Vector3.new(math.max(0.5,2 * math.pi * radiusCol / qs.ar * 1.12),segH + 0.02,0.06)
 end
-for _,ribbon in ipairs(auraRibbons) do
-local cosA=math.cos(ribbon.angle) * radius
-local sinA=math.sin(ribbon.angle) * radius
-ribbon.a0.Position=Vector3.new(cosA,-3,sinA)
-ribbon.a1.Position=Vector3.new(cosA,2.5,sinA)
-if ribbon.colorKey ~= color then
-ribbon.colorKey=color
-ribbon.beam.Color=ColorSequence.new(color)
-end
-ribbon.beam.LightEmission=emission
-end
+alpha=0.35 + 0.62 * ((info.j - 1) / math.max(1,segCount - 1)) ^ 1.3
 end
 parts[index]=part
-if part.Color ~= color then
+if apply then
 part.Color=color
-end
-if part.Material ~= material then
 part.Material=material
 end
+if not info.al or math.abs(info.al - alpha) > 0.02 then
+info.al=alpha
 part.Transparency=alpha
+end
 end
 local moved=pcall(function()
 workspace:BulkMoveTo(parts,cframes,Enum.BulkMoveMode.FireCFrameChanged)
@@ -3550,7 +3662,7 @@ CloseBtn.TextColor3=_W
 CloseBtn.Font=_FB
 CloseBtn.TextSize=20
 _Cr(CloseBtn,10)
-local LeftPanel=makePanel(0,10,190,0.7,"Категории")
+local LeftPanel=makePanel(0,10,190,0.8,"Категории")
 local RightPanel=makePanel(1,-10,250,0.8,"Настройки")
 local RightScroll=_I("ScrollingFrame",RightPanel)
 RightScroll.Size=_U(1,-16,1,-40)
@@ -3631,7 +3743,7 @@ end
 local function makeEditorSlider(title,minV,maxV,startV,fmt,onChange)
 local row=_I("Frame",currentPage)
 row.LayoutOrder=nextOrder()
-row.Size=_U(1,0,0,52)
+row.Size=_U(1,0,0,66)
 row.BackgroundTransparency=1
 local label=_I("TextLabel",row)
 label.Size=_U(1,0,0,20)
@@ -3641,13 +3753,13 @@ label.Font=_FB
 label.TextSize=12
 label.TextXAlignment=_XL
 local hit=_I("Frame",row)
-hit.Size=_U(1,-10,0,26)
-hit.Position=_U(0,5,0,22)
+hit.Size=_U(1,0,0,44)
+hit.Position=_U(0,0,0,20)
 hit.BackgroundTransparency=1
 hit.Active=true
 local track=_I("Frame",hit)
-track.Size=_U(1,0,0,6)
-track.Position=_U(0,0,0.5,-3)
+track.Size=_U(1,-16,0,6)
+track.Position=_U(0,8,0.5,-3)
 track.BackgroundColor3=_C(40,35,55)
 track.BorderSizePixel=0
 _Cr(track,3)
@@ -3657,7 +3769,7 @@ fill.BorderSizePixel=0
 _Cr(fill,3)
 local knob=_I("Frame",track)
 knob.AnchorPoint=Vector2.new(0.5,0.5)
-knob.Size=_U(0,16,0,16)
+knob.Size=_U(0,22,0,22)
 knob.BackgroundColor3=COLOR_WHITE
 knob.BorderSizePixel=0
 _Cr(knob).CornerRadius=_V(1,0)
@@ -3993,6 +4105,7 @@ auraSetters.size(acfg.size,true)
 auraSetters.height(acfg.height,true)
 auraSetters.speed(acfg.speed,true)
 auraSetters.ribbons(acfg.ribbons,true)
+auraSetters.hs(acfg.hs,true)
 end
 end
 sectionLabel("Вид ауры")
@@ -4056,10 +4169,16 @@ end,function(v)
 acfg.ribbons=v
 persist()
 end)
+auraSetters.hs=makeEditorSlider("Масштаб по высоте",40,300,acfg.hs,function(v)
+return v .. "%"
+end,function(v)
+acfg.hs=v
+persist()
+end)
 sectionLabel("Сброс")
 local auraResetGrid=makeGrid(228,34)
 makeOption(auraResetGrid,1,"Сбросить настройки ауры",function()
-acfg.glow,acfg.color,acfg.size,acfg.height,acfg.speed,acfg.ribbons=1,1,100,0,100,8
+acfg.glow,acfg.color,acfg.size,acfg.height,acfg.speed,acfg.ribbons,acfg.hs=1,1,100,0,100,8,100
 refreshAuraUi()
 persist()
 end)
@@ -4345,8 +4464,8 @@ ConfirmNo.MouseButton1Click:Connect(function()
 ConfirmFrame.Visible=false
 end)
 local PresetsBtn=_I("TextButton",LeftPanel)
-PresetsBtn.Size=_U(1,-20,0,42)
-PresetsBtn.Position=_U(0,10,1,-52)
+PresetsBtn.Size=_U(1,-20,0,34)
+PresetsBtn.Position=_U(0,10,1,-138)
 PresetsBtn.BackgroundColor3=_C(0,120,90)
 PresetsBtn.Text="Пресеты"
 PresetsBtn.TextColor3=_W
@@ -4356,9 +4475,89 @@ _Cr(PresetsBtn,8)
 PresetsBtn.MouseButton1Click:Connect(function()
 PresetPopup.Visible=not PresetPopup.Visible
 end)
+do
+local QualTitle=_I("TextLabel",LeftPanel)
+QualTitle.Size=_U(1,-20,0,14)
+QualTitle.Position=_U(0,10,1,-98)
+QualTitle.BackgroundTransparency=1
+QualTitle.Text="Уровни детализации"
+QualTitle.TextColor3=_C(200,160,255)
+QualTitle.Font=_FB
+QualTitle.TextSize=12
+QualTitle.TextXAlignment=_XL
+local QualName=_I("TextLabel",LeftPanel)
+QualName.Size=_U(1,-20,0,14)
+QualName.Position=_U(0,10,1,-50)
+QualName.BackgroundTransparency=1
+QualName.TextColor3=_C(220,220,240)
+QualName.Font=_FN
+QualName.TextSize=12
+QualName.TextXAlignment=_XL
+local AutoBtn=_I("TextButton",LeftPanel)
+AutoBtn.Size=_U(1,-20,0,24)
+AutoBtn.Position=_U(0,10,1,-32)
+AutoBtn.AutoButtonColor=false
+AutoBtn.TextColor3=_W
+AutoBtn.Font=_FB
+AutoBtn.TextSize=13
+_Cr(AutoBtn,6)
+local qualBtns={}
+local qualNames={"Мега-оптимизация","Лёгкая","Обычная","Красивая","Ультра"}
+for k=1,5 do
+local sq=_I("TextButton",LeftPanel)
+sq.Size=_U(0,28,0,26)
+sq.Position=_U(0,10 + (k - 1) * 35,1,-80)
+sq.AutoButtonColor=false
+sq.Text=tostring(k)
+sq.TextColor3=_W
+sq.Font=_FB
+sq.TextSize=14
+_Cr(sq,6)
+qualBtns[k]=sq
+sq.MouseButton1Click:Connect(function()
+if qs.T[k] then
+qcfg.level=k
+qs.note=""
+qs.refresh()
+persist()
+else
+qs.tok=(qs.tok or 0) + 1
+local mine=qs.tok
+QualName.Text="Будет в следующей версии"
+task.delay(2,function()
+if qs.tok == mine then
+qs.refresh()
+end
+end)
+end
+end)
+end
+qs.refresh=function()
+for k,sq in ipairs(qualBtns) do
+if qs.T[k] then
+sq.BackgroundColor3=(k == qcfg.level) and _PU or _C(35,30,48)
+sq.TextTransparency=0
+else
+sq.BackgroundColor3=_C(55,55,62)
+sq.TextTransparency=0.55
+end
+end
+QualName.Text="Сейчас: " .. qualNames[qcfg.level] .. qs.note
+AutoBtn.Text=qcfg.auto and "Авто по FPS: вкл" or "Авто по FPS: выкл"
+AutoBtn.BackgroundColor3=qcfg.auto and COLOR_GREEN or _C(35,30,48)
+end
+AutoBtn.MouseButton1Click:Connect(function()
+qcfg.auto=not qcfg.auto
+qs.low=0
+qs.note=""
+qs.refresh()
+persist()
+end)
+end
 selectCategory(nil)
 refreshUi()
 refreshAuraUi()
+qs.refresh()
 local controlsModule=nil
 pcall(function()
 local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
@@ -4624,6 +4823,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.14","Уровни детализации, столб света лицом к игроку, новая спираль, оптимизация","• Слева в редакторе: уровни детализации («Мега-оптимизация» и «Обычная») и режим «Авто» по FPS\n• Столб света: ленты широкой стороной к игроку, без щелей, выше и ниже, ползунок «Масштаб по высоте» для всех аур\n• Больше линий, кольца быстрее, новая спираль, неоновые кольца светятся\n• Ползунки в редакторе с большей зоной нажатия\n• «Картошка» не ставит минимальное качество, скрывает только далёкие мелкие предметы"},
 {"v2.7.13","Ленточный столб света, аура не привязана к игроку, «Убрать всё» с вопросом","• Аура возникает у ног и остаётся на месте, пока не растает\n• Столб света из светящихся лент (3-24), не лагает\n• «Убрать всё» теперь вверху рядом с крестиком, с вопросом\n• Камера вручную запоминается"},
 {"v2.7.12","Аура отстаёт при беге, новый столб света, «Убрать всё», пресеты с аурой","• Любая аура чуть отстаёт назад, когда ты бежишь\n• Столб света виден и от первого лица, прозрачнее к голове\n• Кнопка «Убрать всё» в редакторе\n• Пресеты запоминают и нимб, и ауру"},
 {"v2.7.11","Аура (первый шаг), корона с 6 выступами, загрузка не блокирует управление","• Новая категория «Аура»: линии, кольца, спираль, столб света\n• Свечение, 10 цветов, размер, высота и скорость ауры\n• Корона «Доминус» с 6 выступами\n• Экран загрузки больше не блокирует управление"},
@@ -4693,7 +4893,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.13"
+HeadTitle.Text="🎉 Новое в v2.7.14"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
