@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.15"
+CardTitle.Text="🎵 TILO SONG v2.7.16"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.15"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.16"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.15"
+Title.Text="🎵 TILO SONG v2.7.16"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -3116,9 +3116,16 @@ local cfg=defaultCfg()
 local acfg={kind=0,glow=1,color=1,size=100,height=0,speed=100,ribbons=8,hs=100,fade=4}
 local manualCam=false
 local qcfg={level=3,auto=false}
-local qs={acc=0,n=0,low=0,note="",T={[1]={hseg=6,rseg=8,lines=8,rings=2,spir=10,ribMax=4,segMax=4,skip=2,horn=3},[2]={hseg=16,rseg=12,lines=16,rings=3,spir=18,ribMax=12,segMax=8,skip=1,horn=2},[3]={hseg=36,rseg=20,lines=28,rings=4,spir=26,ribMax=24,segMax=16,skip=1,horn=1}}}
+local qs={acc=0,n=0,low=0,note="",T={[1]={hseg=6,rseg=8,lines=8,rings=2,spir=10,ribMax=4,segMax=4,skip=1,horn=3,grad=false},[2]={hseg=16,rseg=12,lines=16,rings=3,spir=18,ribMax=12,segMax=8,skip=1,horn=2,grad=false},[3]={hseg=36,rseg=20,lines=28,rings=4,spir=26,ribMax=24,segMax=100,skip=1,horn=1,grad=true}}}
 qs.get=function()
 return qs.T[qcfg.level] or qs.T[3]
+end
+qs.segs=function()
+local q=qs.get()
+if q.grad then
+return 1
+end
+return math.min(acfg.fade,q.segMax)
 end
 local presets={}
 local function copyAura(source)
@@ -3458,6 +3465,30 @@ part.Size=size
 part.Parent=auraModel
 return part
 end
+qs.grad=function(n)
+local points={}
+if n <= 10 then
+for i=0,n - 1 do
+local value=(n - 1 - i) / (n - 1)
+local t1=(i + 1) / n - 0.0005
+if i == n - 1 then
+t1=1
+end
+points[#points + 1]=NumberSequenceKeypoint.new(i / n,value)
+points[#points + 1]=NumberSequenceKeypoint.new(t1,value)
+end
+else
+points={NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}
+end
+local seq=NumberSequence.new(points)
+for _,info in ipairs(auraParts) do
+if info.grads then
+for _,gr in ipairs(info.grads) do
+gr.Transparency=seq
+end
+end
+end
+end
 local function buildAura(kind)
 clearAura()
 local qt=qs.get()
@@ -3465,7 +3496,7 @@ auraModel=_I("Model")
 auraModel.Name="TiloAura"
 auraModel.Parent=workspace.CurrentCamera
 local ribbonCount=math.min(acfg.ribbons,qt.ribMax)
-local segTotal=math.min(acfg.fade,qt.segMax)
+local segTotal=qs.segs()
 if kind == 1 then
 for i=1,qt.lines do
 table.insert(auraParts,{part=makeAuraPart(Vector3.new(1.4,0.08,0.08),Enum.PartType.Cylinder),angle=i * 2.39996,radius=1.2 + (i % 4) * 0.3,offset=(i * 0.618) % 1,len=1.2 + (i % 3) * 0.5,mode="line"})
@@ -3486,8 +3517,31 @@ elseif kind == 4 then
 for i=1,ribbonCount do
 local a=(i - 1) * 2 * math.pi / ribbonCount
 local rot=CFrame.lookAt(Vector3.zero,Vector3.new(-math.cos(a),0,-math.sin(a)))
+if qt.grad then
+local gp=makeAuraPart(Vector3.new(1,1,0.06),Enum.PartType.Block)
+gp.Transparency=1
+local frames,grads,guis={},{},{}
+for _,face in ipairs({Enum.NormalId.Front,Enum.NormalId.Back}) do
+local sg=_I("SurfaceGui")
+sg.Face=face
+sg.LightInfluence=0
+sg.AlwaysOnTop=false
+sg.Parent=gp
+local fr=_I("Frame",sg)
+fr.Size=_U(1,0,1,0)
+fr.BorderSizePixel=0
+fr.BackgroundColor3=_W
+local gr=_I("UIGradient",fr)
+gr.Rotation=90
+table.insert(frames,fr)
+table.insert(grads,gr)
+table.insert(guis,sg)
+end
+table.insert(auraParts,{part=gp,a=a,rot=rot,mode="colg",frames=frames,grads=grads,guis=guis})
+else
 for j=1,segTotal do
 table.insert(auraParts,{part=makeAuraPart(Vector3.new(1,1,0.06),Enum.PartType.Block),a=a,j=j,rot=rot,mode="col"})
+end
 end
 end
 end
@@ -3495,6 +3549,11 @@ auraBuilt=kind
 qs.ab=qcfg.level
 qs.ar=ribbonCount
 qs.sg=segTotal
+qs.lb=nil
+qs.gf=acfg.fade
+if qt.grad then
+qs.grad(acfg.fade)
+end
 qs.fo=nil
 qs.cs=nil
 qs.lc=nil
@@ -3513,7 +3572,7 @@ return
 end
 local qt=qs.get()
 local kind=acfg.kind
-if auraBuilt ~= kind or qs.ab ~= qcfg.level or (kind == 4 and (qs.ar ~= math.min(acfg.ribbons,qt.ribMax) or qs.sg ~= math.min(acfg.fade,qt.segMax))) or not auraModel or not auraModel.Parent then
+if auraBuilt ~= kind or qs.ab ~= qcfg.level or (kind == 4 and (qs.ar ~= math.min(acfg.ribbons,qt.ribMax) or qs.sg ~= qs.segs())) or not auraModel or not auraModel.Parent then
 buildAura(kind)
 end
 local t=os.clock()
@@ -3543,6 +3602,10 @@ material=Enum.Material.Neon
 color=color:Lerp(_W,0.3)
 end
 if kind == 4 then
+if qt.grad and qs.gf ~= acfg.fade then
+qs.gf=acfg.fade
+qs.grad(acfg.fade)
+end
 local sig=scale * 7 + hs * 13 + qs.ar * 17 + acfg.color * 19 + acfg.glow * 23 + qs.sg * 29
 if acfg.glow ~= 3 and qs.cs == sig and qs.cf and (qs.cf - fo).Magnitude < 0.002 then
 return
@@ -3551,6 +3614,8 @@ qs.cs=sig
 qs.cf=fo
 end
 local apply=(qs.lc ~= color or qs.lm ~= material)
+local bright=(acfg.glow ~= 1) and 3 or 1
+local brightChanged=(qs.lb ~= bright)
 qs.lc=color
 qs.lm=material
 local parts,cframes={},{}
@@ -3606,6 +3671,27 @@ part.Size=Vector3.new(ballSize,ballSize,ballSize)
 end
 local edge=math.abs(u - 0.5) * 2
 alpha=0.1 + 0.9 * edge * edge
+elseif mode == "colg" then
+local total=10 * hs
+cframes[index]=CFrame.new(fo + Vector3.new(math.cos(info.a) * radiusCol,-4.5 + total / 2,math.sin(info.a) * radiusCol)) * info.rot
+local sizeKey=scale * 100 + hs * 31 + qs.ar
+if info.sk ~= sizeKey then
+info.sk=sizeKey
+part.Size=Vector3.new(math.max(0.5,2 * math.pi * radiusCol / qs.ar * 1.12),total,0.06)
+end
+alpha=1
+if apply then
+for _,fr in ipairs(info.frames) do
+fr.BackgroundColor3=color
+end
+end
+if brightChanged then
+for _,sg in ipairs(info.guis) do
+pcall(function()
+sg.Brightness=bright
+end)
+end
+end
 else
 local segH=10 * hs / segCount
 local y=-4.5 + (info.j - 0.5) * segH
@@ -3627,6 +3713,7 @@ info.al=alpha
 part.Transparency=alpha
 end
 end
+qs.lb=bright
 local moved=pcall(function()
 workspace:BulkMoveTo(parts,cframes,Enum.BulkMoveMode.FireCFrameChanged)
 end)
@@ -3674,8 +3761,8 @@ CloseBtn.TextColor3=_W
 CloseBtn.Font=_FB
 CloseBtn.TextSize=20
 _Cr(CloseBtn,10)
-local LeftPanel=makePanel(0,10,190,0.8,"Категории")
-local RightPanel=makePanel(1,-10,250,0.8,"Настройки")
+local LeftPanel=makePanel(0,10,210,0.8,"Категории")
+local RightPanel=makePanel(1,-10,280,0.8,"Настройки")
 local RightScroll=_I("ScrollingFrame",RightPanel)
 RightScroll.Size=_U(1,-16,1,-40)
 RightScroll.Position=_U(0,8,0,34)
@@ -3687,12 +3774,11 @@ RightScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
 local RightLayout=_I("UIListLayout",RightScroll)
 RightLayout.SortOrder=Enum.SortOrder.LayoutOrder
 RightLayout.Padding=_V(0,6)
-do
-RightScroll.ScrollBarThickness=0
-RightScroll.Size=_U(1,-44,1,-40)
-local SbTrack=_I("Frame",RightPanel)
-SbTrack.Position=_U(1,-32,0,34)
-SbTrack.Size=_U(0,26,1,-40)
+qs.sbar=function(scroll,panel,top,bottom)
+scroll.ScrollBarThickness=0
+local SbTrack=_I("Frame",panel)
+SbTrack.Position=_U(1,-32,0,top)
+SbTrack.Size=_U(0,26,1,-(top + bottom))
 SbTrack.BackgroundColor3=_C(40,35,55)
 SbTrack.BorderSizePixel=0
 SbTrack.Active=true
@@ -3706,8 +3792,8 @@ local sbDrag=false
 local sbStartY=0
 local sbStartCanvas=0
 local function sbUpdate()
-local canvas=RightScroll.AbsoluteCanvasSize.Y
-local window=RightScroll.AbsoluteWindowSize.Y
+local canvas=scroll.AbsoluteCanvasSize.Y
+local window=scroll.AbsoluteWindowSize.Y
 local trackH=SbTrack.AbsoluteSize.Y
 if canvas <= window + 1 or trackH <= 0 then
 SbThumb.Visible=false
@@ -3715,29 +3801,29 @@ return
 end
 SbThumb.Visible=true
 local thumbH=math.max(60,trackH * window / canvas)
-local ratio=RightScroll.CanvasPosition.Y / (canvas - window)
+local ratio=scroll.CanvasPosition.Y / (canvas - window)
 SbThumb.Size=_U(1,0,0,thumbH)
 SbThumb.Position=_U(0,0,0,math.clamp(ratio,0,1) * (trackH - thumbH))
 end
-RightScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(sbUpdate)
-RightScroll:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(sbUpdate)
-RightScroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(sbUpdate)
+scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(sbUpdate)
+scroll:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(sbUpdate)
+scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(sbUpdate)
 SbTrack:GetPropertyChangedSignal("AbsoluteSize"):Connect(sbUpdate)
 SbTrack.InputBegan:Connect(function(input)
 if input.UserInputType == _M1 or input.UserInputType == _TT then
 sbDrag=true
 sbStartY=input.Position.Y
-sbStartCanvas=RightScroll.CanvasPosition.Y
+sbStartCanvas=scroll.CanvasPosition.Y
 end
 end)
 UserInputService.InputChanged:Connect(function(input)
 if sbDrag and (input.UserInputType == _MM or input.UserInputType == _TT) then
-local canvas=RightScroll.AbsoluteCanvasSize.Y
-local window=RightScroll.AbsoluteWindowSize.Y
+local canvas=scroll.AbsoluteCanvasSize.Y
+local window=scroll.AbsoluteWindowSize.Y
 local free=SbTrack.AbsoluteSize.Y - SbThumb.AbsoluteSize.Y
 if free > 0 and canvas > window then
 local target=sbStartCanvas + (input.Position.Y - sbStartY) * (canvas - window) / free
-RightScroll.CanvasPosition=Vector2.new(0,math.clamp(target,0,canvas - window))
+scroll.CanvasPosition=Vector2.new(0,math.clamp(target,0,canvas - window))
 end
 end
 end)
@@ -3748,6 +3834,8 @@ end
 end)
 task.defer(sbUpdate)
 end
+RightScroll.Size=_U(1,-44,1,-40)
+qs.sbar(RightScroll,RightPanel,34,6)
 local HintLabel=_I("TextLabel",RightScroll)
 HintLabel.LayoutOrder=1
 HintLabel.Size=_U(1,-6,0,0)
@@ -4249,7 +4337,7 @@ end,function(v)
 acfg.hs=v
 persist()
 end)
-auraSetters.fade=makeEditorSlider("Плавность столба (слои)",2,16,acfg.fade,function(v)
+auraSetters.fade=makeEditorSlider("Плавность столба (слои)",2,100,acfg.fade,function(v)
 return v .. " (макс. " .. qs.get().segMax .. ")"
 end,function(v)
 acfg.fade=v
@@ -4459,6 +4547,8 @@ aura=""
 local focusKey="full"
 local categoryButtons={}
 local function selectCategory(key)
+qs.zd=nil
+qs.zv=nil
 if key == nil or key == focusKey then
 focusKey="full"
 else
@@ -4475,16 +4565,15 @@ end
 do
 local CatScroll=_I("ScrollingFrame",LeftPanel)
 CatScroll.Position=_U(0,8,0,32)
-CatScroll.Size=_U(1,-16,1,-176)
+CatScroll.Size=_U(1,-48,1,-178)
 CatScroll.BackgroundTransparency=1
 CatScroll.BorderSizePixel=0
-CatScroll.ScrollBarThickness=6
 CatScroll.CanvasSize=_U(0,0,0,0)
 CatScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
-local CatGrid=_I("UIGridLayout",CatScroll)
-CatGrid.CellSize=_U(0,80,0,34)
-CatGrid.CellPadding=_U(0,6,0,6)
-CatGrid.SortOrder=Enum.SortOrder.LayoutOrder
+local CatList=_I("UIListLayout",CatScroll)
+CatList.SortOrder=Enum.SortOrder.LayoutOrder
+CatList.Padding=_V(0,6)
+qs.sbar(CatScroll,LeftPanel,32,146)
 local SoonBar=_I("TextLabel",Root)
 SoonBar.AnchorPoint=Vector2.new(0.5,0)
 SoonBar.Size=_U(0,280,0,40)
@@ -4508,9 +4597,10 @@ TweenService:Create(SoonBar,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.Easing
 end
 end)
 end
-for index,cat in ipairs({{"head","👼 Нимб",true},{"aura","✨ Аура",true},{"suit","👕 Одежда",false},{"pet","🐾 Питомцы",false},{"acc","💍 Аксессуары",false}}) do
+for index,cat in ipairs({{"head","👼 Нимб",true},{"aura","✨ Аура",true},{"suit1","👕 Одежда (кофты)",false},{"suit2","👖 Одежда (штаны)",false},{"suit3","🧤 Одежда (перчатки)",false},{"pet","🐾 Питомцы",false},{"acc","💍 Аксессуары",false}}) do
 local catBtn=_I("TextButton",CatScroll)
 catBtn.LayoutOrder=index
+catBtn.Size=_U(1,-4,0,38)
 catBtn.BackgroundColor3=cat[3] and _C(35,30,48) or _C(55,55,62)
 catBtn.AutoButtonColor=false
 catBtn.Text=cat[2]
@@ -4519,7 +4609,7 @@ catBtn.TextTransparency=cat[3] and 0 or 0.45
 catBtn.Font=_FB
 catBtn.TextScaled=true
 local catLimit=_I("UITextSizeConstraint",catBtn)
-catLimit.MaxTextSize=14
+catLimit.MaxTextSize=15
 catLimit.MinTextSize=7
 _Cr(catBtn,8)
 if cat[3] then
@@ -4638,8 +4728,8 @@ local qualBtns={}
 local qualNames={"Мега-оптимизация","Средняя","Обычная","Детальная","Ультра"}
 for k=1,5 do
 local sq=_I("TextButton",LeftPanel)
-sq.Size=_U(0,28,0,26)
-sq.Position=_U(0,10 + (k - 1) * 35,1,-80)
+sq.Size=_U(0,32,0,26)
+sq.Position=_U(0,10 + (k - 1) * 39,1,-80)
 sq.AutoButtonColor=false
 sq.Text=tostring(k)
 sq.TextColor3=_W
@@ -4691,6 +4781,42 @@ qs.refresh()
 persist()
 end)
 end
+do
+local LTog=_I("TextButton",Root)
+LTog.Size=_U(0,26,0,44)
+LTog.Position=_U(0,220,0,58)
+LTog.BackgroundColor3=_C(35,30,48)
+LTog.Text="◀"
+LTog.TextColor3=_W
+LTog.Font=_FB
+LTog.TextSize=16
+_Cr(LTog,8)
+local RTog=_I("TextButton",Root)
+RTog.AnchorPoint=Vector2.new(1,0)
+RTog.Size=_U(0,26,0,44)
+RTog.Position=_U(1,-290,0,58)
+RTog.BackgroundColor3=_C(35,30,48)
+RTog.Text="▶"
+RTog.TextColor3=_W
+RTog.Font=_FB
+RTog.TextSize=16
+_Cr(RTog,8)
+local lOpen=true
+local rOpen=true
+local tw=TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+LTog.MouseButton1Click:Connect(function()
+lOpen=not lOpen
+TweenService:Create(LeftPanel,tw,{Position=lOpen and _U(0,10,0,58) or _U(0,-220,0,58)}):Play()
+TweenService:Create(LTog,tw,{Position=lOpen and _U(0,220,0,58) or _U(0,0,0,58)}):Play()
+LTog.Text=lOpen and "◀" or "▶"
+end)
+RTog.MouseButton1Click:Connect(function()
+rOpen=not rOpen
+TweenService:Create(RightPanel,tw,{Position=rOpen and _U(1,-10,0,58) or _U(1,290,0,58)}):Play()
+TweenService:Create(RTog,tw,{Position=rOpen and _U(1,-290,0,58) or _U(1,0,0,58)}):Play()
+RTog.Text=rOpen and "▶" or "◀"
+end)
+end
 selectCategory(nil)
 refreshUi()
 refreshAuraUi()
@@ -4719,6 +4845,51 @@ CamBtn.TextColor3=_W
 CamBtn.Font=_FB
 CamBtn.TextSize=15
 _Cr(CamBtn,10)
+do
+local zrow=_I("Frame",Root)
+zrow.AnchorPoint=Vector2.new(1,0)
+zrow.Position=_U(1,-188,0,10)
+zrow.Size=_U(0,214,0,38)
+zrow.BackgroundTransparency=1
+zrow.Visible=false
+local zm=_I("TextButton",zrow)
+zm.Size=_U(0,38,0,38)
+zm.BackgroundColor3=_C(35,30,48)
+zm.Text="-"
+zm.TextColor3=_W
+zm.Font=_FB
+zm.TextSize=24
+_Cr(zm,10)
+local zp=_I("TextButton",zrow)
+zp.Size=_U(0,38,0,38)
+zp.Position=_U(1,-38,0,0)
+zp.BackgroundColor3=_C(35,30,48)
+zp.Text="+"
+zp.TextColor3=_W
+zp.Font=_FB
+zp.TextSize=24
+_Cr(zp,10)
+local zl=_I("TextLabel",zrow)
+zl.Position=_U(0,42,0,0)
+zl.Size=_U(0,130,1,0)
+zl.BackgroundColor3=_C(18,15,22)
+zl.BackgroundTransparency=0.2
+zl.TextColor3=_W
+zl.Font=_FB
+zl.TextSize=13
+zl.Text=""
+_Cr(zl,10)
+qs.zrow=zrow
+qs.zlab=zl
+zm.MouseButton1Click:Connect(function()
+local goal=goals[focusKey]
+qs.zd=math.clamp((qs.zd or goal.dist) - 1,1,30)
+end)
+zp.MouseButton1Click:Connect(function()
+local goal=goals[focusKey]
+qs.zd=math.clamp((qs.zd or goal.dist) + 1,1,30)
+end)
+end
 local function setManualCam(on)
 manualCam=on
 if on then
@@ -4726,10 +4897,14 @@ local goal=goals[focusKey]
 pitchAng=math.atan2(goal.height,goal.dist)
 CamBtn.Text="Камера: вручную"
 CamBtn.BackgroundColor3=_PU
+qs.zrow.Visible=true
 else
 CamBtn.Text="Камера: авто"
 CamBtn.BackgroundColor3=_C(35,30,48)
+qs.zrow.Visible=false
 end
+qs.zd=nil
+qs.zv=nil
 end
 CamBtn.MouseButton1Click:Connect(function()
 setManualCam(not manualCam)
@@ -4933,7 +5108,13 @@ end
 local targetPos=basePos + goal.offset
 local camPos
 if manualCam then
-camPos=targetPos + goal.dist * Vector3.new(math.sin(angle) * math.cos(pitchAng),math.sin(pitchAng),math.cos(angle) * math.cos(pitchAng))
+local useDist=qs.zd or goal.dist
+local zv=math.floor(useDist + 0.5)
+if qs.zv ~= zv then
+qs.zv=zv
+qs.zlab.Text=zv .. " стад от игрока"
+end
+camPos=targetPos + useDist * Vector3.new(math.sin(angle) * math.cos(pitchAng),math.sin(pitchAng),math.cos(angle) * math.cos(pitchAng))
 else
 angle=angle + dt * 0.6
 camPos=targetPos + Vector3.new(math.sin(angle) * goal.dist,goal.height,math.cos(angle) * goal.dist)
@@ -4960,6 +5141,7 @@ warn("Tilo editor: " .. tostring(editorErr))
 end
 do
 local entries={
+{"v2.7.16","Шире панели, список категорий, плавный столб до 100 слоёв, зум камеры, сворачивание панелей","• Панели редактора шире, нимбы снова по три в ряд, вернулся «Переливающийся» у ауры\n• Слева категории одним списком с большой прокруткой: Нимб, Аура, Одежда (кофты, штаны, перчатки), Питомцы, Аксессуары\n• Панели можно сворачивать стрелками\n• Столб света: плавность до 100 слоёв (градиент на лентах на 3 уровне)\n• Камера вручную: кнопки + и −, от 1 до 30 стадов\n• Кольца и кружки не лагают на 1 уровне"},
 {"v2.7.15","Три уровня детализации, плавный столб света, большая полоса прокрутки, заготовки категорий","• Уровни детализации 1 (мега), 2 (средняя), 3 (обычная) работают, 4 и 5 пока серые\n• Неон на 1 уровне, меньше шариков на рогах на 1 уровне\n• Столб света: ползунок «Плавность» (слои прозрачности, от 2), без ступенек при большом числе слоёв\n• Справа большая полоса прокрутки, её можно тянуть пальцем\n• В ауре кнопки сброса для каждой настройки\n• Категории «Одежда», «Питомцы», «Аксессуары» (скоро)"},
 {"v2.7.14","Уровни детализации, столб света лицом к игроку, новая спираль, оптимизация","• Слева в редакторе: уровни детализации («Мега-оптимизация» и «Обычная») и режим «Авто» по FPS\n• Столб света: ленты широкой стороной к игроку, без щелей, выше и ниже, ползунок «Масштаб по высоте» для всех аур\n• Больше линий, кольца быстрее, новая спираль, неоновые кольца светятся\n• Ползунки в редакторе с большей зоной нажатия\n• «Картошка» не ставит минимальное качество, скрывает только далёкие мелкие предметы"},
 {"v2.7.13","Ленточный столб света, аура не привязана к игроку, «Убрать всё» с вопросом","• Аура возникает у ног и остаётся на месте, пока не растает\n• Столб света из светящихся лент (3-24), не лагает\n• «Убрать всё» теперь вверху рядом с крестиком, с вопросом\n• Камера вручную запоминается"},
@@ -5031,7 +5213,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.15"
+HeadTitle.Text="🎉 Новое в v2.7.16"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
