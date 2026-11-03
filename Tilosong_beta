@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.19"
+CardTitle.Text="🎵 TILO SONG v2.7.20"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.19"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.20"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.19"
+Title.Text="🎵 TILO SONG v2.7.20"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -4597,7 +4597,7 @@ TweenService:Create(SoonBar,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.Easing
 end
 end)
 end
-for index,cat in ipairs({{"head","👼 Нимб",true},{"aura","✨ Аура",true},{"suit1","👕 Одежда (кофты)",false},{"suit2","👖 Одежда (штаны)",false},{"suit3","🧤 Одежда (перчатки)",false},{"pet","🐾 Питомцы",false},{"acc","💍 Аксессуары",false}}) do
+for index,cat in ipairs({{"head","👼 Нимб",true},{"aura","✨ Аура",true},{"suit1","👕 Одежда (кофты)",false},{"suit2","👖 Одежда (штаны)",false},{"suit3","🧤 Одежда (перчатки)",false},{"acc","💍 Аксессуары",false}}) do
 local catBtn=_I("TextButton",CatScroll)
 catBtn.LayoutOrder=index
 catBtn.Size=_U(1,-4,0,38)
@@ -5156,8 +5156,9 @@ local MAXPETS=20
 local PET_FILE="TiloSong_Pets.json"
 local filesOk=writefile ~= nil and readfile ~= nil and isfile ~= nil
 local SCALE=0.85
-local SIDE={br=Vector3.new(2.4,0,2.6),bl=Vector3.new(-2.4,0,2.6),r=Vector3.new(3,0,0.3),l=Vector3.new(-3,0,0.3)}
-local SIDENAME={br="сзади справа",bl="сзади слева",r="справа",l="слева"}
+local SIDE={br=Vector3.new(2.4,0,2.6),bl=Vector3.new(-2.4,0,2.6)}
+local SIDENAME={br="сзади справа",bl="сзади слева"}
+local sett={side="br"}
 local pets={}
 local active=nil
 local selectedId=nil
@@ -5221,14 +5222,14 @@ name=name:sub(1,utf8.offset(name,17) - 1)
 end
 local play=math.clamp(tonumber(p.play) or 0,0,10000000)
 local born=tonumber(p.born) or os.time()
-local side=tostring(p.side or "br")
-if not SIDE[side] then
-side="br"
+local color=tostring(p.color or "")
+if not color:match("^%x%x%x%x%x%x$") then
+color="CD965A"
 end
-return {id=newId(),name=name,kind="dog",play=play,born=born,side=side}
+return {id=newId(),name=name,kind="dog",play=play,born=born,color=color,locked=p.locked == true}
 end
 local function packPet(p)
-return {name=p.name,kind=p.kind,play=p.play,born=p.born,side=p.side}
+return {name=p.name,kind=p.kind,play=p.play,born=p.born,color=p.color,locked=p.locked}
 end
 local function saveAll()
 if not filesOk then
@@ -5239,13 +5240,16 @@ local list={}
 for _,p in ipairs(pets) do
 list[#list + 1]=packPet(p)
 end
-writefile(PET_FILE,HttpService:JSONEncode({v=1,pets=list}))
+writefile(PET_FILE,HttpService:JSONEncode({v=1,side=sett.side,pets=list}))
 end)
 end
 pcall(function()
 if filesOk and isfile(PET_FILE) then
 local data=HttpService:JSONDecode(readfile(PET_FILE))
 if type(data) == "table" and type(data.pets) == "table" then
+if data.side == "br" or data.side == "bl" then
+sett.side=data.side
+end
 for _,p in ipairs(data.pets) do
 local clean=cleanPet(p)
 if clean and #pets < MAXPETS then
@@ -5300,6 +5304,28 @@ P.earL=mkPart(m,"earL",Vector3.new(0.25,0.45,0.2),dark)
 P.earR=mkPart(m,"earR",Vector3.new(0.25,0.45,0.2),dark)
 P.tail=mkPart(m,"tail",Vector3.new(0.25,0.25,0.7),lt)
 return d
+end
+local function colorFrom(hex)
+return Color3.fromRGB(tonumber(hex:sub(1,2),16),tonumber(hex:sub(3,4),16),tonumber(hex:sub(5,6),16))
+end
+local function paintDog(d,hex)
+if type(hex) ~= "string" or not hex:match("^%x%x%x%x%x%x$") then
+hex="CD965A"
+end
+local c=colorFrom(hex)
+local P=d.p
+P.body.Color=c
+P.head.Color=c
+local lt=c:Lerp(Color3.new(0,0,0),0.1)
+P.fl.Color=lt
+P.fr.Color=lt
+P.bl.Color=lt
+P.br.Color=lt
+P.tail.Color=lt
+local dk=c:Lerp(Color3.new(0,0,0),0.35)
+P.earL.Color=dk
+P.earR.Color=dk
+P.snout.Color=c:Lerp(Color3.new(1,1,1),0.55)
 end
 local STAND={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,wag=0,eyes=true}
 local function poseDog(d,root,pose)
@@ -5365,6 +5391,7 @@ if pSpeed > 2 then
 a.heading=a.heading + angDiff(a.heading,math.atan2(-vel.X,-vel.Z)) * math.min(1,dt * 3)
 end
 local hs=hum:GetState()
+local dead=hum.Health <= 0 or hs == Enum.HumanoidStateType.Dead
 local swimming=hs == Enum.HumanoidStateType.Swimming
 local inAir=(hs == Enum.HumanoidStateType.Jumping or hs == Enum.HumanoidStateType.Freefall) and not swimming
 if inAir then
@@ -5384,8 +5411,13 @@ a.peakH=math.max(a.peakH,h)
 local vy=-vel.Y
 tLand=(vy + math.sqrt(vy * vy + 2 * workspace.Gravity * h)) / workspace.Gravity
 end
-local off=SIDE[a.pet.side or "br"] or SIDE.br
-local goal=root.Position + CFrame.Angles(0,a.heading,0):VectorToWorldSpace(off)
+local off=SIDE[sett.side] or SIDE.br
+local goal
+if dead then
+goal=root.Position + Vector3.new(1.8,0,1.2)
+else
+goal=root.Position + CFrame.Angles(0,a.heading,0):VectorToWorldSpace(off)
+end
 local flat=Vector3.new(goal.X - a.pos.X,0,goal.Z - a.pos.Z)
 local dist=flat.Magnitude
 if dist > 80 then
@@ -5416,7 +5448,7 @@ local want=math.atan2(-toP.X,-toP.Z)
 a.yaw=a.yaw + angDiff(a.yaw,want) * math.min(1,dt * 4)
 end
 end
-local resting=(not a.moving) and pSpeed < 1 and not swimming and not airMode
+local resting=(not a.moving) and pSpeed < 1 and not swimming and not airMode and not dead
 if resting then
 a.idleT=a.idleT + dt
 else
@@ -5424,7 +5456,9 @@ a.idleT=0
 end
 a.phase=a.phase + v * dt * 2.4
 local state="stand"
-if swimming then
+if dead then
+state="sad"
+elseif swimming then
 state="swim"
 elseif airMode then
 state="air"
@@ -5482,7 +5516,7 @@ local spinning=false
 if tLand > 1.2 then
 spinning=true
 a.spinRate=14
-elseif vel.Y < -5 and a.peakH > 12 and not a.spun then
+elseif vel.Y < -5 and a.peakH > 8 and not a.spun then
 a.spun=true
 a.spinLeft=0.5
 end
@@ -5513,6 +5547,16 @@ tgt.br=-0.55
 tgt.head=-0.15
 end
 wag=math.sin(now * 6) * 0.3
+elseif state == "sad" then
+tgt.pitch=0.4
+tgt.bodyY=1.0 * S
+tgt.fl=-0.4
+tgt.fr=-0.4
+tgt.bl=1.4
+tgt.br=1.4
+tgt.head=-0.7
+tgt.tail=-1.3
+eyes=false
 elseif state == "sit" then
 tgt.pitch=0.6
 tgt.bodyY=1.0 * S
@@ -5597,10 +5641,18 @@ pz.eyes=eyes
 local rootCF=CFrame.new(a.pos.X,a.gy + c.bodyY + hop,a.pos.Z) * CFrame.Angles(0,a.yaw,0) * CFrame.Angles(c.pitch,0,0)
 poseDog(a.dog,rootCF,pz)
 local sleeping=(state == "sleep" and a.look <= 0)
-a.zbb.Enabled=sleeping
+local sad=state == "sad"
+local wantTxt=sad and "😢" or "Z"
+if a.zlab.Text ~= wantTxt then
+a.zlab.Text=wantTxt
+end
+a.zbb.Enabled=sleeping or sad
 if sleeping then
 a.zbb.StudsOffset=Vector3.new(0.2,1.2 + (now % 2) * 0.35,0)
 a.zlab.TextTransparency=(now % 2) / 2
+elseif sad then
+a.zbb.StudsOffset=Vector3.new(0.2,1.3 + math.sin(now * 3) * 0.1,0)
+a.zlab.TextTransparency=0
 end
 a.lt=a.lt + dt
 if a.lt > 0.5 then
@@ -5621,6 +5673,7 @@ end
 local function spawnPet(pet,pos,char)
 local root0=char:FindFirstChild("HumanoidRootPart").CFrame
 local dog=makeDog(workspace.CurrentCamera)
+paintDog(dog,pet.color)
 local bb=mk("BillboardGui",dog.p.head,{Size=_U(0,150,0,46),StudsOffset=Vector3.new(0,1.7,0),AlwaysOnTop=false,MaxDistance=70})
 mk("TextLabel",bb,{Size=_U(1,0,0,20),BackgroundTransparency=1,Text=pet.name,TextColor3=_W,Font=_FB,TextSize=17,TextStrokeTransparency=0.3})
 local lvLbl=mk("TextLabel",bb,{Position=_U(0,0,0,20),Size=_U(1,0,0,14),BackgroundTransparency=1,Text="",TextColor3=_C(200,255,200),Font=_FB,TextSize=12,TextStrokeTransparency=0.4})
@@ -5733,7 +5786,7 @@ game:GetService("Debris"):AddItem(smokePart,2.5)
 end)
 end
 local PetsRoot=mk("Frame",ScreenGui,{Name="TiloPets",Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.4,BorderSizePixel=0,Active=true,Visible=false,ZIndex=5})
-local Panel=mk("Frame",PetsRoot,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0.92,0,0.88,0),BackgroundColor3=_C(18,15,22),BorderSizePixel=0,Active=true})
+local Panel=mk("Frame",PetsRoot,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0.92,0,0.88,0),BackgroundColor3=_C(18,15,22),BorderSizePixel=0,Active=true,ZIndex=7})
 _Cr(Panel,12)
 ThemeExtra.add("bg",Panel,"BackgroundColor3")
 ThemeExtra.add("stroke",_St(Panel,_PU,2),"Color")
@@ -5742,12 +5795,13 @@ mk("TextLabel",Panel,{Size=_U(0,200,0,30),Position=_U(0,12,0,6),BackgroundTransp
 local PXBtn=mkBtn(Panel,"X",_C(200,50,60),_U(0,34,0,30),_U(1,-44,0,6))
 local PImportBtn=mkBtn(Panel,"Импорт",_C(35,30,48),_U(0,76,0,30),_U(1,-126,0,6))
 local PExportAllBtn=mkBtn(Panel,"Экспорт всех",_C(35,30,48),_U(0,100,0,30),_U(1,-232,0,6))
-local ListScroll=mk("ScrollingFrame",Panel,{Position=_U(0,10,0,44),Size=_U(0,200,1,-128),BackgroundColor3=_C(26,22,36),BorderSizePixel=0,ScrollBarThickness=10,CanvasSize=_U(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
+local ListScroll=mk("ScrollingFrame",Panel,{Position=_U(0,10,0,44),Size=_U(0,200,1,-162),BackgroundColor3=_C(26,22,36),BorderSizePixel=0,ScrollBarThickness=10,CanvasSize=_U(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
 _Cr(ListScroll,8)
 mk("UIListLayout",ListScroll,{Padding=_V(0,4),SortOrder=Enum.SortOrder.LayoutOrder})
 mk("UIPadding",ListScroll,{PaddingTop=_V(0,4),PaddingLeft=_V(0,4),PaddingRight=_V(0,4)})
-local CountLabel=mk("TextLabel",Panel,{Size=_U(0,200,0,16),Position=_U(0,10,1,-80),BackgroundTransparency=1,TextColor3=_C(200,160,255),Font=_FB,TextSize=12,TextXAlignment=_XL,Text=""})
+local CountLabel=mk("TextLabel",Panel,{Size=_U(0,150,0,18),Position=_U(0,120,0,12),BackgroundTransparency=1,TextColor3=_C(200,160,255),Font=_FB,TextSize=12,TextXAlignment=_XL,Text=""})
 local GetBtn=mkBtn(Panel,"➕ Получить питомца / яйцо",_C(0,150,80),_U(0,200,0,34),_U(0,10,1,-62))
+local SideBtn=mkBtn(Panel,"",_C(35,30,48),_U(0,200,0,28),_U(0,10,1,-96))
 mk("TextLabel",Panel,{Size=_U(1,-20,0,18),Position=_U(0,10,1,-24),BackgroundTransparency=1,TextColor3=_C(255,200,50),Font=_FN,TextSize=11,TextXAlignment=_XL,Text="⚠ Очень ранняя бета питомцев: функций мало, багов может быть много"})
 local Detail=mk("Frame",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-128),BackgroundTransparency=1,Visible=false})
 local Preview=mk("ViewportFrame",Detail,{Size=_U(0,170,0,150),BackgroundColor3=_C(28,25,38),BorderSizePixel=0,Ambient=_C(190,190,190),LightColor=_C(255,255,255)})
@@ -5756,7 +5810,8 @@ local pvCam=mk("Camera",Preview,{FieldOfView=45})
 Preview.CurrentCamera=pvCam
 local pvDog=makeDog(Preview)
 pvCam.CFrame=CFrame.lookAt(Vector3.new(3.2,2.4,3.8),Vector3.new(0,1.1,0))
-local NameLbl=mk("TextLabel",Detail,{Position=_U(0,180,0,0),Size=_U(1,-180,0,26),BackgroundTransparency=1,TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL,TextTruncate=Enum.TextTruncate.AtEnd,Text=""})
+local LockBtn=mkBtn(Detail,"🔓",_C(35,30,48),_U(0,32,0,26),_U(1,-34,0,0))
+local NameLbl=mk("TextLabel",Detail,{Position=_U(0,180,0,0),Size=_U(1,-216,0,26),BackgroundTransparency=1,TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL,TextTruncate=Enum.TextTruncate.AtEnd,Text=""})
 local InfoLbl=mk("TextLabel",Detail,{Position=_U(0,180,0,28),Size=_U(1,-180,0,40),BackgroundTransparency=1,TextColor3=_C(200,200,220),Font=_FN,TextSize=13,TextWrapped=true,TextXAlignment=_XL,TextYAlignment=Enum.TextYAlignment.Top,Text=""})
 local BtnGrid=mk("Frame",Detail,{Position=_U(0,180,0,72),Size=_U(1,-180,0,116),BackgroundTransparency=1})
 mk("UIGridLayout",BtnGrid,{CellSize=_U(0.5,-3,0,32),CellPadding=_U(0,6,0,4),SortOrder=Enum.SortOrder.LayoutOrder})
@@ -5768,10 +5823,25 @@ local FileBtn=mkBtn(BtnGrid,"Экспорт файлом",_C(35,30,48),_U(0,10,0
 FileBtn.LayoutOrder=3
 local FreeBtn=mkBtn(BtnGrid,"Отпустить навсегда",_C(190,40,50),_U(0,10,0,10),nil)
 FreeBtn.LayoutOrder=5
-local SideBtn=mkBtn(BtnGrid,"Сторона",_C(35,30,48),_U(0,10,0,10),nil)
-SideBtn.LayoutOrder=4
+local ColorBtn=mkBtn(BtnGrid,"Покрасить",_C(35,30,48),_U(0,10,0,10),nil)
+ColorBtn.LayoutOrder=4
 local EmptyLbl=mk("TextLabel",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-128),BackgroundTransparency=1,TextColor3=_C(160,160,180),Font=_FN,TextSize=14,TextWrapped=true,Text="Выберите питомца слева",Visible=true})
 local DlgDim=mk("Frame",PetsRoot,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.35,BorderSizePixel=0,Active=true,Visible=false,ZIndex=20})
+local Backdrop=mk("TextButton",PetsRoot,{Size=_U(1,0,1,0),BackgroundTransparency=1,Text="",AutoButtonColor=false,ZIndex=6})
+mk("TextLabel",PetsRoot,{AnchorPoint=Vector2.new(0.5,1),Position=_U(0.5,0,1,-2),Size=_U(1,0,0,16),BackgroundTransparency=1,Text="Чтобы закрыть меню, нажмите два раза на серый экран",TextColor3=_C(200,200,210),Font=_FN,TextSize=12,ZIndex=7})
+local lastTap=0
+Backdrop.MouseButton1Click:Connect(function()
+if DlgDim.Visible then
+return
+end
+local now=os.clock()
+if now - lastTap < 0.45 then
+lastTap=0
+closePets()
+else
+lastTap=now
+end
+end)
 local Dlg=mk("Frame",DlgDim,{AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0,380,0,230),BackgroundColor3=_C(24,20,32),BorderSizePixel=0})
 _Cr(Dlg,12)
 ThemeExtra.add("bg",Dlg,"BackgroundColor3")
@@ -5780,6 +5850,7 @@ local DlgTitle=mk("TextLabel",Dlg,{Size=_U(1,-20,0,26),Position=_U(0,10,0,8),Bac
 local DlgText=mk("TextLabel",Dlg,{Size=_U(1,-20,0,80),Position=_U(0,10,0,38),BackgroundTransparency=1,TextColor3=_C(220,220,235),Font=_FN,TextSize=14,TextWrapped=true,TextXAlignment=_XL,TextYAlignment=Enum.TextYAlignment.Top,Text=""})
 local DlgBox=mk("TextBox",Dlg,{Size=_U(1,-20,0,34),Position=_U(0,10,0,122),BackgroundColor3=_C(40,35,55),TextColor3=_W,PlaceholderColor3=_C(140,140,160),Font=_FN,TextSize=14,ClearTextOnFocus=false,Text="",ClipsDescendants=true,TextXAlignment=_XL,Visible=false})
 _Cr(DlgBox,6)
+ThemeExtra.add("stroke",_St(DlgBox,_PU,2),"Color")
 DlgBox.InputBegan:Connect(function(input)
 if input.UserInputType == _TT or input.UserInputType == _M1 then
 DlgBox:CaptureFocus()
@@ -5804,6 +5875,7 @@ DlgTitle.Text=cfg.title or ""
 DlgText.Text=cfg.text or ""
 DlgBox.Visible=cfg.input ~= nil
 Dlg.Size=_U(0,380,0,cfg.input ~= nil and 230 or 190)
+DlgBox.ClearTextOnFocus=cfg.clear == true
 if cfg.input ~= nil then
 DlgBox.Text=cfg.input
 DlgBox.PlaceholderText=cfg.hint or ""
@@ -5863,11 +5935,14 @@ local p=selectedId and getPet(selectedId)
 Detail.Visible=p ~= nil
 EmptyLbl.Visible=p == nil
 CountLabel.Text="Питомцев: " .. #pets .. " из " .. MAXPETS
+SideBtn.Text="Сторона питомца: " .. SIDENAME[sett.side]
 if p then
 NameLbl.Text=p.name
 local lvl,frac=levelInfo(p.play)
 InfoLbl.Text="Уровень " .. lvl .. " (" .. math.floor(frac * 100) .. "%)\nВ игре: " .. math.floor(p.play / 60) .. " мин"
-SideBtn.Text="Сторона: " .. SIDENAME[p.side or "br"]
+LockBtn.Text=p.locked and "🔒" or "🔓"
+FreeBtn.TextTransparency=p.locked and 0.55 or 0
+paintDog(pvDog,p.color)
 SummonBtn.Text=(active and active.pet == p) and "Убрать питомца" or "Призвать"
 end
 end
@@ -5879,7 +5954,7 @@ end
 end
 for index,p in ipairs(pets) do
 local isSel=p.id == selectedId
-local b=mkBtn(ListScroll,p.name .. "  (ур. " .. levelOf(p) .. ")" .. ((active and active.pet == p) and "  ★" or ""),isSel and _PU or _C(40,35,55),_U(1,-8,0,38),nil)
+local b=mkBtn(ListScroll,p.name .. "  (ур. " .. levelOf(p) .. ")" .. ((active and active.pet == p) and "  ★" or "") .. (p.locked and "  🔒" or ""),isSel and _PU or _C(40,35,55),_U(1,-8,0,38),nil)
 b.LayoutOrder=index
 b.MouseButton1Click:Connect(function()
 selectedId=p.id
@@ -5892,6 +5967,10 @@ end
 closePets=function()
 PetsRoot.Visible=false
 DlgDim.Visible=false
+local pkf=PetsRoot:FindFirstChild("PetPicker")
+if pkf then
+pkf.Visible=false
+end
 saveAll()
 if mainWasVisible then
 MainFrame.Visible=true
@@ -5910,7 +5989,7 @@ refreshList()
 popup("Питомец создан: " .. clean.name)
 end
 local function askCreate()
-openDialog({title="Новый питомец",text="Пока в этой версии доступна только собака. Введите имя питомца:",input="Собака",hint="Имя (до 16 символов)",buttons={{text="Создать питомца",color=_C(0,150,80),fn=function(text)
+openDialog({title="Новый питомец",text="Пока в этой версии доступна только собака.\nИмя питомца:",input="Собака",hint="Пишите тут имя питомца",clear=true,buttons={{text="Создать питомца",color=_C(0,150,80),fn=function(text)
 createPet(text)
 end},{text="Закрыть"}}})
 end
@@ -6044,6 +6123,164 @@ end)
 end
 openDialog({title="Импорт питомца",text="Вставьте код питомца или впишите имя файла из папки workspace вашего executor'а." .. found,input="",hint="Код или имя файла",buttons={{text="Импорт",color=_C(0,150,80),fn=importText},{text="Отмена"}}})
 end
+local GuiService=game:GetService("GuiService")
+local Picker=mk("Frame",PetsRoot,{Name="PetPicker",AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0.5,0,0.5,0),Size=_U(0,460,0,300),BackgroundColor3=_C(24,20,32),BorderSizePixel=0,Active=true,Visible=false,ZIndex=25})
+_Cr(Picker,12)
+ThemeExtra.add("bg",Picker,"BackgroundColor3")
+ThemeExtra.add("stroke",_St(Picker,_PU,2),"Color")
+mk("TextLabel",Picker,{Size=_U(1,-20,0,24),Position=_U(0,10,0,6),BackgroundTransparency=1,Text="Цвет питомца",TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL})
+local SV=mk("Frame",Picker,{Position=_U(0,10,0,36),Size=_U(0,190,0,150),BackgroundColor3=_C(255,0,0),BorderSizePixel=0,Active=true})
+local svW=mk("Frame",SV,{Size=_U(1,0,1,0),BackgroundColor3=_C(255,255,255),BorderSizePixel=0})
+mk("UIGradient",svW,{Transparency=NumberSequence.new(0,1)})
+local svB=mk("Frame",SV,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BorderSizePixel=0})
+mk("UIGradient",svB,{Rotation=90,Transparency=NumberSequence.new(1,0)})
+local svMark=mk("Frame",SV,{Size=_U(0,14,0,14),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,BorderSizePixel=0})
+_Cr(svMark,7)
+_St(svMark,_C(255,255,255),2)
+local HB=mk("Frame",Picker,{Position=_U(0,10,0,194),Size=_U(0,190,0,22),BackgroundColor3=_C(255,255,255),BorderSizePixel=0,Active=true})
+local hueKeys={}
+for i=0,6 do
+hueKeys[#hueKeys + 1]=ColorSequenceKeypoint.new(i / 6,Color3.fromHSV(i / 6,1,1))
+end
+mk("UIGradient",HB,{Color=ColorSequence.new(hueKeys)})
+local hbMark=mk("Frame",HB,{Size=_U(0,6,1,6),AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0,0,0.5,0),BackgroundColor3=_C(255,255,255),BorderSizePixel=0})
+_St(hbMark,_C(0,0,0),1)
+local Sw=mk("Frame",Picker,{Position=_U(0,210,0,36),Size=_U(0,60,0,32),BackgroundColor3=_C(205,150,90),BorderSizePixel=0})
+_Cr(Sw,6)
+local HexBox=mk("TextBox",Picker,{Position=_U(0,278,0,36),Size=_U(0,110,0,32),BackgroundColor3=_C(40,35,55),TextColor3=_W,PlaceholderText="Код цвета",PlaceholderColor3=_C(140,140,160),Font=_FN,TextSize=14,ClearTextOnFocus=false,Text="CD965A"})
+_Cr(HexBox,6)
+ThemeExtra.add("stroke",_St(HexBox,_PU,2),"Color")
+local pk={h=0,s=1,v=1,pet=nil,drag=nil,orig="CD965A"}
+local function hexOf(h,s,v)
+local c=Color3.fromHSV(h,s,v)
+return string.format("%02X%02X%02X",math.floor(c.R * 255 + 0.5),math.floor(c.G * 255 + 0.5),math.floor(c.B * 255 + 0.5))
+end
+local function pkUpdate(fromHex)
+SV.BackgroundColor3=Color3.fromHSV(pk.h,1,1)
+svMark.Position=_U(pk.s,0,1 - pk.v,0)
+hbMark.Position=_U(pk.h,0,0.5,0)
+Sw.BackgroundColor3=Color3.fromHSV(pk.h,pk.s,pk.v)
+local hex=hexOf(pk.h,pk.s,pk.v)
+if not fromHex then
+HexBox.Text=hex
+end
+paintDog(pvDog,hex)
+end
+local function insetRatio(input,obj)
+local inset=ScreenGui.IgnoreGuiInset and Vector2.new(0,0) or GuiService:GetGuiInset()
+local pos=Vector2.new(input.Position.X,input.Position.Y) - inset - obj.AbsolutePosition
+return math.clamp(pos.X / obj.AbsoluteSize.X,0,1),math.clamp(pos.Y / obj.AbsoluteSize.Y,0,1)
+end
+local function pkDrag(input)
+if pk.drag == "sv" then
+local rx,ry=insetRatio(input,SV)
+pk.s=rx
+pk.v=1 - ry
+pkUpdate(false)
+elseif pk.drag == "hue" then
+local rx=insetRatio(input,HB)
+pk.h=math.min(rx,0.999)
+pkUpdate(false)
+end
+end
+SV.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+pk.drag="sv"
+pkDrag(input)
+end
+end)
+HB.InputBegan:Connect(function(input)
+if input.UserInputType == _M1 or input.UserInputType == _TT then
+pk.drag="hue"
+pkDrag(input)
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if pk.drag and (input.UserInputType == _MM or input.UserInputType == _TT) then
+pkDrag(input)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if pk.drag and (input.UserInputType == _M1 or input.UserInputType == _TT) then
+pk.drag=nil
+end
+end)
+HexBox.FocusLost:Connect(function()
+local hex=(HexBox.Text:gsub("#",""))
+if hex:match("^%x%x%x%x%x%x$") then
+local h,s,v=colorFrom(hex):ToHSV()
+pk.h=math.min(h,0.999)
+pk.s=s
+pk.v=v
+pkUpdate(true)
+else
+pkUpdate(false)
+end
+end)
+local palette={}
+for index=1,40 do
+local col=(index - 1) % 10
+local row=math.floor((index - 1) / 10)
+local c
+if row == 0 then
+c=Color3.fromHSV(col / 10,1,1)
+elseif row == 1 then
+c=Color3.fromHSV(col / 10,0.5,1)
+elseif row == 2 then
+c=Color3.fromHSV(col / 10,1,0.6)
+else
+c=Color3.fromHSV(col / 10,0.7,0.8)
+end
+palette[#palette + 1]=c
+end
+for _,c in ipairs({_C(255,255,255),_C(200,200,200),_C(130,130,130),_C(60,60,60),_C(15,15,15),_C(205,150,90),_C(140,95,55),_C(90,60,35),_C(240,220,180),_C(150,75,40)}) do
+palette[#palette + 1]=c
+end
+for index,c in ipairs(palette) do
+local col=(index - 1) % 10
+local row=math.floor((index - 1) / 10)
+local cell=mk("TextButton",Picker,{Position=_U(0,210 + col * 24,0,80 + row * 24),Size=_U(0,22,0,22),BackgroundColor3=c,Text="",AutoButtonColor=false,BorderSizePixel=0})
+_Cr(cell,4)
+cell.MouseButton1Click:Connect(function()
+local h,s,v=c:ToHSV()
+pk.h=math.min(h,0.999)
+pk.s=s
+pk.v=v
+pkUpdate(false)
+end)
+end
+local PkDone=mkBtn(Picker,"Готово",_C(0,150,80),_U(0,200,0,34),_U(0,10,1,-44))
+local PkCancel=mkBtn(Picker,"Отмена",_C(60,50,90),_U(0,200,0,34),_U(0,230,1,-44))
+PkDone.MouseButton1Click:Connect(function()
+local p=pk.pet
+if p then
+p.color=hexOf(pk.h,pk.s,pk.v)
+saveAll()
+if active and active.pet == p then
+paintDog(active.dog,p.color)
+end
+end
+Picker.Visible=false
+refreshDetail()
+end)
+PkCancel.MouseButton1Click:Connect(function()
+paintDog(pvDog,pk.orig)
+Picker.Visible=false
+end)
+ColorBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if not p then
+return
+end
+pk.pet=p
+pk.orig=p.color or "CD965A"
+local h,s,v=colorFrom(pk.orig):ToHSV()
+pk.h=math.min(h,0.999)
+pk.s=s
+pk.v=v
+Picker.Visible=true
+pkUpdate(false)
+end)
 PetsRoot:GetPropertyChangedSignal("Visible"):Connect(function()
 if PetsRoot.Visible then
 refreshList()
@@ -6109,19 +6346,25 @@ end)
 FreeBtn.MouseButton1Click:Connect(function()
 local p=selectedId and getPet(selectedId)
 if p then
+if p.locked then
+popup("Питомец защищён замком. Нажмите на замок, чтобы открыть")
+else
 askDelete(p)
+end
 end
 end)
 SideBtn.MouseButton1Click:Connect(function()
-local p=selectedId and getPet(selectedId)
-if not p then
-return
-end
-local order={"br","bl","r","l"}
-local idx=table.find(order,p.side or "br") or 1
-p.side=order[idx % 4 + 1]
+sett.side=(sett.side == "br") and "bl" or "br"
 saveAll()
 refreshDetail()
+end)
+LockBtn.MouseButton1Click:Connect(function()
+local p=selectedId and getPet(selectedId)
+if p then
+p.locked=not p.locked
+saveAll()
+refreshList()
+end
 end)
 PImportBtn.MouseButton1Click:Connect(askImport)
 GetBtn.MouseButton1Click:Connect(askNew)
@@ -6170,6 +6413,7 @@ end
 end
 do
 local entries={
+{"v2.7.20","Покраска и замок питомцев, общая сторона, грусть, двойное нажатие для закрытия","• Покраска питомца: оттенок, яркость, код цвета и палитра из 50 цветов\n• Замок рядом с именем: пока закрыт, питомца нельзя удалить\n• Сторона питомца общая для всех: сзади справа или слева\n• Окно питомцев закрывается двойным нажатием на серый фон\n• Питомец грустит и подходит, когда вы умираете\n• Падение с высоты: вращение по кругу\n• Поле имени питомца с обводкой и подсказкой\n• В редакторе убрана лишняя кнопка «Питомцы»"},
 {"v2.7.19","Уровни питомца, табличка, сторона, моргание, прыжок и падение","• Над питомцем табличка: имя, уровень и процент до следующего\n• Уровни: 1-й за минуту, каждый следующий в 1,25 раза дольше, потолок 2 часа\n• Питомец не бегает, когда вы только крутите камеру\n• Выбор стороны питомца: сзади справа или слева, справа, слева\n• Моргание и почёсывание уха в покое\n• Прыжок и падение: подпрыгивает с вами, вращается при высоком падении\n• Имя питомца теперь вводится в окне создания"},
 {"v2.7.18","Исправлено окно питомцев, кнопка справа снизу, цвета из настроек","• Окно питомцев теперь открывается и закрывается (был серый экран)\n• Кнопка «Питомцы» перенесена в правый нижний угол главного окна\n• Окно и кнопка питомцев красятся в цвета фона и обводки из настроек"},
 {"v2.7.17","Питомцы (ранняя бета): окно, собака, призыв, сохранение, импорт и экспорт","• Рядом с главным окном кнопка «Питомцы», открывает окно питомцев (до 20)\n• Пока доступна одна собака: имя, уровень по времени игры, призыв с дымом и камерой\n• Собака ходит и бежит за тобой, плывёт, садится, ложится и спит\n• Сохранение в файл, импорт и экспорт питомцев файлом или кодом\n• Отпустить питомца можно с предупреждениями\n• Яйца, конструктор и анимации прыжка добавятся позже\n• Камера вручную: число стадов теперь можно вписать"},
@@ -6245,7 +6489,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.19"
+HeadTitle.Text="🎉 Новое в v2.7.20"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
