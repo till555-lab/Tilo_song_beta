@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.20"
+CardTitle.Text="🎵 TILO SONG v2.7.21"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.20"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.21"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.20"
+Title.Text="🎵 TILO SONG v2.7.21"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -5150,7 +5150,9 @@ if not editorOk then
 warn("Tilo editor: " .. tostring(editorErr))
 end
 do
-local petsOk,petsErr=pcall(function()
+pcall(function()
+local src=[===[
+local ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast=...
 local RunService=game:GetService("RunService")
 local MAXPETS=20
 local PET_FILE="TiloSong_Pets.json"
@@ -5658,6 +5660,10 @@ a.lt=a.lt + dt
 if a.lt > 0.5 then
 a.lt=0
 local lvl,frac=levelInfo(a.pet.play)
+if lvl > a.lastLvl then
+a.lastLvl=lvl
+showToast("🎉 «" .. a.pet.name .. "» достиг уровня " .. lvl .. "!",4,false)
+end
 a.lvLbl.Text="Ур. " .. lvl .. " • " .. math.floor(frac * 100) .. "%"
 a.fill.Size=_U(frac,0,1,0)
 end
@@ -5691,7 +5697,7 @@ params.FilterDescendantsInstances={char,dog.model,workspace.CurrentCamera}
 local root=char:FindFirstChild("HumanoidRootPart")
 local toP=root.Position - pos
 local yaw=math.atan2(-toP.X,-toP.Z)
-active={pet=pet,dog=dog,pos=pos,gy=pos.Y,yaw=yaw,moving=false,idleT=0,phase=0,state="stand",look=0,wake=20,sT=os.clock(),char=char,params=params,zbb=zbb,zlab=zlab,lvLbl=lvLbl,fill=fill,lt=0,heading=ry,blinkUntil=0,nextBlink=os.clock() + 3,nextScr=os.clock() + 10,scr=0,airFor=0,peakH=0,spun=false,spinLeft=0,spinRate=0,spinNow=false,pz={fl=0,fr=0,bl=0,br=0,head=0,roll=0,tail=-0.5,wag=0,eyes=true},cur={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,bodyY=1.3 * SCALE,pitch=0,roll=0}}
+active={pet=pet,dog=dog,pos=pos,gy=pos.Y,yaw=yaw,moving=false,idleT=0,phase=0,state="stand",look=0,wake=20,sT=os.clock(),char=char,params=params,zbb=zbb,zlab=zlab,lvLbl=lvLbl,fill=fill,lt=0,lastLvl=lvl0,heading=ry,blinkUntil=0,nextBlink=os.clock() + 3,nextScr=os.clock() + 10,scr=0,airFor=0,peakH=0,spun=false,spinLeft=0,spinRate=0,spinNow=false,pz={fl=0,fr=0,bl=0,br=0,head=0,roll=0,tail=-0.5,wag=0,eyes=true},cur={fl=0,fr=0,bl=0,br=0,head=0,tail=-0.5,bodyY=1.3 * SCALE,pitch=0,roll=0}}
 end
 local Hint=mk("TextLabel",ScreenGui,{Name="TiloPetHint",AnchorPoint=Vector2.new(0.5,0),Position=_U(0.5,0,0,14),Size=_U(0,380,0,28),BackgroundColor3=_C(18,15,22),BackgroundTransparency=0.2,Text="Чтобы пропустить, подвигайтесь или нажмите на экран",TextColor3=_W,Font=_FB,TextSize=13,Visible=false,ZIndex=40})
 _Cr(Hint,8)
@@ -6406,13 +6412,24 @@ saveAll()
 end
 end
 end)
-end)
-if not petsOk then
-warn("Tilo pets: " .. tostring(petsErr))
+
+]===]
+local fn,cerr=loadstring(src)
+if not fn then
+warn("Tilo pets compile: " .. tostring(cerr))
+pcall(showToast,"Питомцы: ошибка компиляции: " .. tostring(cerr),9,true)
+return
 end
+local ok,err=pcall(fn,ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast)
+if not ok then
+warn("Tilo pets: " .. tostring(err))
+pcall(showToast,"Питомцы: ошибка: " .. tostring(err),9,true)
+end
+end)
 end
 do
 local entries={
+{"v2.7.21","Защита запуска: питомцы грузятся отдельно","• Модуль питомцев загружается отдельно: если в нём ошибка, скрипт всё равно запускается, а текст ошибки показывается плашкой\n• Уведомление, когда питомец получает новый уровень\n• Остальное как в 2.7.20"},
 {"v2.7.20","Покраска и замок питомцев, общая сторона, грусть, двойное нажатие для закрытия","• Покраска питомца: оттенок, яркость, код цвета и палитра из 50 цветов\n• Замок рядом с именем: пока закрыт, питомца нельзя удалить\n• Сторона питомца общая для всех: сзади справа или слева\n• Окно питомцев закрывается двойным нажатием на серый фон\n• Питомец грустит и подходит, когда вы умираете\n• Падение с высоты: вращение по кругу\n• Поле имени питомца с обводкой и подсказкой\n• В редакторе убрана лишняя кнопка «Питомцы»"},
 {"v2.7.19","Уровни питомца, табличка, сторона, моргание, прыжок и падение","• Над питомцем табличка: имя, уровень и процент до следующего\n• Уровни: 1-й за минуту, каждый следующий в 1,25 раза дольше, потолок 2 часа\n• Питомец не бегает, когда вы только крутите камеру\n• Выбор стороны питомца: сзади справа или слева, справа, слева\n• Моргание и почёсывание уха в покое\n• Прыжок и падение: подпрыгивает с вами, вращается при высоком падении\n• Имя питомца теперь вводится в окне создания"},
 {"v2.7.18","Исправлено окно питомцев, кнопка справа снизу, цвета из настроек","• Окно питомцев теперь открывается и закрывается (был серый экран)\n• Кнопка «Питомцы» перенесена в правый нижний угол главного окна\n• Окно и кнопка питомцев красятся в цвета фона и обводки из настроек"},
@@ -6489,7 +6506,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.20"
+HeadTitle.Text="🎉 Новое в v2.7.21"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
