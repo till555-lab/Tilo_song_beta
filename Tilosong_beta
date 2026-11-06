@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.22"
+CardTitle.Text="🎵 TILO SONG v2.7.23"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.22"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.23"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.22"
+Title.Text="🎵 TILO SONG v2.7.23"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -5153,7 +5153,6 @@ do
 pcall(function()
 local src=[===[
 local ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast=...
-local ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast=...
 local RunService=game:GetService("RunService")
 local MAXPETS=20
 local PET_FILE="TiloSong_Pets.json"
@@ -5161,7 +5160,9 @@ local filesOk=writefile ~= nil and readfile ~= nil and isfile ~= nil
 local SCALE=0.85
 local SIDE={br=Vector3.new(2.4,0,2.6),bl=Vector3.new(-2.4,0,2.6)}
 local SIDENAME={br="сзади справа",bl="сзади слева"}
-local sett={side="br"}
+local sett={side="br",nm=function(p)
+return p.mark and (p.name .. " 📄") or p.name
+end}
 local pets={}
 local active=nil
 local selectedId=nil
@@ -5253,10 +5254,10 @@ local color=tostring(p.color or "")
 if not color:match("^%x%x%x%x%x%x$") then
 color="CD965A"
 end
-return {id=newId(),name=name,kind="dog",play=play,born=born,color=color,locked=p.locked == true,eyes=vint(p.eyes),ears=vint(p.ears),tail=vint(p.tail),snout=vint(p.snout),body=vint(p.body),earOut=vhex(p.earOut),earIn=vhex(p.earIn),eyeW=vhex(p.eyeW),eyeP=vhex(p.eyeP),snoutC=vhex(p.snoutC),noseC=vhex(p.noseC),tailC=vhex(p.tailC)}
+return {id=newId(),name=name,kind="dog",play=play,born=born,color=color,locked=p.locked == true,eyes=vint(p.eyes),ears=vint(p.ears),tail=vint(p.tail),snout=vint(p.snout),body=vint(p.body),earOut=vhex(p.earOut),earIn=vhex(p.earIn),eyeW=vhex(p.eyeW),eyeP=vhex(p.eyeP),snoutC=vhex(p.snoutC),noseC=vhex(p.noseC),tailC=vhex(p.tailC),tailS=(tonumber(p.tailS) and tonumber(p.tailS) >= 1 and tonumber(p.tailS) <= 3) and math.floor(tonumber(p.tailS)) or 2,mark=(p.mark == "copy" or p.mark == "import") and p.mark or nil}
 end
 local function packPet(p)
-return {name=p.name,kind=p.kind,play=p.play,born=p.born,color=p.color,locked=p.locked,eyes=p.eyes,ears=p.ears,tail=p.tail,snout=p.snout,body=p.body,earOut=p.earOut,earIn=p.earIn,eyeW=p.eyeW,eyeP=p.eyeP,snoutC=p.snoutC,noseC=p.noseC,tailC=p.tailC}
+return {name=p.name,kind=p.kind,play=p.play,born=p.born,color=p.color,locked=p.locked,eyes=p.eyes,ears=p.ears,tail=p.tail,snout=p.snout,body=p.body,earOut=p.earOut,earIn=p.earIn,eyeW=p.eyeW,eyeP=p.eyeP,snoutC=p.snoutC,noseC=p.noseC,tailC=p.tailC,tailS=p.tailS,mark=p.mark}
 end
 local function saveAll()
 if not filesOk then
@@ -5312,11 +5313,13 @@ return mk("Part",parent,{Name=name,Size=size * SCALE,Color=color,Material=Enum.M
 end
 local EARS={{w=0.25,h=0.45,t=0.2,x=0.42,y=0.45,roll=0.2},{w=0.3,h=0.6,t=0.12,x=0.28,y=0.7,roll=0.08},{w=0.32,h=0.32,t=0.15,x=0.36,y=0.55,roll=0}}
 local EYES={{w=0.22,h=0.22,pw=0.11,ph=0.14,x=0.25},{w=0.3,h=0.3,pw=0.16,ph=0.2,x=0.26},{w=0.16,h=0.2,pw=0.09,ph=0.12,x=0.24}}
-local TAILS={{w=0.25,h=0.25,l=0.7},{w=0.3,h=0.3,l=0.3},{w=0.15,h=0.15,l=1.1}}
+local TAILS={{w=0.25,h=0.25,l=0.7},{w=0.3,h=0.3,l=0.3},{w=0.2,h=0.2,l=1.6}}
 local SNOUTS={{w=0.5,h=0.4,l=0.5},{w=0.45,h=0.35,l=0.85},{w=0.75,h=0.45,l=0.25}}
 local BODIES={{bw=1.2,bl=2},{bw=1.55,bl=2.1},{bw=0.9,bl=2.4}}
 local function specOf(pet)
-return {r=EARS[pet.ears or 1] or EARS[1],e=EYES[pet.eyes or 1] or EYES[1],t=TAILS[pet.tail or 1] or TAILS[1],sn=SNOUTS[pet.snout or 1] or SNOUTS[1],b=BODIES[pet.body or 1] or BODIES[1]}
+local tb=TAILS[pet.tail or 1] or TAILS[1]
+local sc=({0.7,1,1.4})[pet.tailS or 2] or 1
+return {r=EARS[pet.ears or 1] or EARS[1],e=EYES[pet.eyes or 1] or EYES[1],t={w=tb.w * sc,h=tb.h * sc,l=tb.l},sn=SNOUTS[pet.snout or 1] or SNOUTS[1],b=BODIES[pet.body or 1] or BODIES[1]}
 end
 local function makeDog(parent,spec)
 local d={model=_I("Model"),p={},spec=spec}
@@ -5510,8 +5513,17 @@ goal=root.Position + CFrame.Angles(0,a.heading,0):VectorToWorldSpace(off)
 end
 local flat=Vector3.new(goal.X - a.pos.X,0,goal.Z - a.pos.Z)
 local dist=flat.Magnitude
-if dist > 80 then
-a.pos=Vector3.new(goal.X,a.pos.Y,goal.Z)
+local dyP=root.Position.Y - a.gy
+if dyP > 12 and not swimming and not airMode then
+a.lowT=(a.lowT or 0) + dt
+else
+a.lowT=0
+end
+if dist > 45 or dyP > 40 or a.lowT > 2.5 then
+local gyN=root.Position.Y - 3
+a.pos=Vector3.new(goal.X,gyN,goal.Z)
+a.gy=gyN
+a.lowT=0
 flat=Vector3.new(0,0,0)
 dist=0
 a.moving=false
@@ -5769,7 +5781,7 @@ local root0=char:FindFirstChild("HumanoidRootPart").CFrame
 local dog=makeDog(workspace.CurrentCamera,specOf(pet))
 paintDog(dog,pet)
 local bb=mk("BillboardGui",dog.p.head,{Size=_U(0,150,0,46),StudsOffset=Vector3.new(0,1.7,0),AlwaysOnTop=false,MaxDistance=70})
-mk("TextLabel",bb,{Size=_U(1,0,0,20),BackgroundTransparency=1,Text=pet.name,TextColor3=_W,Font=_FB,TextSize=17,TextStrokeTransparency=0.3})
+mk("TextLabel",bb,{Size=_U(1,0,0,20),BackgroundTransparency=1,Text=sett.nm(pet),TextColor3=_W,Font=_FB,TextSize=17,TextStrokeTransparency=0.3})
 local lvLbl=mk("TextLabel",bb,{Position=_U(0,0,0,20),Size=_U(1,0,0,14),BackgroundTransparency=1,Text="",TextColor3=_C(200,255,200),Font=_FB,TextSize=12,TextStrokeTransparency=0.4})
 local barBg=mk("Frame",bb,{Position=_U(0.1,0,0,37),Size=_U(0.8,0,0,6),BackgroundColor3=_C(30,30,40),BorderSizePixel=0})
 local fill=mk("Frame",barBg,{Size=_U(0,0,1,0),BackgroundColor3=_C(0,200,100),BorderSizePixel=0})
@@ -5922,7 +5934,7 @@ local FileBtn=mkBtn(BtnGrid,"Экспорт файлом",_C(35,30,48),_U(0,10,0
 FileBtn.LayoutOrder=3
 local FreeBtn=mkBtn(BtnGrid,"Отпустить навсегда",_C(190,40,50),_U(0,10,0,10),nil)
 FreeBtn.LayoutOrder=5
-local ColorBtn=mkBtn(BtnGrid,"Покрасить",_C(35,30,48),_U(0,10,0,10),nil)
+local ColorBtn=mkBtn(BtnGrid,"Редактировать",_C(35,30,48),_U(0,10,0,10),nil)
 ColorBtn.LayoutOrder=4
 local EmptyLbl=mk("TextLabel",Panel,{Position=_U(0,220,0,44),Size=_U(1,-230,1,-128),BackgroundTransparency=1,TextColor3=_C(160,160,180),Font=_FN,TextSize=14,TextWrapped=true,Text="Выберите питомца слева",Visible=true})
 local DlgDim=mk("Frame",PetsRoot,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=0.35,BorderSizePixel=0,Active=true,Visible=false,ZIndex=20})
@@ -6036,7 +6048,7 @@ EmptyLbl.Visible=p == nil
 CountLabel.Text="Питомцев: " .. #pets .. " из " .. MAXPETS
 SideBtn.Text="Сторона питомца: " .. SIDENAME[sett.side]
 if p then
-NameLbl.Text=p.name
+NameLbl.Text=sett.nm(p)
 local lvl,frac=levelInfo(p.play)
 InfoLbl.Text="Уровень " .. lvl .. " (" .. math.floor(frac * 100) .. "%)\nВ игре: " .. math.floor(p.play / 60) .. " мин"
 LockBtn.Text=p.locked and "🔒" or "🔓"
@@ -6053,7 +6065,7 @@ end
 end
 for index,p in ipairs(pets) do
 local isSel=p.id == selectedId
-local b=mkBtn(ListScroll,p.name .. "  (ур. " .. levelOf(p) .. ")" .. ((active and active.pet == p) and "  ★" or "") .. (p.locked and "  🔒" or ""),isSel and _PU or _C(40,35,55),_U(1,-8,0,38),nil)
+local b=mkBtn(ListScroll,sett.nm(p) .. "  (ур. " .. levelOf(p) .. ")" .. ((active and active.pet == p) and "  ★" or "") .. (p.locked and "  🔒" or ""),isSel and _PU or _C(40,35,55),_U(1,-8,0,38),nil)
 b.LayoutOrder=index
 b.MouseButton1Click:Connect(function()
 selectedId=p.id
@@ -6068,6 +6080,13 @@ PetsRoot.Visible=false
 DlgDim.Visible=false
 local pkf=PetsRoot:FindFirstChild("PetPicker")
 if pkf then
+if pkf.Visible then
+for _,o in ipairs(PetsRoot:GetDescendants()) do
+if o:IsA("ViewportFrame") then
+o.Visible=true
+end
+end
+end
 pkf.Visible=false
 end
 saveAll()
@@ -6191,6 +6210,7 @@ break
 end
 local clean=cleanPet(p)
 if clean then
+clean.mark="import"
 table.insert(pets,clean)
 added=added + 1
 selectedId=clean.id
@@ -6265,7 +6285,7 @@ if not fromHex then
 HexBox.Text=hex
 end
 if pk.onChange then
-pk.onChange(hex)
+pcall(pk.onChange,hex)
 end
 end
 local function insetRatio(input,obj)
@@ -6353,6 +6373,13 @@ end)
 end
 local PkDone=mkBtn(Picker,"Готово",_C(0,150,80),_U(0,200,0,34),_U(0,10,1,-44))
 local PkCancel=mkBtn(Picker,"Отмена",_C(60,50,90),_U(0,200,0,34),_U(0,230,1,-44))
+local function vpSet(on)
+for _,o in ipairs(PetsRoot:GetDescendants()) do
+if o:IsA("ViewportFrame") then
+o.Visible=on
+end
+end
+end
 openPicker=function(hex,onChange,onDone,onCancel)
 pk.onChange=onChange
 pk.onDone=onDone
@@ -6361,18 +6388,21 @@ local h,s,v=colorFrom(validHex(hex)):ToHSV()
 pk.h=math.min(h,0.999)
 pk.s=s
 pk.v=v
+vpSet(false)
 Picker.Visible=true
 pkUpdate(false)
 end
 PkDone.MouseButton1Click:Connect(function()
 local hex=hexOf(pk.h,pk.s,pk.v)
 Picker.Visible=false
+vpSet(true)
 if pk.onDone then
 pk.onDone(hex)
 end
 end)
 PkCancel.MouseButton1Click:Connect(function()
 Picker.Visible=false
+vpSet(true)
 if pk.onCancel then
 pk.onCancel()
 end
@@ -6382,26 +6412,34 @@ local p=selectedId and getPet(selectedId)
 if not p then
 return
 end
-openPicker(p.color or "CD965A",function(hex)
-local tmp=copyPet(p)
-tmp.color=hex
-paintDog(pvDog,tmp)
-end,function(hex)
-p.color=hex
-saveAll()
-if active and active.pet == p then
-paintDog(active.dog,p)
+openDialog({title="Редактирование",text="«" .. p.name .. "»: что сделать?\nИзменить: только вид, имя и возраст те же.\nКопия: точная копия один в один.\nНа основе: новый питомец с таким видом.",buttons={{text="Изменить",color=_C(0,150,80),fn=function()
+openConstructor("edit",p)
+end},{text="Копия",fn=function()
+if #pets >= MAXPETS then
+popup("Достигнут максимум питомцев: " .. MAXPETS)
+return
 end
-refreshDetail()
-end,function()
-refreshDetail()
-end)
+local src=copyPet(p)
+src.locked=false
+src.mark="copy"
+local clean=cleanPet(src)
+table.insert(pets,clean)
+selectedId=clean.id
+saveAll()
+refreshList()
+popup("Копия создана: " .. clean.name)
+end},{text="На основе",fn=function()
+openConstructor("based",p)
+end},{text="Закрыть"}}})
 end)
 end
 do
-local CATS={{"eyes","Глаза",{"Обычные","Большие","Узкие"},{{"eyeW","Белок"},{"eyeP","Зрачок"}}},{"ears","Уши",{"Собачьи","Лисьи","Медвежьи"},{{"earOut","Снаружи"},{"earIn","Внутри"}}},{"snout","Мордочка",{"Обычная","Длинная","Плоская"},{{"snoutC","Мордочка"},{"noseC","Нос"}}},{"tail","Хвост",{"Обычный","Короткий","Длинный"},{{"tailC","Хвост"}}},{"body","Тело",{"Обычное","Пухлое","Стройное"},{{"color","Тело"}}}}
+local CATS={{"eyes","Глаза",{"Обычные","Большие","Узкие"},{{"eyeW","Белок"},{"eyeP","Зрачок"}}},{"ears","Уши",{"Собачьи","Кроличьи","Медвежьи"},{{"earOut","Снаружи"},{"earIn","Внутри"}}},{"snout","Мордочка",{"Обычная","Длинная","Плоская"},{{"snoutC","Мордочка"},{"noseC","Нос"}}},{"tail","Хвост",{"Обычный","Короткий","Длинный"},{{"tailC","Хвост"}}},{"body","Тело",{"Обычное","Пухлое","Стройное"},{{"color","Тело"}}}}
 local cCat=1
 local cDog=nil
+local cm={yaw=2.44,pit=0.26,dist=5.5}
+local szBtns={}
+local SzLbl
 local hiddenUi={}
 local function hideOthers()
 hiddenUi={}
@@ -6460,6 +6498,33 @@ _Cr(CPreview,10)
 local cCam=mk("Camera",CPreview,{FieldOfView=45})
 CPreview.CurrentCamera=cCam
 cCam.CFrame=CFrame.lookAt(Vector3.new(3.4,2.5,4),Vector3.new(0,1.1,0))
+mk("TextLabel",CRoot,{Position=_U(0,350,0,38),Size=_U(1,-360,0,18),BackgroundTransparency=1,Text="Тяните по питомцу, чтобы повернуть камеру",TextColor3=_C(200,200,210),Font=_FN,TextSize=12})
+local ZoomIn=mkBtn(CRoot,"+",_C(35,30,48),_U(0,40,0,40),_U(0,358,0,68))
+ZoomIn.TextSize=24
+local ZoomOut=mkBtn(CRoot,"−",_C(35,30,48),_U(0,40,0,40),_U(0,404,0,68))
+ZoomOut.TextSize=24
+ZoomIn.MouseButton1Click:Connect(function()
+cm.dist=math.max(2.5,cm.dist - 0.8)
+end)
+ZoomOut.MouseButton1Click:Connect(function()
+cm.dist=math.min(10,cm.dist + 0.8)
+end)
+CPreview.InputBegan:Connect(function(input)
+if input.UserInputType == _TT or input.UserInputType == _M1 then
+cm.drag=true
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if cm.drag and CRoot.Visible and (input.UserInputType == _MM or input.UserInputType == _TT) then
+cm.yaw=cm.yaw - input.Delta.X * 0.012
+cm.pit=math.clamp(cm.pit + input.Delta.Y * 0.012,-0.3,1.2)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if cm.drag and (input.UserInputType == _M1 or input.UserInputType == _TT) then
+cm.drag=false
+end
+end)
 local function rebuildCtor()
 if cDog then
 cDog.model:Destroy()
@@ -6486,6 +6551,11 @@ slotSw[index].BackgroundColor3=colorFrom(slotHex(draft,slot[1]))
 else
 slotBtns[index].Visible=false
 end
+end
+SzLbl.Visible=cat[1] == "tail"
+for index=1,3 do
+szBtns[index].Visible=cat[1] == "tail"
+szBtns[index].BackgroundColor3=((draft.tailS or 2) == index) and _PU or _C(35,30,48)
 end
 rebuildCtor()
 end
@@ -6534,6 +6604,16 @@ refreshCtor()
 end)
 end)
 end
+SzLbl=mk("TextLabel",LM,{Position=_U(0,10,0,290),Size=_U(1,-20,0,16),BackgroundTransparency=1,Text="Толщина хвоста:",TextColor3=_C(200,160,255),Font=_FB,TextSize=13,TextXAlignment=_XL,Visible=false})
+for index,label in ipairs({"Тонкий","Обычный","Большой"}) do
+local b=mkBtn(LM,label,_C(35,30,48),_U(0,100,0,34),_U(0,8 + (index - 1) * 106,0,308))
+b.Visible=false
+szBtns[index]=b
+b.MouseButton1Click:Connect(function()
+draft.tailS=index
+refreshCtor()
+end)
+end
 local CName=mk("TextBox",CRoot,{Position=_U(0,350,1,-100),Size=_U(1,-360,0,40),BackgroundColor3=_C(40,35,55),TextColor3=_W,PlaceholderText="Назвать питомца: пишите тут имя",PlaceholderColor3=_C(140,140,160),Font=_FN,TextSize=16,ClearTextOnFocus=true,Text="Собака"})
 _Cr(CName,8)
 ThemeExtra.add("stroke",_St(CName,_PU,2),"Color")
@@ -6552,6 +6632,13 @@ CDone.TextSize=16
 local CClose=mkBtn(CRoot,"Закрыть",_C(200,50,60),_U(0,120,0,44),_U(1,-130,0,10))
 CClose.TextSize=16
 local function closeCtor()
+if cm.m then
+draft=cm.stash
+cm.m=nil
+cm.pet=nil
+cm.stash=nil
+end
+cm.drag=false
 CRoot.Visible=false
 Panel.Visible=true
 showOthers()
@@ -6561,18 +6648,48 @@ CClose.MouseButton1Click:Connect(closeCtor)
 CDone.MouseButton1Click:Connect(function()
 local src=copyPet(draft)
 src.name=CName.Text
+local mode=cm.m
+local pet=cm.pet
+if mode == nil then
 draft=nil
+end
 closeCtor()
+if mode == "edit" and pet then
+for _,key in ipairs({"eyes","ears","tail","snout","body","color","earOut","earIn","eyeW","eyeP","snoutC","noseC","tailC","tailS"}) do
+pet[key]=src[key]
+end
+pet.name=cleanPet({name=src.name}).name
+if active and active.pet == pet then
+unsummon()
+end
+saveAll()
+selectedId=pet.id
+refreshList()
+popup("Питомец изменён: " .. pet.name)
+elseif mode == "based" then
+src.play=0
+src.born=os.time()
+src.locked=false
+src.mark=nil
 createPet(src)
+else
+createPet(src)
+end
 end)
-openConstructor=function()
-if #pets >= MAXPETS then
+openConstructor=function(mode,pet)
+if mode ~= "edit" and #pets >= MAXPETS then
 popup("Достигнут максимум питомцев: " .. MAXPETS)
 return
 end
-if not draft then
+if mode and pet then
+cm.m=mode
+cm.pet=pet
+cm.stash=draft
+draft=copyPet(pet)
+elseif not draft then
 draft=cleanPet({name="Собака"})
 end
+CDone.Text=(mode == "edit") and "Готово: сохранить изменения" or "Готово: создать питомца"
 CName.Text=draft.name
 cCat=1
 Panel.Visible=false
@@ -6582,7 +6699,10 @@ refreshCtor()
 end
 RunService.RenderStepped:Connect(function()
 if CRoot.Visible and cDog then
-poseDog(cDog,CFrame.new(0,1.3 * SCALE,0) * CFrame.Angles(0,os.clock() * 0.9,0),STAND)
+poseDog(cDog,CFrame.new(0,1.3 * SCALE,0),STAND)
+local cd=cm.dist
+local cp=cm.pit
+cCam.CFrame=CFrame.lookAt(Vector3.new(math.sin(cm.yaw) * math.cos(cp) * cd,1.1 + math.sin(cp) * cd,math.cos(cm.yaw) * math.cos(cp) * cd),Vector3.new(0,1.1,0))
 end
 end)
 end
@@ -6691,7 +6811,7 @@ if #pets == 0 then
 askEmpty()
 end
 end
-local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,1,-52),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
+local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,0.3,0),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
 _Cr(Dock,10)
 ThemeExtra.add("bg",Dock,"BackgroundColor3")
 ThemeExtra.add("stroke",_St(Dock,_PU,2),"Color")
@@ -6729,6 +6849,7 @@ end)
 end
 do
 local entries={
+{"v2.7.23","Редактирование питомцев, камера конструктора, телепорт","• Кнопка «Редактировать» вместо «Покрасить»: изменить этого питомца, точная копия или новый на основе этого\n• Копии и импортированные питомцы помечены значком 📄 у имени\n• Конструктор: поворот камеры пальцем и зум, толщина хвоста, «Кроличьи» уши, длиннее «Длинный» хвост\n• Питомец телепортируется к вам, если упал вниз или отстал\n• Окно «Питомцы» поднято выше\n• Выбор цвета: починка чёрной области в конструкторе\n• Остальное как в 2.7.22"},
 {"v2.7.22","Конструктор питомца, первый этап","• «Получить питомца» открывает конструктор: слева категории, справа вращающийся предпросмотр\n• Категории: глаза, уши, мордочка, хвост, тело, по 3 варианта\n• Двухцветные детали: белок и зрачок, уши снаружи и внутри, мордочка и нос\n• Название питомца и кнопка «Готово»\n• Пока конструктор открыт, остальные окна скрыты, черновик сохраняется\n• Старые питомцы остаются с обычными частями"},
 {"v2.7.21","Защита запуска: питомцы грузятся отдельно","• Модуль питомцев загружается отдельно: если в нём ошибка, скрипт всё равно запускается, а текст ошибки показывается плашкой\n• Уведомление, когда питомец получает новый уровень\n• Остальное как в 2.7.20"},
 {"v2.7.20","Покраска и замок питомцев, общая сторона, грусть, двойное нажатие для закрытия","• Покраска питомца: оттенок, яркость, код цвета и палитра из 50 цветов\n• Замок рядом с именем: пока закрыт, питомца нельзя удалить\n• Сторона питомца общая для всех: сзади справа или слева\n• Окно питомцев закрывается двойным нажатием на серый фон\n• Питомец грустит и подходит, когда вы умираете\n• Падение с высоты: вращение по кругу\n• Поле имени питомца с обводкой и подсказкой\n• В редакторе убрана лишняя кнопка «Питомцы»"},
@@ -6807,7 +6928,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.22"
+HeadTitle.Text="🎉 Новое в v2.7.23"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
