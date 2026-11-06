@@ -95,7 +95,7 @@ local CardTitle=_I("TextLabel",Card)
 CardTitle.Size=_U(1,0,0,36)
 CardTitle.Position=_U(0,0,0,10)
 CardTitle.BackgroundTransparency=1
-CardTitle.Text="🎵 TILO SONG v2.7.23"
+CardTitle.Text="🎵 TILO SONG v2.7.24"
 CardTitle.TextColor3=_W
 CardTitle.Font=_FB
 CardTitle.TextSize=20
@@ -164,7 +164,7 @@ ToggleBtn.Name="ToggleTiloSong"
 ToggleBtn.Size=_U(0,105,0,44)
 ToggleBtn.Position=_U(0.02,0,0.4,0)
 ToggleBtn.BackgroundColor3=_C(30,15,45)
-ToggleBtn.Text="🎵 Tilo Song\nv2.7.23"
+ToggleBtn.Text="🎵 Tilo Song\nv2.7.24"
 ToggleBtn.TextColor3=_W
 ToggleBtn.Font=_FB
 ToggleBtn.TextSize=14
@@ -204,7 +204,7 @@ local Title=_I("TextLabel",MainFrame)
 Title.Size=_U(0,220,0,30)
 Title.Position=_U(0,10,0,4)
 Title.BackgroundTransparency=1
-Title.Text="🎵 TILO SONG v2.7.23"
+Title.Text="🎵 TILO SONG v2.7.24"
 Title.TextColor3=_W
 Title.Font=_FB
 Title.TextSize=14
@@ -6080,13 +6080,6 @@ PetsRoot.Visible=false
 DlgDim.Visible=false
 local pkf=PetsRoot:FindFirstChild("PetPicker")
 if pkf then
-if pkf.Visible then
-for _,o in ipairs(PetsRoot:GetDescendants()) do
-if o:IsA("ViewportFrame") then
-o.Visible=true
-end
-end
-end
 pkf.Visible=false
 end
 saveAll()
@@ -6249,20 +6242,20 @@ _Cr(Picker,12)
 ThemeExtra.add("bg",Picker,"BackgroundColor3")
 ThemeExtra.add("stroke",_St(Picker,_PU,2),"Color")
 mk("TextLabel",Picker,{Size=_U(1,-20,0,24),Position=_U(0,10,0,6),BackgroundTransparency=1,Text="Цвет питомца",TextColor3=_W,Font=_FB,TextSize=18,TextXAlignment=_XL})
-local SV=mk("Frame",Picker,{Position=_U(0,10,0,36),Size=_U(0,190,0,150),BackgroundColor3=_C(255,0,0),BorderSizePixel=0,Active=true})
-local svW=mk("Frame",SV,{Size=_U(1,0,1,0),BackgroundColor3=_C(255,255,255),BorderSizePixel=0})
-mk("UIGradient",svW,{Transparency=NumberSequence.new(0,1)})
-local svB=mk("Frame",SV,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BorderSizePixel=0})
-mk("UIGradient",svB,{Rotation=90,Transparency=NumberSequence.new(1,0)})
+local SV=mk("Frame",Picker,{Position=_U(0,10,0,36),Size=_U(0,190,0,150),BackgroundColor3=_C(0,0,0),BorderSizePixel=0,Active=true,ClipsDescendants=true})
+local svCells={}
+for row=0,11 do
+for col=0,15 do
+svCells[#svCells + 1]={mk("Frame",SV,{Position=_U(col / 16,0,row / 12,0),Size=_U(1 / 16,1,1 / 12,1),BorderSizePixel=0,BackgroundColor3=_C(255,0,0)}),col / 15,1 - row / 11}
+end
+end
 local svMark=mk("Frame",SV,{Size=_U(0,14,0,14),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,BorderSizePixel=0})
 _Cr(svMark,7)
 _St(svMark,_C(255,255,255),2)
-local HB=mk("Frame",Picker,{Position=_U(0,10,0,194),Size=_U(0,190,0,22),BackgroundColor3=_C(255,255,255),BorderSizePixel=0,Active=true})
-local hueKeys={}
-for i=0,6 do
-hueKeys[#hueKeys + 1]=ColorSequenceKeypoint.new(i / 6,Color3.fromHSV(i / 6,1,1))
+local HB=mk("Frame",Picker,{Position=_U(0,10,0,194),Size=_U(0,190,0,22),BackgroundColor3=_C(40,35,55),BorderSizePixel=0,Active=true,ClipsDescendants=true})
+for i=0,35 do
+mk("Frame",HB,{Position=_U(i / 36,0,0,0),Size=_U(1 / 36,1,1,0),BorderSizePixel=0,BackgroundColor3=Color3.fromHSV(i / 36,1,1)})
 end
-mk("UIGradient",HB,{Color=ColorSequence.new(hueKeys)})
 local hbMark=mk("Frame",HB,{Size=_U(0,6,1,6),AnchorPoint=Vector2.new(0.5,0.5),Position=_U(0,0,0.5,0),BackgroundColor3=_C(255,255,255),BorderSizePixel=0})
 _St(hbMark,_C(0,0,0),1)
 local Sw=mk("Frame",Picker,{Position=_U(0,210,0,36),Size=_U(0,60,0,32),BackgroundColor3=_C(205,150,90),BorderSizePixel=0})
@@ -6276,7 +6269,12 @@ local c=Color3.fromHSV(h,s,v)
 return string.format("%02X%02X%02X",math.floor(c.R * 255 + 0.5),math.floor(c.G * 255 + 0.5),math.floor(c.B * 255 + 0.5))
 end
 local function pkUpdate(fromHex)
-SV.BackgroundColor3=Color3.fromHSV(pk.h,1,1)
+if pk.cellH ~= pk.h then
+pk.cellH=pk.h
+for _,e in ipairs(svCells) do
+e[1].BackgroundColor3=Color3.fromHSV(pk.h,e[2],e[3])
+end
+end
 svMark.Position=_U(pk.s,0,1 - pk.v,0)
 hbMark.Position=_U(pk.h,0,0.5,0)
 Sw.BackgroundColor3=Color3.fromHSV(pk.h,pk.s,pk.v)
@@ -6373,13 +6371,6 @@ end)
 end
 local PkDone=mkBtn(Picker,"Готово",_C(0,150,80),_U(0,200,0,34),_U(0,10,1,-44))
 local PkCancel=mkBtn(Picker,"Отмена",_C(60,50,90),_U(0,200,0,34),_U(0,230,1,-44))
-local function vpSet(on)
-for _,o in ipairs(PetsRoot:GetDescendants()) do
-if o:IsA("ViewportFrame") then
-o.Visible=on
-end
-end
-end
 openPicker=function(hex,onChange,onDone,onCancel)
 pk.onChange=onChange
 pk.onDone=onDone
@@ -6388,21 +6379,18 @@ local h,s,v=colorFrom(validHex(hex)):ToHSV()
 pk.h=math.min(h,0.999)
 pk.s=s
 pk.v=v
-vpSet(false)
 Picker.Visible=true
 pkUpdate(false)
 end
 PkDone.MouseButton1Click:Connect(function()
 local hex=hexOf(pk.h,pk.s,pk.v)
 Picker.Visible=false
-vpSet(true)
 if pk.onDone then
 pk.onDone(hex)
 end
 end)
 PkCancel.MouseButton1Click:Connect(function()
 Picker.Visible=false
-vpSet(true)
 if pk.onCancel then
 pk.onCancel()
 end
@@ -6811,7 +6799,7 @@ if #pets == 0 then
 askEmpty()
 end
 end
-local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,0.3,0),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
+local Dock=mk("Frame",MainFrame,{Name="PetDock",Position=_U(1,6,0,0),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
 _Cr(Dock,10)
 ThemeExtra.add("bg",Dock,"BackgroundColor3")
 ThemeExtra.add("stroke",_St(Dock,_PU,2),"Color")
@@ -6848,7 +6836,496 @@ end
 end)
 end
 do
+pcall(function()
+local src=[===[
+local ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast=...
+local RunService=game:GetService("RunService")
+local Players=game:GetService("Players")
+local UID=5698288179
+local FILE="TiloSong_Shop.json"
+local filesOk=writefile ~= nil and readfile ~= nil and isfile ~= nil
+local seen=false
+pcall(function()
+if filesOk and isfile(FILE) then
+local d=HttpService:JSONDecode(readfile(FILE))
+if type(d) == "table" and d.seen == true then
+seen=true
+end
+end
+end)
+local function markSeen()
+seen=true
+if filesOk then
+pcall(writefile,FILE,HttpService:JSONEncode({seen=true}))
+end
+end
+local function mk(class,parent,props)
+local obj=_I(class)
+for key,value in pairs(props) do
+obj[key]=value
+end
+obj.Parent=parent
+return obj
+end
+local function mkBtn(parent,text,color,size,pos,z)
+local b=mk("TextButton",parent,{Size=size,Position=pos,BackgroundColor3=color,Text=text,TextColor3=_W,Font=_FB,TextSize=14,AutoButtonColor=false,TextWrapped=true,ZIndex=z or 2})
+_Cr(b,8)
+return b
+end
+local function tw(obj,t,props)
+local tween=TweenService:Create(obj,TweenInfo.new(t,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut),props)
+tween:Play()
+return tween
+end
+local R=Vector3.new(0,6000,0)
+local BDOWN=6.5
+local BUP=19
+local INTRO={"Привет! Это магазин Till555.","Здесь можно покупать прокачки и дополнительные вещи для скрипта Tilo Song.","Валюта магазина: тилокоины. Их дают за уровни питомцев, за музыку и за время со скриптом.","Пока магазин в разработке: новые предметы появятся в скорых версиях."}
+local RAND={"Заглядывай почаще!","Скоро тут появятся новые нимбы.","Тилокоины дают за уровни питомцев.","Что-то приглянулось?","Питомцам нужны игры и внимание.","Тут будет много интересного."}
+local st={active=false,busy=false,leaving=false,run=0,ox=0,oy=0,drag=false}
+local Dock=mk("Frame",MainFrame,{Name="ShopDock",Position=_U(0,-110,0,0),Size=_U(0,104,0,52),BackgroundColor3=_C(18,15,22),BorderSizePixel=0})
+_Cr(Dock,10)
+ThemeExtra.add("bg",Dock,"BackgroundColor3")
+ThemeExtra.add("stroke",_St(Dock,_PU,2),"Color")
+local DockBtn=mkBtn(Dock,"🛒 Магазин",_C(35,30,48),_U(1,-12,1,-12),_U(0,6,0,6),2)
+local Root=mk("Frame",ScreenGui,{Name="TiloShop",Size=_U(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Active=true,Visible=false,ZIndex=50})
+local Fade=mk("Frame",Root,{Size=_U(1,0,1,0),BackgroundColor3=_C(0,0,0),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=90})
+local ExitBtn=mkBtn(Root,"Выйти из магазина",_C(200,50,60),_U(0,170,0,40),_U(1,-180,0,10),60)
+local ReplayBtn=mkBtn(Root,"Вступление заново",_C(35,30,48),_U(0,170,0,40),_U(0,10,0,10),60)
+ExitBtn.Visible=false
+ReplayBtn.Visible=false
+local hidden={}
+local function hideOthers()
+hidden={}
+for _,child in ipairs(ScreenGui:GetChildren()) do
+if child ~= Root and child:IsA("GuiObject") and child.Visible then
+hidden[#hidden + 1]=child
+child.Visible=false
+end
+end
+local pg=LocalPlayer:FindFirstChildOfClass("PlayerGui")
+if pg then
+for _,gui in ipairs(pg:GetChildren()) do
+if gui:IsA("ScreenGui") and gui ~= ScreenGui and gui.Enabled then
+hidden[#hidden + 1]=gui
+gui.Enabled=false
+end
+end
+end
+pcall(function()
+game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.All,false)
+end)
+end
+local function showOthers()
+for _,obj in ipairs(hidden) do
+if obj.Parent then
+if obj:IsA("ScreenGui") then
+obj.Enabled=true
+else
+obj.Visible=true
+end
+end
+end
+hidden={}
+pcall(function()
+game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.All,true)
+end)
+end
+local function P(m,size,pos,color,mat,shape)
+local p=_I("Part")
+if shape then
+p.Shape=shape
+end
+p.Size=size
+p.Anchored=true
+p.CanCollide=false
+p.CanQuery=false
+p.CanTouch=false
+p.Color=color
+p.Material=mat or Enum.Material.SmoothPlastic
+p.CFrame=CFrame.new(R + pos)
+p.Parent=m
+return p
+end
+local function item(m,kind,pos)
+if kind == 1 then
+local p=P(m,Vector3.new(0.25,2,2),pos + Vector3.new(0,1.1,0),_C(240,192,64),Enum.Material.Neon,Enum.PartType.Cylinder)
+p.CFrame=CFrame.new(R + pos + Vector3.new(0,1.1,0)) * CFrame.Angles(0,math.pi / 2,0)
+elseif kind == 2 then
+P(m,Vector3.new(1.5,1.5,1.5),pos + Vector3.new(0,0.85,0),_C(124,92,214))
+elseif kind == 3 then
+P(m,Vector3.new(1.6,1.6,1.6),pos + Vector3.new(0,0.9,0),_C(214,92,138),nil,Enum.PartType.Ball)
+P(m,Vector3.new(0.5,0.7,0.5),pos + Vector3.new(0,1.95,0),_C(200,200,210))
+else
+P(m,Vector3.new(1.4,1.8,1.4),pos + Vector3.new(0,1,0),_C(74,163,214))
+end
+end
+local function mix(a,b,k)
+return a + (b - a) * k
+end
+local function makeChar(room,cf)
+local model
+pcall(function()
+model=Players:CreateHumanoidModelFromUserId(UID)
+end)
+if not model then
+pcall(function()
+local d=Players:GetHumanoidDescriptionFromUserId(UID)
+model=Players:CreateHumanoidModelFromDescription(d,Enum.HumanoidRigType.R15)
+end)
+end
+local c={j={},talk=false,s=0}
+if model then
+model.Name="TiloShopKeeper"
+model.Parent=room
+local hum=model:FindFirstChildOfClass("Humanoid")
+if hum then
+pcall(function()
+hum.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None
+end)
+end
+local rp=model:FindFirstChild("HumanoidRootPart")
+if rp then
+model:PivotTo(cf)
+rp.Anchored=true
+end
+for _,d in ipairs(model:GetDescendants()) do
+if d:IsA("Motor6D") then
+c.j[d.Name]={m=d,c0=d.C0}
+end
+end
+c.head=model:FindFirstChild("Head")
+end
+if not c.head then
+local base=cf.Position - R
+P(room,Vector3.new(2,2,1),base + Vector3.new(0,0.2,0),_C(47,120,232))
+P(room,Vector3.new(0.6,1.8,0.6),base + Vector3.new(-1.3,0.3,0),_C(47,120,232))
+P(room,Vector3.new(0.6,1.8,0.6),base + Vector3.new(1.3,0.3,0),_C(47,120,232))
+c.head=P(room,Vector3.new(1.3,1.3,1.3),base + Vector3.new(0,1.9,0),_C(242,201,160))
+c.fb=c.head.CFrame
+end
+return c
+end
+local function tickChar(c,t,dt)
+c.s=c.s + ((c.talk and 1 or 0) - c.s) * math.min(1,dt * 6)
+local k=c.s
+local function J(name,rx,ry,rz,oy)
+local e=c.j[name]
+if e then
+e.m.C0=e.c0 * CFrame.new(0,oy or 0,0) * CFrame.Angles(rx or 0,ry or 0,rz or 0)
+end
+end
+J("RightHip",math.pi / 2)
+J("LeftHip",math.pi / 2)
+J("RightKnee",-math.pi / 2)
+J("LeftKnee",-math.pi / 2)
+J("Waist",0,0,0,math.sin(t * 1.6) * 0.03)
+J("RightShoulder",mix(1.15,0.9 + math.sin(t * 2.7) * 0.4,k),0,mix(-0.08,-0.15 + math.sin(t * 1.9) * 0.15,k))
+J("LeftShoulder",mix(1.15,0.9 + math.sin(t * 2.2 + 1) * 0.35,k),0,mix(0.08,0.15 + math.sin(t * 2.4) * 0.15,k))
+J("RightElbow",mix(0.5,0.9 + math.sin(t * 3.4) * 0.4,k))
+J("LeftElbow",mix(0.5,0.9 + math.sin(t * 3 + 2) * 0.35,k))
+J("Neck",math.sin(t * 4) * 0.05 * k,mix(math.sin(t * 0.7) * 0.08,math.sin(t * 1.1) * 0.12,k))
+if c.fb and c.head then
+c.head.CFrame=c.fb * CFrame.new(0,math.sin(t * 1.6) * 0.05 + k * math.sin(t * 8) * 0.04,0)
+end
+end
+local function build()
+local m=_I("Model")
+m.Name="TiloShopRoom"
+m.Parent=workspace
+local r={m=m,ropes={},bx=-7,bz=-10.4,bcur=BUP,btarget=BUP}
+local wood=_C(110,78,50)
+local wall=_C(62,48,92)
+local shelfC=_C(138,106,74)
+P(m,Vector3.new(30,1,26),Vector3.new(0,-0.5,0),wood,Enum.Material.Wood)
+P(m,Vector3.new(30,13,1),Vector3.new(0,6,-12.5),wall)
+P(m,Vector3.new(1,13,26),Vector3.new(-14.5,6,0),wall)
+P(m,Vector3.new(1,13,26),Vector3.new(14.5,6,0),wall)
+P(m,Vector3.new(30,1,26),Vector3.new(0,13,0),_C(36,28,52))
+for x=-12,12,4 do
+P(m,Vector3.new(1,12.4,0.1),Vector3.new(x,6.2,-11.95),_C(80,64,118))
+end
+P(m,Vector3.new(28,0.8,0.4),Vector3.new(0,0.4,-11.8),_C(40,30,55))
+for _,def in ipairs({{11,5,8,1},{11,5,5.2,2},{-9,9,8,3},{-9,9,5.2,4}}) do
+P(m,Vector3.new(def[2],0.35,1.2),Vector3.new(def[1],def[3],-11.3),shelfC)
+item(m,def[4],Vector3.new(def[1] - def[2] / 4,def[3] + 0.18,-11.3))
+item(m,(def[4] % 4) + 1,Vector3.new(def[1] + def[2] / 4,def[3] + 0.18,-11.3))
+end
+local desk=P(m,Vector3.new(9,3.2,3.4),Vector3.new(6,1.6,-6.2),_C(107,74,47),Enum.Material.Wood)
+P(m,Vector3.new(9.6,0.4,4),Vector3.new(6,3.4,-6.2),_C(163,122,76),Enum.Material.Wood)
+local sg=mk("SurfaceGui",desk,{Face=Enum.NormalId.Back,SizingMode=Enum.SurfaceGuiSizingMode.PixelsPerStud,PixelsPerStud=50})
+mk("TextLabel",sg,{Size=_U(1,0,1,0),BackgroundTransparency=1,Text="Магазин Till555",TextColor3=_C(240,224,200),Font=_FB,TextScaled=true})
+P(m,Vector3.new(2.4,2.2,2.4),Vector3.new(6,1.1,-9.2),_C(80,50,40))
+for _,x in ipairs({-8,0,8}) do
+local lamp=P(m,Vector3.new(3,0.4,3),Vector3.new(x,12.3,-5),_C(255,230,170),Enum.Material.Neon)
+mk("PointLight",lamp,{Range=60,Brightness=2,Color=_C(255,226,170)})
+end
+local bm=_I("Model")
+bm.Name="Board"
+bm.Parent=m
+local bc=Vector3.new(r.bx,BDOWN,r.bz)
+local panel=P(bm,Vector3.new(11,9.5,0.6),bc,_C(122,82,51),Enum.Material.Wood)
+for index,off in ipairs({3.3,1,-1.3,-3.6}) do
+local py=bc.Y + off
+P(bm,Vector3.new(10.4,0.3,1.2),Vector3.new(bc.X,py,bc.Z + 0.8),_C(74,50,32),Enum.Material.Wood)
+for col=-1,1 do
+item(bm,((index + col + 1) % 4) + 1,Vector3.new(bc.X + col * 3.2,py + 0.15,bc.Z + 0.8))
+end
+end
+bm.PrimaryPart=panel
+r.board=bm
+bm:PivotTo(CFrame.new(R + Vector3.new(bc.X,BUP,bc.Z)))
+for index=1,2 do
+r.ropes[index]=P(m,Vector3.new(0.15,1,0.15),Vector3.new(bc.X + (index == 1 and -4 or 4),13,bc.Z),_C(201,178,122))
+end
+r.char=makeChar(m,CFrame.new(R + Vector3.new(6,3.9,-9.2)) * CFrame.Angles(0,math.pi,0))
+local bb=mk("BillboardGui",r.char.head,{Size=_U(0,320,0,104),StudsOffset=Vector3.new(-2,3,0),AlwaysOnTop=true,LightInfluence=0})
+local fr=mk("Frame",bb,{Size=_U(1,0,1,-14),BackgroundColor3=_C(207,207,207),BorderSizePixel=0})
+_Cr(fr,10)
+mk("TextLabel",bb,{Position=_U(0.5,-10,1,-18),Size=_U(0,20,0,18),BackgroundTransparency=1,Text="▼",TextColor3=_C(207,207,207),TextSize=16,Font=_FB})
+r.lbl=mk("TextLabel",fr,{Position=_U(0,8,0,4),Size=_U(1,-16,1,-8),BackgroundTransparency=1,Text="",TextColor3=_C(30,30,30),Font=_FB,TextSize=16,TextWrapped=true})
+r.bb=bb
+return r
+end
+local function say(r,my,text,hold)
+r.char.talk=true
+local n=utf8.len(text) or #text
+for i=1,n do
+if st.run ~= my then
+r.char.talk=false
+return false
+end
+r.lbl.Text=text:sub(1,utf8.offset(text,i + 1) - 1)
+task.wait(0.035)
+end
+r.char.talk=false
+task.wait(hold or 1.8)
+return st.run == my
+end
+local function startFlow(r,full)
+st.run=st.run + 1
+local my=st.run
+task.spawn(function()
+if r.bcur < BUP - 1 then
+r.btarget=BUP
+task.wait(1.4)
+end
+if st.run ~= my then
+return
+end
+tw(r.bb,0.4,{Size=_U(0,320,0,104)})
+r.lbl.TextSize=16
+local lines=full and INTRO or {"С возвращением!"}
+for _,line in ipairs(lines) do
+if not say(r,my,line,2.2) then
+return
+end
+end
+if full then
+markSeen()
+end
+r.btarget=BDOWN
+task.wait(1.4)
+if st.run ~= my then
+return
+end
+tw(r.bb,0.5,{Size=_U(0,220,0,60)})
+r.lbl.TextSize=14
+while st.run == my do
+if not say(r,my,RAND[math.random(1,#RAND)],1.5) then
+return
+end
+local wait=math.random(4,8)
+for _=1,wait * 4 do
+if st.run ~= my then
+return
+end
+task.wait(0.25)
+end
+end
+end)
+end
+local function applyBoard(r)
+local by=r.bcur
+r.board:PivotTo(CFrame.new(R + Vector3.new(r.bx,by,r.bz)))
+local top=by + 4.75
+local len=12.5 - top
+for index,rope in ipairs(r.ropes) do
+if len < 0.1 then
+rope.Transparency=1
+else
+rope.Transparency=0
+rope.Size=Vector3.new(0.15,len,0.15)
+rope.CFrame=CFrame.new(R + Vector3.new(r.bx + (index == 1 and -4 or 4),top + len / 2,r.bz - 0.2))
+end
+end
+end
+local function cleanup()
+if st.conn then
+st.conn:Disconnect()
+st.conn=nil
+end
+pcall(function()
+if st.r and st.r.m then
+st.r.m:Destroy()
+end
+end)
+st.r=nil
+local cam=workspace.CurrentCamera
+if cam and st.cam then
+pcall(function()
+cam.CameraType=st.cam.t
+cam.CFrame=st.cam.cf
+cam.FieldOfView=st.cam.fov
+end)
+end
+pcall(function()
+if st.root and st.root.Parent then
+st.root.Anchored=st.wasA
+end
+end)
+showOthers()
+end
+local function exitShop()
+if not st.active or st.leaving then
+return
+end
+st.leaving=true
+st.run=st.run + 1
+ExitBtn.Visible=false
+ReplayBtn.Visible=false
+local r=st.r
+if r then
+r.btarget=BUP
+r.char.talk=false
+end
+task.spawn(function()
+task.wait(1.2)
+tw(Fade,0.45,{BackgroundTransparency=0})
+task.wait(0.5)
+cleanup()
+tw(Fade,0.4,{BackgroundTransparency=1})
+task.wait(0.45)
+Root.Visible=false
+st.active=false
+st.leaving=false
+end)
+end
+local function enter()
+if st.active or st.busy then
+return
+end
+local char=LocalPlayer.Character
+local root=char and char:FindFirstChild("HumanoidRootPart")
+local cam=workspace.CurrentCamera
+if not root or not cam then
+showToast("Персонаж не найден, магазин открыть нельзя",3,true)
+return
+end
+st.busy=true
+Root.Visible=true
+Fade.BackgroundTransparency=1
+tw(Fade,0.45,{BackgroundTransparency=0})
+task.wait(0.5)
+hideOthers()
+st.cam={t=cam.CameraType,cf=cam.CFrame,fov=cam.FieldOfView}
+st.root=root
+st.wasA=root.Anchored
+st.char=char
+root.Anchored=true
+local ok,r=pcall(build)
+if not ok or not r then
+warn("Tilo shop: " .. tostring(r))
+pcall(showToast,"Магазин: ошибка: " .. tostring(r),8,true)
+local old=workspace:FindFirstChild("TiloShopRoom")
+if old then
+old:Destroy()
+end
+root.Anchored=st.wasA
+showOthers()
+Root.Visible=false
+st.busy=false
+return
+end
+st.r=r
+st.ox=0
+st.oy=0
+cam.CameraType=Enum.CameraType.Scriptable
+cam.FieldOfView=65
+st.active=true
+st.busy=false
+st.conn=RunService.RenderStepped:Connect(function(dt)
+local cr=st.r
+if not cr or not st.active then
+return
+end
+if LocalPlayer.Character ~= st.char then
+exitShop()
+return
+end
+local diff=cr.btarget - cr.bcur
+if math.abs(diff) > 0.003 then
+cr.bcur=cr.bcur + diff * math.min(1,dt * 2.6)
+applyBoard(cr)
+elseif diff ~= 0 then
+cr.bcur=cr.btarget
+applyBoard(cr)
+end
+local t=os.clock()
+tickChar(cr.char,t,dt)
+local ox=st.ox + math.sin(t * 0.4) * 0.25
+local oy=st.oy + math.sin(t * 0.3) * 0.1
+local cam2=workspace.CurrentCamera
+cam2.CFrame=CFrame.lookAt(R + Vector3.new(ox,5.6 + oy,7),R + Vector3.new(ox * 0.3,5,-6))
+end)
+tw(Fade,0.6,{BackgroundTransparency=1})
+task.wait(0.6)
+ExitBtn.Visible=true
+ReplayBtn.Visible=true
+startFlow(r,not seen)
+end
+DockBtn.MouseButton1Click:Connect(function()
+task.spawn(enter)
+end)
+ExitBtn.MouseButton1Click:Connect(exitShop)
+ReplayBtn.MouseButton1Click:Connect(function()
+if st.active and st.r and not st.leaving then
+startFlow(st.r,true)
+end
+end)
+Root.InputBegan:Connect(function(input)
+if input.UserInputType == _TT or input.UserInputType == _M1 then
+st.drag=true
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if st.drag and st.active and (input.UserInputType == _MM or input.UserInputType == _TT) then
+st.ox=math.clamp(st.ox - input.Delta.X * 0.02,-3,3)
+st.oy=math.clamp(st.oy + input.Delta.Y * 0.015,-1.2,1.5)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if st.drag and (input.UserInputType == _M1 or input.UserInputType == _TT) then
+st.drag=false
+end
+end)
+]===]
+local fn,cerr=loadstring(src)
+if not fn then
+warn("Tilo shop compile: " .. tostring(cerr))
+pcall(showToast,"Магазин: ошибка компиляции: " .. tostring(cerr),9,true)
+return
+end
+local ok,err=pcall(fn,ScreenGui,MainFrame,ThemeExtra,_I,_U,_V,_C,_Cr,_St,_W,_PU,_FB,_FN,_XL,_TT,_M1,_MM,TweenService,UserInputService,HttpService,LocalPlayer,showToast)
+if not ok then
+warn("Tilo shop: " .. tostring(err))
+pcall(showToast,"Магазин: ошибка: " .. tostring(err),9,true)
+end
+end)
+end
+do
 local entries={
+{"v2.7.24","Магазин (первый этап), исправлен выбор цвета, плашка питомцев выше","• Кнопка «Магазин» слева от главного окна: объёмная комната с лавкой, доской предметов на верёвках и продавцом Till555 (внешность берётся с аккаунта)\n• Продавец жестикулирует и говорит; при первом заходе рассказывает о магазине, кнопка «Вступление заново» повторяет рассказ\n• Камера в магазине слегка двигается за пальцем\n• Предметы на полках пока только оформление, музыка, тилокоины и покупки добавятся позже\n• Выбор цвета питомца собран из плашек без градиентов: теперь виден квадрат яркости и полоса оттенков\n• Плашка «Питомцы» поднята на уровень верха главного окна\n• Остальное как в 2.7.23"},
 {"v2.7.23","Редактирование питомцев, камера конструктора, телепорт","• Кнопка «Редактировать» вместо «Покрасить»: изменить этого питомца, точная копия или новый на основе этого\n• Копии и импортированные питомцы помечены значком 📄 у имени\n• Конструктор: поворот камеры пальцем и зум, толщина хвоста, «Кроличьи» уши, длиннее «Длинный» хвост\n• Питомец телепортируется к вам, если упал вниз или отстал\n• Окно «Питомцы» поднято выше\n• Выбор цвета: починка чёрной области в конструкторе\n• Остальное как в 2.7.22"},
 {"v2.7.22","Конструктор питомца, первый этап","• «Получить питомца» открывает конструктор: слева категории, справа вращающийся предпросмотр\n• Категории: глаза, уши, мордочка, хвост, тело, по 3 варианта\n• Двухцветные детали: белок и зрачок, уши снаружи и внутри, мордочка и нос\n• Название питомца и кнопка «Готово»\n• Пока конструктор открыт, остальные окна скрыты, черновик сохраняется\n• Старые питомцы остаются с обычными частями"},
 {"v2.7.21","Защита запуска: питомцы грузятся отдельно","• Модуль питомцев загружается отдельно: если в нём ошибка, скрипт всё равно запускается, а текст ошибки показывается плашкой\n• Уведомление, когда питомец получает новый уровень\n• Остальное как в 2.7.20"},
@@ -6928,7 +7405,7 @@ local HeadTitle=_I("TextLabel",WhatsNewHead)
 HeadTitle.Size=_U(1,-16,0,24)
 HeadTitle.Position=_U(0,8,0,4)
 HeadTitle.BackgroundTransparency=1
-HeadTitle.Text="🎉 Новое в v2.7.23"
+HeadTitle.Text="🎉 Новое в v2.7.24"
 HeadTitle.TextColor3=_W
 HeadTitle.Font=_FB
 HeadTitle.TextSize=16
